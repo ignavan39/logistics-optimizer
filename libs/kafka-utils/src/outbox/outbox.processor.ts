@@ -30,7 +30,7 @@ export class OutboxProcessor implements OnApplicationShutdown {
     private readonly dataSource: DataSource,
     @Inject('KAFKA_CLIENT')
     private readonly kafkaClient: ClientKafka,
-  ) {}
+  ) { }
 
   onApplicationBootstrap(): void {
     this.start();

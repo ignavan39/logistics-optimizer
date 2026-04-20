@@ -198,7 +198,7 @@ export class OrderService {
     });
   }
 
-  // ── State machine ─────────────────────────────────────────────
+  
 
   private readonly VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
     [OrderStatus.PENDING]:    [OrderStatus.ASSIGNED, OrderStatus.CANCELLED, OrderStatus.FAILED],

@@ -11,7 +11,7 @@ const logger = new Logger('Bootstrap');
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
-  // ── gRPC (live position streaming to api-gateway clients) ────
+  
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
     options: {
@@ -21,8 +21,7 @@ async function bootstrap(): Promise<void> {
     },
   });
 
-  // ── Kafka consumer — high-throughput telemetry ingest ────────
-  // vehicle.telemetry topic has 12 partitions → 12 consumers in group
+  
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
     options: {

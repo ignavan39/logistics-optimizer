@@ -9,13 +9,11 @@ import { OutboxEventEntity } from './order/entities/outbox-event.entity';
 
 @Module({
   imports: [
-    // ── Config ──────────────────────────────────────────────────
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
     }),
 
-    // ── Database ─────────────────────────────────────────────────
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
@@ -40,7 +38,6 @@ import { OutboxEventEntity } from './order/entities/outbox-event.entity';
       }),
     }),
 
-    // ── Feature modules ──────────────────────────────────────────
     OrderModule,
     HealthModule,
     MetricsModule,

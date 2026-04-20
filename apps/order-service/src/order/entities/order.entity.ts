@@ -35,7 +35,7 @@ export class OrderEntity {
   @Index()
   customerId!: string;
 
-  // ── Origin ────────────────────────────────────────────────────
+  
   @Column({ name: 'origin_lat', type: 'numeric', precision: 10, scale: 7 })
   originLat!: number;
 
@@ -45,7 +45,7 @@ export class OrderEntity {
   @Column({ name: 'origin_address', nullable: true })
   originAddress?: string;
 
-  // ── Destination ───────────────────────────────────────────────
+  
   @Column({ name: 'destination_lat', type: 'numeric', precision: 10, scale: 7 })
   destinationLat!: number;
 
@@ -55,7 +55,7 @@ export class OrderEntity {
   @Column({ name: 'destination_address', nullable: true })
   destinationAddress?: string;
 
-  // ── Status & Priority ─────────────────────────────────────────
+  
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   @Index()
   status!: OrderStatus;
@@ -63,7 +63,7 @@ export class OrderEntity {
   @Column({ type: 'enum', enum: OrderPriority, default: OrderPriority.NORMAL })
   priority!: OrderPriority;
 
-  // ── Cargo ─────────────────────────────────────────────────────
+  
   @Column({ name: 'weight_kg', type: 'numeric', precision: 8, scale: 2, default: 0 })
   weightKg!: number;
 
@@ -73,7 +73,7 @@ export class OrderEntity {
   @Column({ nullable: true, type: 'text' })
   notes?: string;
 
-  // ── Assignment ────────────────────────────────────────────────
+  
   @Column({ name: 'vehicle_id', nullable: true })
   vehicleId?: string;
 
@@ -83,11 +83,11 @@ export class OrderEntity {
   @Column({ name: 'route_id', nullable: true })
   routeId?: string;
 
-  // ── SLA ───────────────────────────────────────────────────────
+  
   @Column({ name: 'sla_deadline', type: 'timestamptz', nullable: true })
   slaDeadline?: Date;
 
-  // ── Audit ─────────────────────────────────────────────────────
+  
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 
