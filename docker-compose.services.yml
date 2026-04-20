@@ -1,4 +1,6 @@
-version: '3.9'
+networks:
+  logistics-net:
+    external: true
 
 x-service-common: &service-common
   build:
