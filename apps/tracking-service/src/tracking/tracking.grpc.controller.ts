@@ -1,7 +1,6 @@
 import { Controller, Logger } from '@nestjs/common';
 import { GrpcMethod, GrpcStreamMethod } from '@nestjs/microservices';
-import { Observable, Subject, interval } from 'rxjs';
-import { map, takeUntil, switchMap } from 'rxjs/operators';
+import { Observable, Subject } from 'rxjs';
 import { TrackingBatchWriter } from './batch/tracking-batch-writer';
 import { TrackingMetrics } from '../metrics/tracking.metrics';
 import { InjectDataSource } from '@nestjs/typeorm';

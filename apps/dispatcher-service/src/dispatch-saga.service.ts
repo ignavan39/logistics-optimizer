@@ -29,10 +29,32 @@ export interface DispatchSaga {
 }
 
 export interface SagaStep {
-  name: string;
-  status: 'pending' | 'completed' | 'failed' | 'compensated';
-  error?: string;
-  executedAt?: Date;
+  name: string
+  status: 'pending' | 'completed' | 'failed' | 'compensated'
+  error?: string
+  executedAt?: Date
+}
+
+interface GetOrderResponse {
+  order_id: string
+  customer_id: string
+  origin: { lat: number; lng: number }
+  destination: { lat: number; lng: number }
+  weight_kg: number
+  volume_m3: number
+}
+
+interface GetVehiclesResponse {
+  vehicles: Array<{ id: string }>
+}
+
+interface CalculateRouteResponse {
+  route_id: string
+}
+
+interface AssignVehicleResponse {
+  success: boolean
+  message?: string
 }
 
 const GRPC_TIMEOUT_MS = 5_000;
@@ -90,18 +112,18 @@ export class DispatchSagaService {
     return saga;
   }
 
-  private async execute(saga: DispatchSaga): Promise<void> {
+private async execute(saga: DispatchSaga): Promise<void> {
     try {
-      const orderSvc = this.orderClient.getService<any>('OrderService');
+      const orderSvc = this.orderClient.getService<any>('OrderService')
       const order = await firstValueFrom(
         orderSvc.getOrder({ order_id: saga.orderId }).pipe(
           timeout(GRPC_TIMEOUT_MS),
         )
-      );
-      this.addStep(saga, 'get_order', 'completed');
+      ) as GetOrderResponse
+      this.addStep(saga, 'get_order', 'completed')
 
-      await this.updateSagaStatus(saga, SagaStatus.FINDING_VEHICLE);
-      const fleetSvc = this.fleetClient.getService<any>('FleetService');
+      await this.updateSagaStatus(saga, SagaStatus.FINDING_VEHICLE)
+      const fleetSvc = this.fleetClient.getService<any>('FleetService')
 
       const vehiclesRes = await firstValueFrom(
         fleetSvc.getAvailableVehicles({
@@ -117,13 +139,12 @@ export class DispatchSagaService {
             return throwError(() => err);
           })
         )
-      );
+      ) as GetVehiclesResponse
 
       if (!vehiclesRes.vehicles?.length) {
         throw new Error('No available vehicles found');
       }
 
-      // Pick closest vehicle (first result from fleet-service is already sorted by distance)
       const vehicle = vehiclesRes.vehicles[0];
       this.addStep(saga, 'find_vehicle', 'completed');
       saga.vehicleId = vehicle.id;
@@ -144,18 +165,18 @@ export class DispatchSagaService {
             return throwError(() => err);
           })
         )
-      );
+      ) as CalculateRouteResponse;
 
       this.addStep(saga, 'calculate_route', 'completed');
-      saga.routeId = route.id;
+      saga.routeId = route.route_id;
 
       const assignRes = await firstValueFrom(
         fleetSvc.assignVehicle({
           vehicle_id:       vehicle.id,
           order_id:         saga.orderId,
-          expected_version: vehicle.version, // optimistic lock
+          expected_version: (vehicle as any).version,
         }).pipe(timeout(GRPC_TIMEOUT_MS))
-      );
+      ) as AssignVehicleResponse;
 
       if (!assignRes.success) {
         // Vehicle was taken by concurrent saga — compensate & retry
@@ -178,7 +199,7 @@ export class DispatchSagaService {
 
       await this.updateSagaStatus(saga, SagaStatus.ASSIGNED);
       this.logger.log(
-        `Saga completed: ${saga.sagaId} — order ${saga.orderId} → vehicle ${vehicle.id} route ${route.id}`
+        `Saga completed: ${saga.sagaId} — order ${saga.orderId} → vehicle ${vehicle.id} route ${(route as CalculateRouteResponse).route_id}`
       );
 
     } catch (err) {

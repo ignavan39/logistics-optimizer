@@ -40,7 +40,8 @@ export class TelemetryConsumer {
     // Backpressure: если batch writer перегружен — pause partition
     if (this.batchWriter.isOverloaded()) {
       const consumer = ctx.getConsumer();
-      const { topic, partition } = ctx.getMessage() as { topic: string; partition: number };
+      const msg = ctx.getMessage() as unknown as { topic: string; partition: number }
+      const { topic, partition } = msg
 
       this.logger.warn(
         `Backpressure activated: pausing partition ${partition} — queue size ${this.batchWriter.queueSize}`,
