@@ -26,7 +26,6 @@ COPY apps/tracking-service/package.json   ./apps/tracking-service/
 COPY apps/dispatcher-service/package.json ./apps/dispatcher-service/
 COPY libs/proto/package.json              ./libs/proto/
 COPY libs/kafka-utils/package.json        ./libs/kafka-utils/
-COPY libs/db-utils/package.json           ./libs/db-utils/
 
 RUN pnpm install --frozen-lockfile
 
