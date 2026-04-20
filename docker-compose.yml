@@ -1,0 +1,373 @@
+version: '3.9'
+
+# ============================================================
+# Logistics Route Optimizer — Full Infrastructure Stack
+# Includes: Kafka (KRaft), 5×PostgreSQL+PostGIS, PgBouncer,
+#           Prometheus, Grafana, Jaeger, Kafka UI
+# ============================================================
+
+x-pg-common: &pg-common
+  image: postgis/postgis:16-3.4
+  restart: unless-stopped
+  environment:
+    POSTGRES_USER: ${PG_USER:-logistics}
+    POSTGRES_PASSWORD: ${PG_PASSWORD:-logistics_secret}
+  healthcheck:
+    test: ['CMD-SHELL', 'pg_isready -U ${PG_USER:-logistics}']
+    interval: 10s
+    timeout: 5s
+    retries: 5
+  networks:
+    - logistics-net
+
+x-pgbouncer-common: &pgbouncer-common
+  image: edoburu/pgbouncer:1.22.1
+  restart: unless-stopped
+  environment:
+    DB_USER: ${PG_USER:-logistics}
+    DB_PASSWORD: ${PG_PASSWORD:-logistics_secret}
+    POOL_MODE: transaction
+    MAX_CLIENT_CONN: ${PGBOUNCER_MAX_CLIENT_CONN:-100}
+    DEFAULT_POOL_SIZE: ${PGBOUNCER_DEFAULT_POOL_SIZE:-20}
+    SERVER_RESET_QUERY: DISCARD ALL
+  networks:
+    - logistics-net
+
+services:
+  # ─────────────────────────────────────────────────────────
+  # KAFKA — KRaft mode (no Zookeeper)
+  # ─────────────────────────────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: logistics-kafka
+    restart: unless-stopped
+    ports:
+      - '9092:9092'   # internal broker
+      - '9094:9094'   # external (host access for local dev tools)
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'
+      KAFKA_LISTENERS: >-
+        PLAINTEXT://0.0.0.0:9092,
+        CONTROLLER://0.0.0.0:9093,
+        EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: >-
+        PLAINTEXT://kafka:9092,
+        EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: >-
+        PLAINTEXT:PLAINTEXT,
+        CONTROLLER:PLAINTEXT,
+        EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+      # Performance tuning
+      KAFKA_NUM_PARTITIONS: ${KAFKA_NUM_PARTITIONS:-6}
+      KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-1}
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+      KAFKA_MESSAGE_MAX_BYTES: 10485760
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
+      # JVM
+      KAFKA_HEAP_OPTS: '-Xmx512M -Xms256M'
+      # Metrics for Prometheus (JMX exporter)
+      KAFKA_JMX_PORT: 9999
+      KAFKA_JMX_HOSTNAME: kafka
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ['CMD', 'kafka-broker-api-versions', '--bootstrap-server', 'localhost:9092']
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - logistics-net
+
+  # Kafka UI — визуализация топиков, consumer groups, offsets
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: logistics-kafka-ui
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_METRICS_PORT: 9999
+      AUTH_TYPE: disabled
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - logistics-net
+
+  # Kafka topic initializer — создаёт топики при старте
+  kafka-init:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: logistics-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ['/bin/sh', '-c']
+    command: |
+      "
+      echo 'Waiting for Kafka...'
+      kafka-topics --bootstrap-server kafka:9092 --list
+
+      echo 'Creating topics...'
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
+        --topic order.created --partitions 6 --replication-factor 1
+
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
+        --topic order.updated --partitions 6 --replication-factor 1
+
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
+        --topic order.assigned --partitions 6 --replication-factor 1
+
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
+        --topic order.completed --partitions 6 --replication-factor 1
+
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
+        --topic order.failed --partitions 6 --replication-factor 1
+
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
+        --topic vehicle.status.changed --partitions 6 --replication-factor 1
+
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
+        --topic route.calculated --partitions 6 --replication-factor 1
+
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
+        --topic traffic.incident --partitions 3 --replication-factor 1
+
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
+        --topic vehicle.telemetry --partitions 12 --replication-factor 1 \
+        --config retention.ms=3600000
+
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
+        --topic outbox.order --partitions 6 --replication-factor 1
+
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
+        --topic outbox.dispatcher --partitions 6 --replication-factor 1
+
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
+        --topic vehicle.telemetry.dlq --partitions 3 --replication-factor 1
+
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
+        --topic order.created.dlq --partitions 3 --replication-factor 1
+
+      echo 'Topics created successfully!'
+      kafka-topics --bootstrap-server kafka:9092 --list
+      "
+    networks:
+      - logistics-net
+
+  # ─────────────────────────────────────────────────────────
+  # POSTGRESQL + POSTGIS — по одному инстансу на сервис
+  # ─────────────────────────────────────────────────────────
+  pg-order:
+    <<: *pg-common
+    container_name: logistics-pg-order
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: ${PG_USER:-logistics}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-logistics_secret}
+      POSTGRES_DB: ${ORDER_DB_NAME:-order_db}
+    volumes:
+      - pg-order-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-order.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  pg-fleet:
+    <<: *pg-common
+    container_name: logistics-pg-fleet
+    ports:
+      - '5434:5432'
+    environment:
+      POSTGRES_USER: ${PG_USER:-logistics}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-logistics_secret}
+      POSTGRES_DB: ${FLEET_DB_NAME:-fleet_db}
+    volumes:
+      - pg-fleet-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-fleet.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  pg-routing:
+    <<: *pg-common
+    container_name: logistics-pg-routing
+    ports:
+      - '5435:5432'
+    environment:
+      POSTGRES_USER: ${PG_USER:-logistics}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-logistics_secret}
+      POSTGRES_DB: ${ROUTING_DB_NAME:-routing_db}
+    volumes:
+      - pg-routing-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-routing.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  pg-tracking:
+    <<: *pg-common
+    container_name: logistics-pg-tracking
+    ports:
+      - '5436:5432'
+    environment:
+      POSTGRES_USER: ${PG_USER:-logistics}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-logistics_secret}
+      POSTGRES_DB: ${TRACKING_DB_NAME:-tracking_db}
+    volumes:
+      - pg-tracking-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-tracking.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  pg-dispatcher:
+    <<: *pg-common
+    container_name: logistics-pg-dispatcher
+    ports:
+      - '5437:5432'
+    environment:
+      POSTGRES_USER: ${PG_USER:-logistics}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-logistics_secret}
+      POSTGRES_DB: ${DISPATCHER_DB_NAME:-dispatcher_db}
+    volumes:
+      - pg-dispatcher-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-dispatcher.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  # ─────────────────────────────────────────────────────────
+  # PGBOUNCER — connection pooling per service
+  # ─────────────────────────────────────────────────────────
+  pgbouncer-order:
+    <<: *pgbouncer-common
+    container_name: logistics-pgbouncer-order
+    environment:
+      DB_HOST: pg-order
+      DB_NAME: ${ORDER_DB_NAME:-order_db}
+      DB_USER: ${PG_USER:-logistics}
+      DB_PASSWORD: ${PG_PASSWORD:-logistics_secret}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: ${PGBOUNCER_MAX_CLIENT_CONN:-100}
+      DEFAULT_POOL_SIZE: ${PGBOUNCER_DEFAULT_POOL_SIZE:-20}
+    depends_on:
+      pg-order:
+        condition: service_healthy
+
+  pgbouncer-fleet:
+    <<: *pgbouncer-common
+    container_name: logistics-pgbouncer-fleet
+    environment:
+      DB_HOST: pg-fleet
+      DB_NAME: ${FLEET_DB_NAME:-fleet_db}
+      DB_USER: ${PG_USER:-logistics}
+      DB_PASSWORD: ${PG_PASSWORD:-logistics_secret}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: ${PGBOUNCER_MAX_CLIENT_CONN:-100}
+      DEFAULT_POOL_SIZE: ${PGBOUNCER_DEFAULT_POOL_SIZE:-20}
+    depends_on:
+      pg-fleet:
+        condition: service_healthy
+
+  pgbouncer-tracking:
+    <<: *pgbouncer-common
+    container_name: logistics-pgbouncer-tracking
+    environment:
+      DB_HOST: pg-tracking
+      DB_NAME: ${TRACKING_DB_NAME:-tracking_db}
+      DB_USER: ${PG_USER:-logistics}
+      DB_PASSWORD: ${PG_PASSWORD:-logistics_secret}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 200
+      DEFAULT_POOL_SIZE: 40
+    depends_on:
+      pg-tracking:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────────────────────
+  # OBSERVABILITY STACK
+  # ─────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: logistics-prometheus
+    restart: unless-stopped
+    ports:
+      - '${PROMETHEUS_PORT:-9090}:9090'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - logistics-net
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: logistics-grafana
+    restart: unless-stopped
+    ports:
+      - '${GRAFANA_PORT:-3001}:3000'
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_INSTALL_PLUGINS: 'grafana-clock-panel,grafana-simple-json-datasource'
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - logistics-net
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: logistics-jaeger
+    restart: unless-stopped
+    ports:
+      - '16686:16686'  # UI
+      - '4317:4317'    # OTLP gRPC
+      - '4318:4318'    # OTLP HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: 'true'
+      SPAN_STORAGE_TYPE: memory
+      MEMORY_MAX_TRACES: 50000
+    networks:
+      - logistics-net
+
+  # Node Exporter — метрики хоста
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: logistics-node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - logistics-net
+
+# ─────────────────────────────────────────────────────────
+# VOLUMES & NETWORKS
+# ─────────────────────────────────────────────────────────
+volumes:
+  kafka-data:
+  pg-order-data:
+  pg-fleet-data:
+  pg-routing-data:
+  pg-tracking-data:
+  pg-dispatcher-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  logistics-net:
+    driver: bridge
+    name: logistics-net

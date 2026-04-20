@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package dispatcher;
+
+// ─────────────────────────────────────────────────────────────
+// Dispatcher Service — gRPC contract (Saga orchestrator)
+// Used by: api-gateway → dispatcher for manual dispatch triggers
+// ─────────────────────────────────────────────────────────────
+
+service DispatcherService {
+  rpc DispatchOrder (DispatchOrderRequest) returns (DispatchResponse);
+  rpc GetDispatchState (GetDispatchStateRequest) returns (DispatchStateResponse);
+  rpc RetryDispatch (RetryDispatchRequest) returns (DispatchResponse);
+  rpc CancelDispatch (CancelDispatchRequest) returns (DispatchResponse);
+}
+
+enum DispatchStatus {
+  DISPATCH_STATUS_UNSPECIFIED   = 0;
+  DISPATCH_STATUS_PENDING       = 1;
+  DISPATCH_STATUS_FINDING_VEHICLE = 2;
+  DISPATCH_STATUS_CALCULATING_ROUTE = 3;
+  DISPATCH_STATUS_ASSIGNED      = 4;
+  DISPATCH_STATUS_FAILED        = 5;
+  DISPATCH_STATUS_COMPENSATING  = 6; // saga rollback in progress
+  DISPATCH_STATUS_CANCELLED     = 7;
+}
+
+message DispatchOrderRequest {
+  string order_id = 1;
+}
+
+message DispatchResponse {
+  string saga_id    = 1;
+  string order_id   = 2;
+  DispatchStatus status = 3;
+  string message    = 4;
+}
+
+message GetDispatchStateRequest {
+  string saga_id = 1;
+}
+
+message SagaStep {
+  string name     = 1;
+  string status   = 2; // "pending" | "completed" | "failed" | "compensated"
+  string error    = 3;
+  int64  executed_at_unix = 4;
+}
+
+message DispatchStateResponse {
+  string saga_id         = 1;
+  string order_id        = 2;
+  DispatchStatus status  = 3;
+  repeated SagaStep steps = 4;
+  string vehicle_id      = 5;
+  string route_id        = 6;
+  int32  retry_count     = 7;
+  int64  created_at_unix = 8;
+  int64  updated_at_unix = 9;
+}
+
+message RetryDispatchRequest {
+  string saga_id = 1;
+}
+
+message CancelDispatchRequest {
+  string saga_id = 1;
+  string reason  = 2;
+}

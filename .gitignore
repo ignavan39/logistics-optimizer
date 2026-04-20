@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+.nx/cache
+.nx/workspace-data
+coverage/
+tmp/
+*.tsbuildinfo
+*/node_modules
