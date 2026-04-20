@@ -6,11 +6,6 @@ x-service-common: &service-common
     dockerfile: Dockerfile
   restart: unless-stopped
   env_file: .env
-  depends_on:
-    kafka:
-      condition: service_healthy
-    kafka-init:
-      condition: service_completed_successfully
   networks:
     - logistics-net
 
@@ -34,6 +29,13 @@ services:
       GRPC_ROUTING_HOST: routing-service:50053
       GRPC_TRACKING_HOST: tracking-service:50054
       GRPC_DISPATCHER_HOST: dispatcher-service:50055
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      order-service:
+        condition: service_started
 
   order-service:
     <<: *service-common
@@ -45,7 +47,10 @@ services:
       GRPC_ORDER_PORT: 50051
       ORDER_DB_HOST: pgbouncer-order
     depends_on:
-      <<: *service-common
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
       pg-order:
         condition: service_healthy
 
@@ -59,6 +64,10 @@ services:
       GRPC_FLEET_PORT: 50052
       FLEET_DB_HOST: pgbouncer-fleet
     depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
       pg-fleet:
         condition: service_healthy
 
@@ -70,7 +79,14 @@ services:
       SERVICE_NAME: routing-service
       HTTP_METRICS_PORT: 9464
       GRPC_ROUTING_PORT: 50053
-      ROUTING_DB_HOST: pg-routing
+      ROUTING_DB_HOST: pgbouncer-routing
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      pg-routing:
+        condition: service_healthy
 
   tracking-service:
     <<: *service-common
@@ -84,6 +100,10 @@ services:
       TRACKING_BATCH_SIZE: 500
       TRACKING_BATCH_TIMEOUT_MS: 200
     depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
       pg-tracking:
         condition: service_healthy
 
@@ -100,6 +120,10 @@ services:
       GRPC_FLEET_HOST: fleet-service:50052
       GRPC_ROUTING_HOST: routing-service:50053
     depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
       pg-dispatcher:
         condition: service_healthy
       order-service:
