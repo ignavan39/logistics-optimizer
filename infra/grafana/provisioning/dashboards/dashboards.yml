@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'Logistics Optimizer'
+    orgId: 1
+    folder: 'Logistics'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

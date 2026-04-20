@@ -1,0 +1,155 @@
+version: '3.9'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Application services overlay.
+# Merge with base infra:
+#   docker compose -f docker-compose.yml -f docker-compose.services.yml up
+#
+# In development, use the base docker-compose.yml for infra only
+# and run services locally with `pnpm --filter @logistics/xxx start:dev`
+# ─────────────────────────────────────────────────────────────────────────────
+
+x-service-common: &service-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  env_file: .env
+  depends_on:
+    kafka:
+      condition: service_healthy
+    kafka-init:
+      condition: service_completed_successfully
+  networks:
+    - logistics-net
+
+services:
+  api-gateway:
+    <<: *service-common
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: api-gateway
+    ports:
+      - '${HTTP_GATEWAY_PORT:-3000}:3000'
+      - '9464:9464'
+    environment:
+      SERVICE_NAME: api-gateway
+      HTTP_PORT: 3000
+      HTTP_METRICS_PORT: 9464
+      GRPC_ORDER_HOST: order-service:50051
+      GRPC_FLEET_HOST: fleet-service:50052
+      GRPC_ROUTING_HOST: routing-service:50053
+      GRPC_TRACKING_HOST: tracking-service:50054
+      GRPC_DISPATCHER_HOST: dispatcher-service:50055
+
+  order-service:
+    <<: *service-common
+    build:
+      args: { SERVICE: order-service }
+    environment:
+      SERVICE_NAME: order-service
+      HTTP_METRICS_PORT: 9464
+      GRPC_ORDER_PORT: 50051
+      ORDER_DB_HOST: pgbouncer-order
+    depends_on:
+      <<: *service-common
+      pg-order:
+        condition: service_healthy
+
+  fleet-service:
+    <<: *service-common
+    build:
+      args: { SERVICE: fleet-service }
+    environment:
+      SERVICE_NAME: fleet-service
+      HTTP_METRICS_PORT: 9464
+      GRPC_FLEET_PORT: 50052
+      FLEET_DB_HOST: pgbouncer-fleet
+    depends_on:
+      pg-fleet:
+        condition: service_healthy
+
+  routing-service:
+    <<: *service-common
+    build:
+      args: { SERVICE: routing-service }
+    environment:
+      SERVICE_NAME: routing-service
+      HTTP_METRICS_PORT: 9464
+      GRPC_ROUTING_PORT: 50053
+      ROUTING_DB_HOST: pg-routing  # routing uses PG directly (CPU-bound, no pool needed)
+
+  tracking-service:
+    <<: *service-common
+    build:
+      args: { SERVICE: tracking-service }
+    environment:
+      SERVICE_NAME: tracking-service
+      HTTP_METRICS_PORT: 9464
+      GRPC_TRACKING_PORT: 50054
+      TRACKING_DB_HOST: pgbouncer-tracking
+      TRACKING_BATCH_SIZE: 500
+      TRACKING_BATCH_TIMEOUT_MS: 200
+    depends_on:
+      pg-tracking:
+        condition: service_healthy
+
+  dispatcher-service:
+    <<: *service-common
+    build:
+      args: { SERVICE: dispatcher-service }
+    environment:
+      SERVICE_NAME: dispatcher-service
+      HTTP_METRICS_PORT: 9464
+      GRPC_DISPATCHER_PORT: 50055
+      DISPATCHER_DB_HOST: pgbouncer-dispatcher
+      GRPC_ORDER_HOST: order-service:50051
+      GRPC_FLEET_HOST: fleet-service:50052
+      GRPC_ROUTING_HOST: routing-service:50053
+    depends_on:
+      pg-dispatcher:
+        condition: service_healthy
+      order-service:
+        condition: service_started
+      fleet-service:
+        condition: service_started
+      routing-service:
+        condition: service_started
+
+  # GPS Telemetry Simulator (optional — for load testing)
+  telemetry-sim:
+    image: node:20-alpine
+    working_dir: /app
+    command: node telemetry-sim.js
+    volumes:
+      - ./infra/telemetry-sim:/app:ro
+    environment:
+      KAFKA_BROKER: kafka:9092
+      SIM_VEHICLE_COUNT: ${SIM_VEHICLE_COUNT:-300}
+      SIM_TELEMETRY_HZ: ${SIM_TELEMETRY_HZ:-2}
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    networks:
+      - logistics-net
+    profiles:
+      - simulation   # only starts with: docker compose --profile simulation up
+
+  # Traffic Simulator
+  traffic-sim:
+    image: node:20-alpine
+    working_dir: /app
+    command: node traffic-sim.js
+    volumes:
+      - ./infra/traffic-sim:/app:ro
+    environment:
+      KAFKA_BROKER: kafka:9092
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    networks:
+      - logistics-net
+    profiles:
+      - simulation

@@ -1,0 +1,58 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'logistics-optimizer'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:9464']
+    metrics_path: /metrics
+
+  - job_name: 'order-service'
+    static_configs:
+      - targets: ['order-service:9464']
+    metrics_path: /metrics
+
+  - job_name: 'fleet-service'
+    static_configs:
+      - targets: ['fleet-service:9464']
+    metrics_path: /metrics
+
+  - job_name: 'routing-service'
+    static_configs:
+      - targets: ['routing-service:9464']
+    metrics_path: /metrics
+
+  - job_name: 'tracking-service'
+    static_configs:
+      - targets: ['tracking-service:9464']
+    metrics_path: /metrics
+
+  - job_name: 'dispatcher-service'
+    static_configs:
+      - targets: ['dispatcher-service:9464']
+    metrics_path: /metrics
+
+  # Kafka JMX via kafka-exporter
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka:9999']
+
+  # PostgreSQL exporters
+  - job_name: 'postgres-order'
+    static_configs:
+      - targets: ['pg-order:5432']
+
+  - job_name: 'postgres-tracking'
+    static_configs:
+      - targets: ['pg-tracking:5432']

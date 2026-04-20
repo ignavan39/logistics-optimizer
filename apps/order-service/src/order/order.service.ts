@@ -1,0 +1,221 @@
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
+import { OrderEntity, OrderStatus, OrderPriority } from './entities/order.entity';
+import { OutboxEventEntity } from './entities/outbox-event.entity';
+
+export interface CreateOrderDto {
+  customerId: string;
+  originLat: number;
+  originLng: number;
+  originAddress?: string;
+  destinationLat: number;
+  destinationLng: number;
+  destinationAddress?: string;
+  priority?: OrderPriority;
+  weightKg?: number;
+  volumeM3?: number;
+  notes?: string;
+  slaDeadline?: Date;
+}
+
+export interface UpdateOrderStatusDto {
+  orderId: string;
+  status: OrderStatus;
+  reason?: string;
+  updatedBy?: string;
+}
+
+@Injectable()
+export class OrderService {
+  private readonly logger = new Logger(OrderService.name);
+
+  constructor(
+    @InjectRepository(OrderEntity)
+    private readonly orderRepo: Repository<OrderEntity>,
+
+    @InjectRepository(OutboxEventEntity)
+    private readonly outboxRepo: Repository<OutboxEventEntity>,
+
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
+  ) {}
+
+  /**
+   * Создаёт заказ и атомарно записывает событие order.created в outbox.
+   * Гарантия: либо оба действия выполнены, либо ни одного.
+   */
+  async createOrder(dto: CreateOrderDto): Promise<OrderEntity> {
+    return this.dataSource.transaction(async (manager) => {
+      // 1. Создать заказ
+      const order = manager.create(OrderEntity, {
+        customerId: dto.customerId,
+        originLat: dto.originLat,
+        originLng: dto.originLng,
+        originAddress: dto.originAddress,
+        destinationLat: dto.destinationLat,
+        destinationLng: dto.destinationLng,
+        destinationAddress: dto.destinationAddress,
+        priority: dto.priority ?? OrderPriority.NORMAL,
+        weightKg: dto.weightKg ?? 0,
+        volumeM3: dto.volumeM3 ?? 0,
+        notes: dto.notes,
+        slaDeadline: dto.slaDeadline,
+        status: OrderStatus.PENDING,
+      });
+
+      const saved = await manager.save(OrderEntity, order);
+
+      // 2. Атомарно записать событие в outbox (та же транзакция!)
+      await manager.save(OutboxEventEntity, {
+        id: uuidv4(),
+        aggregateType: 'order',
+        aggregateId: saved.id,
+        eventType: 'order.created',
+        payload: {
+          eventId: uuidv4(),
+          source: 'order-service',
+          type: 'order.created',
+          aggregateId: saved.id,
+          occurredAt: new Date().toISOString(),
+          version: 1,
+          payload: {
+            orderId: saved.id,
+            customerId: saved.customerId,
+            origin: { lat: saved.originLat, lng: saved.originLng, address: saved.originAddress },
+            destination: { lat: saved.destinationLat, lng: saved.destinationLng, address: saved.destinationAddress },
+            priority: saved.priority,
+            weightKg: saved.weightKg,
+            volumeM3: saved.volumeM3,
+            slaDeadline: saved.slaDeadline?.toISOString(),
+          },
+        },
+      });
+
+      this.logger.log(`Order created: ${saved.id} for customer ${saved.customerId}`);
+      return saved;
+    });
+  }
+
+  async getOrder(orderId: string): Promise<OrderEntity> {
+    const order = await this.orderRepo.findOne({ where: { id: orderId } });
+    if (!order) throw new NotFoundException(`Order ${orderId} not found`);
+    return order;
+  }
+
+  async listOrders(
+    customerId: string,
+    status?: OrderStatus,
+    page = 1,
+    limit = 20,
+  ): Promise<{ orders: OrderEntity[]; total: number }> {
+    const qb = this.orderRepo
+      .createQueryBuilder('o')
+      .where('o.customer_id = :customerId', { customerId });
+
+    if (status) qb.andWhere('o.status = :status', { status });
+
+    const [orders, total] = await qb
+      .orderBy('o.created_at', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return { orders, total };
+  }
+
+  /**
+   * Обновляет статус заказа с оптимистичной блокировкой.
+   * При конфликте версии бросает ConflictException.
+   */
+  async updateOrderStatus(dto: UpdateOrderStatusDto): Promise<OrderEntity> {
+    return this.dataSource.transaction(async (manager) => {
+      const order = await manager.findOne(OrderEntity, {
+        where: { id: dto.orderId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!order) throw new NotFoundException(`Order ${dto.orderId} not found`);
+
+      // Validate state machine transition
+      this.validateTransition(order.status, dto.status);
+
+      const prevStatus = order.status;
+      order.status = dto.status;
+
+      const updated = await manager.save(OrderEntity, order);
+
+      // Write event to outbox
+      await manager.save(OutboxEventEntity, {
+        id: uuidv4(),
+        aggregateType: 'order',
+        aggregateId: updated.id,
+        eventType: 'order.updated',
+        payload: {
+          eventId: uuidv4(),
+          source: dto.updatedBy ?? 'order-service',
+          type: 'order.updated',
+          aggregateId: updated.id,
+          occurredAt: new Date().toISOString(),
+          version: 1,
+          payload: {
+            orderId: updated.id,
+            previousStatus: prevStatus,
+            newStatus: updated.status,
+            reason: dto.reason,
+          },
+        },
+      });
+
+      this.logger.log(
+        `Order ${updated.id} status: ${prevStatus} → ${dto.status} (by ${dto.updatedBy ?? 'system'})`,
+      );
+
+      return updated;
+    });
+  }
+
+  async cancelOrder(orderId: string, reason: string): Promise<OrderEntity> {
+    const order = await this.getOrder(orderId);
+
+    if ([OrderStatus.DELIVERED, OrderStatus.CANCELLED].includes(order.status)) {
+      throw new ConflictException(
+        `Cannot cancel order in status: ${order.status}`,
+      );
+    }
+
+    return this.updateOrderStatus({
+      orderId,
+      status: OrderStatus.CANCELLED,
+      reason,
+      updatedBy: 'customer',
+    });
+  }
+
+  // ── State machine ─────────────────────────────────────────────
+
+  private readonly VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+    [OrderStatus.PENDING]:    [OrderStatus.ASSIGNED, OrderStatus.CANCELLED, OrderStatus.FAILED],
+    [OrderStatus.ASSIGNED]:   [OrderStatus.PICKED_UP, OrderStatus.CANCELLED, OrderStatus.FAILED],
+    [OrderStatus.PICKED_UP]:  [OrderStatus.IN_TRANSIT, OrderStatus.FAILED],
+    [OrderStatus.IN_TRANSIT]: [OrderStatus.DELIVERED, OrderStatus.FAILED],
+    [OrderStatus.DELIVERED]:  [],
+    [OrderStatus.FAILED]:     [OrderStatus.PENDING], // retry
+    [OrderStatus.CANCELLED]:  [],
+  };
+
+  private validateTransition(from: OrderStatus, to: OrderStatus): void {
+    const allowed = this.VALID_TRANSITIONS[from];
+    if (!allowed.includes(to)) {
+      throw new ConflictException(
+        `Invalid status transition: ${from} → ${to}. Allowed: [${allowed.join(', ')}]`,
+      );
+    }
+  }
+}

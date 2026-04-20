@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package order;
+
+option java_multiple_files = true;
+
+// ─────────────────────────────────────────────────────────────
+// Order Service — gRPC contract
+// Used by: api-gateway → order-service, dispatcher-service → order-service
+// ─────────────────────────────────────────────────────────────
+
+service OrderService {
+  rpc CreateOrder (CreateOrderRequest) returns (OrderResponse);
+  rpc GetOrder (GetOrderRequest) returns (OrderResponse);
+  rpc ListOrders (ListOrdersRequest) returns (ListOrdersResponse);
+  rpc UpdateOrderStatus (UpdateOrderStatusRequest) returns (OrderResponse);
+  rpc CancelOrder (CancelOrderRequest) returns (OrderResponse);
+}
+
+// ── Enums ──
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING     = 1;
+  ORDER_STATUS_ASSIGNED    = 2;
+  ORDER_STATUS_PICKED_UP   = 3;
+  ORDER_STATUS_IN_TRANSIT  = 4;
+  ORDER_STATUS_DELIVERED   = 5;
+  ORDER_STATUS_FAILED      = 6;
+  ORDER_STATUS_CANCELLED   = 7;
+}
+
+enum OrderPriority {
+  ORDER_PRIORITY_NORMAL   = 0;
+  ORDER_PRIORITY_HIGH     = 1;
+  ORDER_PRIORITY_CRITICAL = 2;
+}
+
+// ── Messages ──
+
+message GeoPoint {
+  double lat = 1;
+  double lng = 2;
+  string address = 3;
+}
+
+message CreateOrderRequest {
+  string customer_id  = 1;
+  GeoPoint origin     = 2;
+  GeoPoint destination = 3;
+  OrderPriority priority = 4;
+  double weight_kg    = 5;
+  double volume_m3    = 6;
+  string notes        = 7;
+  int64 sla_deadline_unix = 8; // unix timestamp
+}
+
+message GetOrderRequest {
+  string order_id = 1;
+}
+
+message ListOrdersRequest {
+  string customer_id = 1;
+  OrderStatus status = 2;
+  int32 page  = 3;
+  int32 limit = 4;
+}
+
+message UpdateOrderStatusRequest {
+  string order_id    = 1;
+  OrderStatus status = 2;
+  string reason      = 3;
+  string updated_by  = 4; // service name for audit
+}
+
+message CancelOrderRequest {
+  string order_id = 1;
+  string reason   = 2;
+}
+
+message OrderResponse {
+  string id           = 1;
+  string customer_id  = 2;
+  GeoPoint origin     = 3;
+  GeoPoint destination = 4;
+  OrderStatus status  = 5;
+  OrderPriority priority = 6;
+  double weight_kg    = 7;
+  double volume_m3    = 8;
+  string notes        = 9;
+  string vehicle_id   = 10;
+  string driver_id    = 11;
+  string route_id     = 12;
+  int64 sla_deadline_unix = 13;
+  int64 created_at_unix   = 14;
+  int64 updated_at_unix   = 15;
+  int32 version           = 16; // optimistic locking
+}
+
+message ListOrdersResponse {
+  repeated OrderResponse orders = 1;
+  int32 total = 2;
+  int32 page  = 3;
+}

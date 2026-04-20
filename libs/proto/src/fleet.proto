@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package fleet;
+
+// ─────────────────────────────────────────────────────────────
+// Fleet Service — gRPC contract
+// Used by: dispatcher-service → fleet-service, api-gateway → fleet-service
+// ─────────────────────────────────────────────────────────────
+
+service FleetService {
+  rpc GetVehicle (GetVehicleRequest) returns (VehicleResponse);
+  rpc ListAvailableVehicles (ListAvailableVehiclesRequest) returns (ListVehiclesResponse);
+  rpc ReserveVehicle (ReserveVehicleRequest) returns (ReserveVehicleResponse);
+  rpc ReleaseVehicle (ReleaseVehicleRequest) returns (VehicleResponse);
+  rpc UpdateVehicleStatus (UpdateVehicleStatusRequest) returns (VehicleResponse);
+  rpc GetDriver (GetDriverRequest) returns (DriverResponse);
+}
+
+enum VehicleStatus {
+  VEHICLE_STATUS_UNSPECIFIED = 0;
+  VEHICLE_STATUS_AVAILABLE   = 1;
+  VEHICLE_STATUS_RESERVED    = 2;
+  VEHICLE_STATUS_EN_ROUTE    = 3;
+  VEHICLE_STATUS_MAINTENANCE = 4;
+  VEHICLE_STATUS_OFFLINE     = 5;
+}
+
+enum VehicleType {
+  VEHICLE_TYPE_MOTORCYCLE = 0;
+  VEHICLE_TYPE_CAR        = 1;
+  VEHICLE_TYPE_VAN        = 2;
+  VEHICLE_TYPE_TRUCK      = 3;
+}
+
+message GeoPoint {
+  double lat = 1;
+  double lng = 2;
+}
+
+message GetVehicleRequest {
+  string vehicle_id = 1;
+}
+
+message ListAvailableVehiclesRequest {
+  GeoPoint near_location  = 1;
+  double radius_km        = 2;
+  double min_capacity_kg  = 3;
+  double min_volume_m3    = 4;
+  VehicleType type        = 5;
+  int32 limit             = 6;
+}
+
+message ReserveVehicleRequest {
+  string vehicle_id = 1;
+  string order_id   = 2;
+  // Optimistic lock — must match current version
+  int32 version     = 3;
+}
+
+message ReserveVehicleResponse {
+  bool success      = 1;
+  string vehicle_id = 2;
+  string conflict_reason = 3; // populated if success=false
+  int32 version     = 4;
+}
+
+message ReleaseVehicleRequest {
+  string vehicle_id = 1;
+  string order_id   = 2;
+}
+
+message UpdateVehicleStatusRequest {
+  string vehicle_id    = 1;
+  VehicleStatus status = 2;
+  GeoPoint location    = 3;
+}
+
+message GetDriverRequest {
+  string driver_id = 1;
+}
+
+message VehicleResponse {
+  string id             = 1;
+  string plate          = 2;
+  VehicleType type      = 3;
+  VehicleStatus status  = 4;
+  double capacity_kg    = 5;
+  double volume_m3      = 6;
+  GeoPoint location     = 7;
+  string driver_id      = 8;
+  string current_order_id = 9;
+  int32 version         = 10;
+  int64 updated_at_unix = 11;
+}
+
+message DriverResponse {
+  string id        = 1;
+  string name      = 2;
+  string phone     = 3;
+  string vehicle_id = 4;
+  bool is_active   = 5;
+  double rating    = 6;
+}
+
+message ListVehiclesResponse {
+  repeated VehicleResponse vehicles = 1;
+  int32 total = 2;
+}
