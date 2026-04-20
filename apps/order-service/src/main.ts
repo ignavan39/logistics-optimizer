@@ -10,7 +10,6 @@ import { AppModule } from './app.module';
 const logger = new Logger('Bootstrap');
 
 async function bootstrap(): Promise<void> {
-  // ── HTTP server (metrics + health endpoint) ──────────────────
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   app.useGlobalPipes(
@@ -21,7 +20,6 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  // ── gRPC microservice ─────────────────────────────────────────
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
     options: {
@@ -38,7 +36,6 @@ async function bootstrap(): Promise<void> {
     },
   });
 
-  // ── Kafka microservice (consumer) ─────────────────────────────
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
     options: {

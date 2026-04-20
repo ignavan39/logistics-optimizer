@@ -92,7 +92,6 @@ export class DispatchSagaService {
 
   private async execute(saga: DispatchSaga): Promise<void> {
     try {
-      // ── Step 1: Get order details ───────────────────────────
       const orderSvc = this.orderClient.getService<any>('OrderService');
       const order = await firstValueFrom(
         orderSvc.getOrder({ order_id: saga.orderId }).pipe(
@@ -101,7 +100,6 @@ export class DispatchSagaService {
       );
       this.addStep(saga, 'get_order', 'completed');
 
-      // ── Step 2: Find available vehicle ──────────────────────
       await this.updateSagaStatus(saga, SagaStatus.FINDING_VEHICLE);
       const fleetSvc = this.fleetClient.getService<any>('FleetService');
 
@@ -130,7 +128,6 @@ export class DispatchSagaService {
       this.addStep(saga, 'find_vehicle', 'completed');
       saga.vehicleId = vehicle.id;
 
-      // ── Step 3: Calculate route ─────────────────────────────
       await this.updateSagaStatus(saga, SagaStatus.CALCULATING_ROUTE);
       const routingSvc = this.routingClient.getService<any>('RoutingService');
 
@@ -152,7 +149,6 @@ export class DispatchSagaService {
       this.addStep(saga, 'calculate_route', 'completed');
       saga.routeId = route.id;
 
-      // ── Step 4: Assign vehicle (with optimistic locking) ────
       const assignRes = await firstValueFrom(
         fleetSvc.assignVehicle({
           vehicle_id:       vehicle.id,
@@ -169,7 +165,6 @@ export class DispatchSagaService {
 
       this.addStep(saga, 'assign_vehicle', 'completed');
 
-      // ── Step 5: Update order status ─────────────────────────
       await firstValueFrom(
         orderSvc.updateOrderStatus({
           order_id:   saga.orderId,
@@ -181,7 +176,6 @@ export class DispatchSagaService {
 
       this.addStep(saga, 'update_order_status', 'completed');
 
-      // ── Step 6: Complete saga ───────────────────────────────
       await this.updateSagaStatus(saga, SagaStatus.ASSIGNED);
       this.logger.log(
         `Saga completed: ${saga.sagaId} — order ${saga.orderId} → vehicle ${vehicle.id} route ${route.id}`

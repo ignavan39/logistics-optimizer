@@ -1,31 +1,29 @@
 /**
- * k6 Load Test — Logistics Route Optimizer
- * ─────────────────────────────────────────────────────────────
- * Сценарий:
- *   Stage 1 (warm-up):   50 RPS × 30s
- *   Stage 2 (ramp-up):   → 300 RPS × 60s
- *   Stage 3 (sustained): 500 RPS × 120s
- *   Stage 4 (spike):     → 800 RPS × 30s
- *   Stage 5 (cool-down): → 0 RPS × 30s
- *
- * Запуск:
- *   k6 run --env BASE_URL=http://localhost:3000 load-test.js
- *
- */
+k6 Load Test — Logistics Route Optimizer
+
+Сценарий:
+Stage 1 (warm-up):   50 RPS × 30s
+Stage 2 (ramp-up):   → 300 RPS × 60s
+Stage 3 (sustained): 500 RPS × 120s
+Stage 4 (spike):     → 800 RPS × 30s
+Stage 5 (cool-down): → 0 RPS × 30s
+*
+Запуск:
+k6 run --env BASE_URL=http://localhost:3000 load-test.js
+*
+*/
 
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 import { SharedArray } from 'k6/data';
 
-// ── Custom metrics ─────────────────────────────────────────────
-const orderCreated      = new Counter('orders_created');
-const orderFailed       = new Counter('orders_failed');
-const orderLatency      = new Trend('order_create_latency_ms', true);
-const etaLatency        = new Trend('eta_request_latency_ms', true);
-const errorRate         = new Rate('error_rate');
+const orderCreated = new Counter('orders_created');
+const orderFailed = new Counter('orders_failed');
+const orderLatency = new Trend('order_create_latency_ms', true);
+const etaLatency = new Trend('eta_request_latency_ms', true);
+const errorRate = new Rate('error_rate');
 
-// ── Config ─────────────────────────────────────────────────────
 const BASE_URL = __ENV.BASE_URL ?? 'http://localhost:3000';
 
 // Pregenerate customer IDs to simulate realistic load
@@ -43,7 +41,6 @@ function randomCoord() {
   };
 }
 
-// ── Load profile ───────────────────────────────────────────────
 export const options = {
   scenarios: {
     order_creation: {
@@ -53,11 +50,11 @@ export const options = {
       preAllocatedVUs: 100,
       maxVUs: 500,
       stages: [
-        { duration: '30s', target: 50  },   // warm-up
+        { duration: '30s', target: 50 },   // warm-up
         { duration: '60s', target: 300 },   // ramp-up
         { duration: '120s', target: 500 },  // sustained load
         { duration: '30s', target: 800 },   // spike
-        { duration: '30s', target: 0   },   // cool-down
+        { duration: '30s', target: 0 },   // cool-down
       ],
     },
     eta_requests: {
@@ -71,15 +68,14 @@ export const options = {
   },
   thresholds: {
     'http_req_duration{scenario:order_creation}': ['p(95)<200', 'p(99)<500'],
-    'http_req_duration{scenario:eta_requests}':   ['p(95)<150', 'p(99)<300'],
-    'http_req_failed':                            ['rate<0.01'],
-    'error_rate':                                 ['rate<0.01'],
-    'order_create_latency_ms':                    ['p(95)<200'],
-    'eta_latency_ms':                             ['p(95)<150'],
+    'http_req_duration{scenario:eta_requests}': ['p(95)<150', 'p(99)<300'],
+    'http_req_failed': ['rate<0.01'],
+    'error_rate': ['rate<0.01'],
+    'order_create_latency_ms': ['p(95)<200'],
+    'eta_latency_ms': ['p(95)<150'],
   },
 };
 
-// ── Scenario: create order ─────────────────────────────────────
 export default function orderCreation() {
   const customerId = CUSTOMERS[Math.floor(Math.random() * CUSTOMERS.length)];
   const origin = randomCoord();
@@ -109,7 +105,7 @@ export default function orderCreation() {
 
   const ok = check(res, {
     'order created (201)': (r) => r.status === 201,
-    'has order id':        (r) => {
+    'has order id': (r) => {
       try { return !!JSON.parse(r.body).id; } catch { return false; }
     },
   });
@@ -125,7 +121,6 @@ export default function orderCreation() {
   sleep(0.1);
 }
 
-// ── Scenario: ETA requests ─────────────────────────────────────
 export function etaRequests() {
   const vehicleId = `vehicle-${Math.floor(Math.random() * 300).toString().padStart(3, '0')}`;
   const pos = randomCoord();

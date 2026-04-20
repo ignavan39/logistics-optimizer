@@ -110,7 +110,7 @@ export class OrderGrpcController {
     }
   }
 
-  // ── Mappers ──────────────────────────────────────────────────
+  
 
   private toProto(order: import('./entities/order.entity').OrderEntity) {
     return {

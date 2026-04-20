@@ -1,41 +1,38 @@
 #!/usr/bin/env node
 /**
- * GPS Telemetry Simulator
- * ─────────────────────────────────────────────────────────────
- * Эмулирует N машин, движущихся по сетке города.
- * Публикует в Kafka топик vehicle.telemetry с частотой 1-5 Гц.
- *
- * Запуск:
- *   node telemetry-sim.js
- *
- * Переменные окружения:
- *   KAFKA_BROKER      — адрес брокера (default: localhost:9094)
- *   SIM_VEHICLE_COUNT — кол-во машин (default: 300)
- *   SIM_TELEMETRY_HZ  — частота публикации в Гц (default: 2)
- *   SIM_GRID_SIZE     — размер сетки дорог (default: 50)
- *
- * При SIM_VEHICLE_COUNT=300, SIM_TELEMETRY_HZ=2 генерирует ~600 msg/sec.
- * При SIM_VEHICLE_COUNT=3000, SIM_TELEMETRY_HZ=3 → ~9000 msg/sec.
- */
+GPS Telemetry Simulator
+
+Эмулирует N машин, движущихся по сетке города.
+Публикует в Kafka топик vehicle.telemetry с частотой 1-5 Гц.
+*
+Запуск:
+node telemetry-sim.js
+*
+Переменные окружения:
+KAFKA_BROKER      — адрес брокера (default: localhost:9094)
+SIM_VEHICLE_COUNT — кол-во машин (default: 300)
+SIM_TELEMETRY_HZ  — частота публикации в Гц (default: 2)
+SIM_GRID_SIZE     — размер сетки дорог (default: 50)
+*
+При SIM_VEHICLE_COUNT=300, SIM_TELEMETRY_HZ=2 генерирует ~600 msg/sec.
+При SIM_VEHICLE_COUNT=3000, SIM_TELEMETRY_HZ=3 → ~9000 msg/sec.
+*/
 
 const { Kafka, CompressionTypes } = require('kafkajs');
 
-// ── Config ─────────────────────────────────────────────────────
-const BROKER        = process.env.KAFKA_BROKER ?? 'localhost:9094';
+const BROKER = process.env.KAFKA_BROKER ?? 'localhost:9094';
 const VEHICLE_COUNT = parseInt(process.env.SIM_VEHICLE_COUNT ?? '300', 10);
-const HZ            = parseFloat(process.env.SIM_TELEMETRY_HZ ?? '2');
-const GRID_SIZE     = parseInt(process.env.SIM_GRID_SIZE ?? '50', 10);
-const TOPIC         = 'vehicle.telemetry';
-const INTERVAL_MS   = Math.round(1000 / HZ);
-const BATCH_SIZE    = Math.min(VEHICLE_COUNT, 200); // Kafka batch size
+const HZ = parseFloat(process.env.SIM_TELEMETRY_HZ ?? '2');
+const GRID_SIZE = parseInt(process.env.SIM_GRID_SIZE ?? '50', 10);
+const TOPIC = 'vehicle.telemetry';
+const INTERVAL_MS = Math.round(1000 / HZ);
+const BATCH_SIZE = Math.min(VEHICLE_COUNT, 200); // Kafka batch size
 
-// ── City grid bounds (Moscow-like coordinates as default) ──────
 const BOUNDS = {
   minLat: 55.60, maxLat: 55.85,
   minLng: 37.40, maxLng: 37.85,
 };
 
-// ── Vehicle state ──────────────────────────────────────────────
 const { randomUUID } = require('crypto');
 
 class Vehicle {
@@ -98,7 +95,6 @@ class Vehicle {
   }
 }
 
-// ── Main ───────────────────────────────────────────────────────
 async function main() {
   const kafka = new Kafka({
     clientId: 'telemetry-simulator',
