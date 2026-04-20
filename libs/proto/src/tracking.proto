@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package tracking;
+
+// ─────────────────────────────────────────────────────────────
+// Tracking Service — gRPC contract
+// Used by: api-gateway → tracking-service (live position streaming to clients)
+//          tracking-service internal → for live position subscription
+// ─────────────────────────────────────────────────────────────
+
+service TrackingService {
+  rpc GetLatestPosition (GetLatestPositionRequest) returns (PositionResponse);
+  rpc GetTrack (GetTrackRequest) returns (GetTrackResponse);
+
+  // Server-side streaming: клиент подписывается на позицию машины в реальном времени
+  rpc StreamVehiclePosition (StreamVehiclePositionRequest) returns (stream PositionResponse);
+
+  // Bidirectional streaming: водитель шлёт позиции, сервер шлёт команды/подтверждения
+  rpc TrackVehicle (stream TelemetryPoint) returns (stream TrackingCommand);
+}
+
+message TelemetryPoint {
+  string vehicle_id   = 1;
+  double lat          = 2;
+  double lng          = 3;
+  double speed_kmh    = 4;
+  double heading_deg  = 5;
+  double accuracy_m   = 6;
+  int64  recorded_at_unix = 7;
+  map<string, string> metadata = 8;
+}
+
+message PositionResponse {
+  string vehicle_id       = 1;
+  double lat              = 2;
+  double lng              = 3;
+  double speed_kmh        = 4;
+  double heading_deg      = 5;
+  int64  recorded_at_unix = 6;
+  int64  ingested_at_unix = 7;
+}
+
+message GetLatestPositionRequest {
+  string vehicle_id = 1;
+}
+
+message GetTrackRequest {
+  string vehicle_id  = 1;
+  int64  from_unix   = 2;
+  int64  to_unix     = 3;
+  int32  max_points  = 4; // downsampling
+}
+
+message GetTrackResponse {
+  string vehicle_id             = 1;
+  repeated TelemetryPoint points = 2;
+  double total_distance_km      = 3;
+}
+
+message StreamVehiclePositionRequest {
+  string vehicle_id         = 1;
+  int32  update_interval_ms = 2; // how often to push updates
+}
+
+message TrackingCommand {
+  enum CommandType {
+    COMMAND_TYPE_UNSPECIFIED = 0;
+    COMMAND_TYPE_ACK         = 1;
+    COMMAND_TYPE_REROUTE     = 2;
+    COMMAND_TYPE_STOP        = 3;
+    COMMAND_TYPE_HEARTBEAT   = 4;
+  }
+  CommandType type  = 1;
+  string message    = 2;
+  int64  server_time_unix = 3;
+}
