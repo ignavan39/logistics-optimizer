@@ -1,14 +1,5 @@
 version: '3.9'
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Application services overlay.
-# Merge with base infra:
-#   docker compose -f docker-compose.yml -f docker-compose.services.yml up
-#
-# In development, use the base docker-compose.yml for infra only
-# and run services locally with `pnpm --filter @logistics/xxx start:dev`
-# ─────────────────────────────────────────────────────────────────────────────
-
 x-service-common: &service-common
   build:
     context: .
@@ -79,7 +70,7 @@ services:
       SERVICE_NAME: routing-service
       HTTP_METRICS_PORT: 9464
       GRPC_ROUTING_PORT: 50053
-      ROUTING_DB_HOST: pg-routing  # routing uses PG directly (CPU-bound, no pool needed)
+      ROUTING_DB_HOST: pg-routing
 
   tracking-service:
     <<: *service-common
@@ -118,7 +109,6 @@ services:
       routing-service:
         condition: service_started
 
-  # GPS Telemetry Simulator (optional — for load testing)
   telemetry-sim:
     image: node:20-alpine
     working_dir: /app
@@ -135,9 +125,8 @@ services:
     networks:
       - logistics-net
     profiles:
-      - simulation   # only starts with: docker compose --profile simulation up
+      - simulation
 
-  # Traffic Simulator
   traffic-sim:
     image: node:20-alpine
     working_dir: /app

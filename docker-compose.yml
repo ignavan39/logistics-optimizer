@@ -1,11 +1,5 @@
 version: '3.9'
 
-# ============================================================
-# Logistics Route Optimizer — Full Infrastructure Stack
-# Includes: Kafka (KRaft), 5×PostgreSQL+PostGIS, PgBouncer,
-#           Prometheus, Grafana, Jaeger, Kafka UI
-# ============================================================
-
 x-pg-common: &pg-common
   image: postgis/postgis:16-3.4
   restart: unless-stopped
@@ -21,7 +15,7 @@ x-pg-common: &pg-common
     - logistics-net
 
 x-pgbouncer-common: &pgbouncer-common
-  image: edoburu/pgbouncer:1.22.1
+  image: edoburu/pgbouncer:1.18.0
   restart: unless-stopped
   environment:
     DB_USER: ${PG_USER:-logistics}
@@ -34,16 +28,13 @@ x-pgbouncer-common: &pgbouncer-common
     - logistics-net
 
 services:
-  # ─────────────────────────────────────────────────────────
-  # KAFKA — KRaft mode (no Zookeeper)
-  # ─────────────────────────────────────────────────────────
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     container_name: logistics-kafka
     restart: unless-stopped
     ports:
-      - '9092:9092'   # internal broker
-      - '9094:9094'   # external (host access for local dev tools)
+      - '9092:9092'
+      - '9094:9094'
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -62,7 +53,6 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
-      # Performance tuning
       KAFKA_NUM_PARTITIONS: ${KAFKA_NUM_PARTITIONS:-6}
       KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-1}
       KAFKA_MIN_INSYNC_REPLICAS: 1
@@ -71,9 +61,7 @@ services:
       KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
       KAFKA_MESSAGE_MAX_BYTES: 10485760
       KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
-      # JVM
       KAFKA_HEAP_OPTS: '-Xmx512M -Xms256M'
-      # Metrics for Prometheus (JMX exporter)
       KAFKA_JMX_PORT: 9999
       KAFKA_JMX_HOSTNAME: kafka
     volumes:
@@ -87,7 +75,6 @@ services:
     networks:
       - logistics-net
 
-  # Kafka UI — визуализация топиков, consumer groups, offsets
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
     container_name: logistics-kafka-ui
@@ -105,7 +92,6 @@ services:
     networks:
       - logistics-net
 
-  # Kafka topic initializer — создаёт топики при старте
   kafka-init:
     image: confluentinc/cp-kafka:7.6.1
     container_name: logistics-kafka-init
@@ -165,9 +151,6 @@ services:
     networks:
       - logistics-net
 
-  # ─────────────────────────────────────────────────────────
-  # POSTGRESQL + POSTGIS — по одному инстансу на сервис
-  # ─────────────────────────────────────────────────────────
   pg-order:
     <<: *pg-common
     container_name: logistics-pg-order
@@ -233,9 +216,19 @@ services:
       - pg-dispatcher-data:/var/lib/postgresql/data
       - ./infra/postgres/init-dispatcher.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
-  # ─────────────────────────────────────────────────────────
-  # PGBOUNCER — connection pooling per service
-  # ─────────────────────────────────────────────────────────
+  pg-auth:
+    <<: *pg-common
+    container_name: logistics-pg-auth
+    ports:
+      - '5438:5432'
+    environment:
+      POSTGRES_USER: ${PG_USER:-logistics}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-logistics_secret}
+      POSTGRES_DB: ${AUTH_DB_NAME:-auth_db}
+    volumes:
+      - pg-auth-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-auth.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
   pgbouncer-order:
     <<: *pgbouncer-common
     container_name: logistics-pgbouncer-order
@@ -281,9 +274,21 @@ services:
       pg-tracking:
         condition: service_healthy
 
-  # ─────────────────────────────────────────────────────────
-  # OBSERVABILITY STACK
-  # ─────────────────────────────────────────────────────────
+  pgbouncer-auth:
+    <<: *pgbouncer-common
+    container_name: logistics-pgbouncer-auth
+    environment:
+      DB_HOST: pg-auth
+      DB_NAME: ${AUTH_DB_NAME:-auth_db}
+      DB_USER: ${PG_USER:-logistics}
+      DB_PASSWORD: ${PG_PASSWORD:-logistics_secret}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 100
+      DEFAULT_POOL_SIZE: 20
+    depends_on:
+      pg-auth:
+        condition: service_healthy
+
   prometheus:
     image: prom/prometheus:v2.51.2
     container_name: logistics-prometheus
@@ -327,9 +332,9 @@ services:
     container_name: logistics-jaeger
     restart: unless-stopped
     ports:
-      - '16686:16686'  # UI
-      - '4317:4317'    # OTLP gRPC
-      - '4318:4318'    # OTLP HTTP
+      - '16686:16686'
+      - '4317:4317'
+      - '4318:4318'
     environment:
       COLLECTOR_OTLP_ENABLED: 'true'
       SPAN_STORAGE_TYPE: memory
@@ -337,7 +342,6 @@ services:
     networks:
       - logistics-net
 
-  # Node Exporter — метрики хоста
   node-exporter:
     image: prom/node-exporter:v1.7.0
     container_name: logistics-node-exporter
@@ -354,9 +358,6 @@ services:
     networks:
       - logistics-net
 
-# ─────────────────────────────────────────────────────────
-# VOLUMES & NETWORKS
-# ─────────────────────────────────────────────────────────
 volumes:
   kafka-data:
   pg-order-data:
@@ -364,6 +365,7 @@ volumes:
   pg-routing-data:
   pg-tracking-data:
   pg-dispatcher-data:
+  pg-auth-data:
   prometheus-data:
   grafana-data:
 
