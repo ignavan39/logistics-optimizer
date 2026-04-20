@@ -1,0 +1,15 @@
+{
+  "name": "@logistics/proto",
+  "version": "0.0.1",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "protobufjs": "^7.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

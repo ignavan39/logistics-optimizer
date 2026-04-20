@@ -19,7 +19,7 @@ const sdk = new NodeSDK({
     [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]:
       process.env['NODE_ENV'] ?? 'development',
   }),
-  spanProcessor: new SimpleSpanProcessor(exporter),
+  spanProcessor: new SimpleSpanProcessor(exporter) as any,
 });
 
 sdk.start();

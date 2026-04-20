@@ -50,7 +50,7 @@ export class OrderEventsConsumer {
     // Cleanup old entries to prevent memory leak (keep last 10k)
     if (this.processedEvents.size > 10_000) {
       const first = this.processedEvents.values().next().value;
-      this.processedEvents.delete(first);
+      if (first) this.processedEvents.delete(first);
     }
 
     const partition = ctx.getPartition();
