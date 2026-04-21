@@ -12,4 +12,6 @@ module.exports = {
     '^@logistics/proto(.*)$': '<rootDir>/../../libs/proto/src$1',
     '^@logistics/kafka-utils(.*)$': '<rootDir>/../../libs/kafka-utils/src$1',
   },
+  modulePathIgnorePatterns: ['<rootDir>/src/main.spec.ts'],
+  setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
 }
