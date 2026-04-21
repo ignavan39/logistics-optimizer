@@ -10,6 +10,7 @@ import { FleetModule } from './fleet/fleet.module';
 import { RoutingModule } from './routing/routing.module';
 import { TrackingModule } from './tracking/tracking.module';
 import { DispatcherModule } from './dispatcher/dispatcher.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { User, Role, Permission, UserRole, RolePermission, Session, ApiKey, RefreshToken } from './auth/entities';
 
 @Module({
@@ -54,6 +55,7 @@ import { User, Role, Permission, UserRole, RolePermission, Session, ApiKey, Refr
     RoutingModule,
     TrackingModule,
     DispatcherModule,
+    NotificationsModule,
   ],
   providers: [
     {
