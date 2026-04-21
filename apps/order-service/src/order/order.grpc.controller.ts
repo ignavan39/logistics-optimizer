@@ -71,9 +71,20 @@ export class OrderGrpcController {
 
   @GrpcMethod('OrderService', 'ListOrders')
   async listOrders(req: ListOrdersRequest) {
+    const statusMap: Record<number, string> = {
+      1: 'pending',
+      2: 'assigned',
+      3: 'picked_up',
+      4: 'in_transit',
+      5: 'delivered',
+      6: 'failed',
+      7: 'cancelled',
+    }
+    const dbStatus = req.status ? statusMap[req.status] : undefined
+
     const { orders, total } = await this.orderService.listOrders(
-      req.customer_id,
-      req.status ? (req.status as OrderStatus) : undefined,
+      req.customer_id || undefined,
+      dbStatus as OrderStatus | undefined,
       req.page || 1,
       req.limit || 20,
     );
@@ -113,23 +124,37 @@ export class OrderGrpcController {
   
 
   private toProto(order: import('./entities/order.entity').OrderEntity) {
+    const statusMap: Record<string, string> = {
+      pending: 'ORDER_STATUS_PENDING',
+      assigned: 'ORDER_STATUS_ASSIGNED',
+      picked_up: 'ORDER_STATUS_PICKED_UP',
+      in_transit: 'ORDER_STATUS_IN_TRANSIT',
+      delivered: 'ORDER_STATUS_DELIVERED',
+      failed: 'ORDER_STATUS_FAILED',
+      cancelled: 'ORDER_STATUS_CANCELLED',
+    }
+    const priorityMap: Record<string, string> = {
+      normal: 'ORDER_PRIORITY_NORMAL',
+      high: 'ORDER_PRIORITY_HIGH',
+      critical: 'ORDER_PRIORITY_CRITICAL',
+    }
     return {
       id: order.id,
       customer_id: order.customerId,
-      origin: { lat: order.originLat, lng: order.originLng, address: order.originAddress ?? '' },
-      destination: { lat: order.destinationLat, lng: order.destinationLng, address: order.destinationAddress ?? '' },
-      status: order.status.toUpperCase(),
-      priority: order.priority.toUpperCase(),
-      weight_kg: order.weightKg,
-      volume_m3: order.volumeM3,
+      origin: order.originLat != null ? { lat: order.originLat, lng: order.originLng, address: order.originAddress ?? '' } : null,
+      destination: order.destinationLat != null ? { lat: order.destinationLat, lng: order.destinationLng, address: order.destinationAddress ?? '' } : null,
+      status: statusMap[order.status] ?? 'ORDER_STATUS_PENDING',
+      priority: priorityMap[order.priority] ?? 'ORDER_PRIORITY_NORMAL',
+      weight_kg: order.weightKg ?? 0,
+      volume_m3: order.volumeM3 ?? 0,
       notes: order.notes ?? '',
       vehicle_id: order.vehicleId ?? '',
       driver_id: order.driverId ?? '',
       route_id: order.routeId ?? '',
       sla_deadline_unix: order.slaDeadline ? Math.floor(order.slaDeadline.getTime() / 1000) : 0,
-      created_at_unix: Math.floor(order.createdAt.getTime() / 1000),
-      updated_at_unix: Math.floor(order.updatedAt.getTime() / 1000),
-      version: order.version,
+      created_at_unix: order.createdAt ? Math.floor(order.createdAt.getTime() / 1000) : 0,
+      updated_at_unix: order.updatedAt ? Math.floor(order.updatedAt.getTime() / 1000) : 0,
+      version: order.version ?? 0,
     };
   }
 

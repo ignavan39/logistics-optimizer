@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
+import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
+import { OrdersModule } from './orders/orders.module';
 import { User, Role, Permission, UserRole, RolePermission, Session, ApiKey, RefreshToken } from './auth/entities';
 
 @Module({
@@ -10,6 +13,17 @@ import { User, Role, Permission, UserRole, RolePermission, Session, ApiKey, Refr
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
+    }),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: config.get('THROTTLE_TTL', 60000),
+            limit: config.get('THROTTLE_LIMIT', 100),
+          },
+        ],
+      }),
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
@@ -31,6 +45,13 @@ import { User, Role, Permission, UserRole, RolePermission, Session, ApiKey, Refr
       }),
     }),
     AuthModule,
+    OrdersModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}
