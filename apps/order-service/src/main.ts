@@ -23,7 +23,7 @@ async function bootstrap(): Promise<void> {
     transport: Transport.GRPC,
     options: {
       package: 'order',
-      protoPath: join(__dirname, '../../libs/proto/src/order.proto'),
+      protoPath: '/app/libs/proto/src/order.proto',
       url: `0.0.0.0:${process.env['GRPC_ORDER_PORT'] ?? 50051}`,
       loader: {
         keepCase: true,
@@ -61,8 +61,9 @@ async function bootstrap(): Promise<void> {
 
   await app.startAllMicroservices();
 
-  const httpPort = process.env['HTTP_METRICS_PORT'] ?? 9464;
-  await app.listen(httpPort);
+  const httpPort = process.env['HTTP_PORT'] ?? 3011;
+  const httpHost = process.env['HTTP_HOST'] ?? '0.0.0.0';
+  await app.listen(httpPort, httpHost);
 
   logger.log(`Order Service started`);
   logger.log(`gRPC listening on :${process.env['GRPC_ORDER_PORT'] ?? 50051}`);

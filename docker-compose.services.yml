@@ -50,8 +50,12 @@ services:
     <<: *service-common
     build:
       args: { SERVICE: order-service }
+    ports:
+      - '3011:3011'
+      - '9464:9464'
     environment:
       SERVICE_NAME: order-service
+      HTTP_PORT: 3011
       HTTP_METRICS_PORT: 9464
       GRPC_ORDER_PORT: 50051
       ORDER_DB_HOST: pg-order
@@ -67,8 +71,12 @@ services:
     <<: *service-common
     build:
       args: { SERVICE: fleet-service }
+    ports:
+      - '3012:3012'
+      - '9465:9464'
     environment:
       SERVICE_NAME: fleet-service
+      HTTP_PORT: 3012
       HTTP_METRICS_PORT: 9464
       GRPC_FLEET_PORT: 50052
       FLEET_DB_HOST: pg-fleet
@@ -84,8 +92,12 @@ services:
     <<: *service-common
     build:
       args: { SERVICE: routing-service }
+    ports:
+      - '3013:3013'
+      - '9466:9464'
     environment:
       SERVICE_NAME: routing-service
+      HTTP_PORT: 3013
       HTTP_METRICS_PORT: 9464
       GRPC_ROUTING_PORT: 50053
       ROUTING_DB_HOST: pg-routing

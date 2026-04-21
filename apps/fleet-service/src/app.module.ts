@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { FleetGrpcController } from './fleet.grpc.controller'
+import { FleetHttpController } from './fleet.http.controller'
+import { FleetService } from './fleet.service'
+import { VehicleEntity } from './entities/vehicle.entity'
 
 @Module({
   imports: [
@@ -18,6 +21,7 @@ import { FleetGrpcController } from './fleet.grpc.controller'
         username: cfg.get('PG_USER', 'logistics'),
         password: cfg.get('PG_PASSWORD', 'logistics_secret'),
         database: cfg.get('FLEET_DB_NAME', 'fleet_db'),
+        entities: [VehicleEntity],
         synchronize: false,
         logging: cfg.get('NODE_ENV') === 'development',
         extra: {
@@ -26,7 +30,9 @@ import { FleetGrpcController } from './fleet.grpc.controller'
         },
       }),
     }),
+    TypeOrmModule.forFeature([VehicleEntity]),
   ],
-  controllers: [FleetGrpcController],
+  controllers: [FleetGrpcController, FleetHttpController],
+  providers: [FleetService],
 })
 export class AppModule {}

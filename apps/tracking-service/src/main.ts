@@ -16,7 +16,7 @@ async function bootstrap(): Promise<void> {
     transport: Transport.GRPC,
     options: {
       package: 'tracking',
-      protoPath: join(__dirname, '../../libs/proto/src/tracking.proto'),
+      protoPath: '/app/libs/proto/src/tracking.proto',
       url: `0.0.0.0:${process.env['GRPC_TRACKING_PORT'] ?? 50054}`,
     },
   });

@@ -13,13 +13,15 @@ async function bootstrap(): Promise<void> {
     transport: Transport.GRPC,
     options: {
       package: 'routing',
-      protoPath: join(__dirname, '../../libs/proto/src/routing.proto'),
+      protoPath: '/app/libs/proto/src/routing.proto',
       url: `0.0.0.0:${process.env['GRPC_ROUTING_PORT'] ?? 50053}`,
     },
   })
 
   await app.startAllMicroservices()
-  await app.listen(process.env['HTTP_METRICS_PORT'] ?? 9464)
+  const httpPort = process.env['HTTP_PORT'] ?? 3013
+  const httpHost = process.env['HTTP_HOST'] ?? '0.0.0.0'
+  await app.listen(httpPort, httpHost)
 
   logger.log('Routing Service started')
   logger.log(`gRPC on :${process.env['GRPC_ROUTING_PORT'] ?? 50053}`)

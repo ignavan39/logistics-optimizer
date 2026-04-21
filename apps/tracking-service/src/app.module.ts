@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { Registry } from 'prom-client'
 import { TrackingGrpcController } from './tracking/tracking.grpc.controller'
 import { TelemetryConsumer } from './tracking/telemetry.consumer'
 import { TrackingBatchWriter } from './tracking/batch/tracking-batch-writer'
+import { TrackingMetrics } from './metrics/tracking.metrics'
 
 @Module({
   imports: [
@@ -30,6 +32,11 @@ import { TrackingBatchWriter } from './tracking/batch/tracking-batch-writer'
     }),
   ],
   controllers: [TrackingGrpcController],
-  providers: [TelemetryConsumer, TrackingBatchWriter],
+  providers: [
+    TelemetryConsumer,
+    TrackingBatchWriter,
+    TrackingMetrics,
+    { provide: Registry, useValue: new Registry() },
+  ],
 })
 export class AppModule {}
