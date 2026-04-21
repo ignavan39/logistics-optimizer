@@ -99,55 +99,25 @@ services:
       kafka:
         condition: service_healthy
     entrypoint: ['/bin/sh', '-c']
-    command: |
-      "
-      echo 'Waiting for Kafka...'
+    command: >
+      echo 'Waiting for Kafka...' &&
+      kafka-topics --bootstrap-server kafka:9092 --list &&
+      echo 'Creating topics...' &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order.created --partitions 6 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order.updated --partitions 6 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order.assigned --partitions 6 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order.completed --partitions 6 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order.failed --partitions 6 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic vehicle.status.changed --partitions 6 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic route.calculated --partitions 6 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic traffic.incident --partitions 3 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic vehicle.telemetry --partitions 12 --replication-factor 1 --config retention.ms=3600000 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic outbox.order --partitions 6 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic outbox.dispatcher --partitions 6 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic vehicle.telemetry.dlq --partitions 3 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order.created.dlq --partitions 3 --replication-factor 1 &&
+      echo 'Topics created successfully!' &&
       kafka-topics --bootstrap-server kafka:9092 --list
-
-      echo 'Creating topics...'
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
-        --topic order.created --partitions 6 --replication-factor 1
-
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
-        --topic order.updated --partitions 6 --replication-factor 1
-
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
-        --topic order.assigned --partitions 6 --replication-factor 1
-
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
-        --topic order.completed --partitions 6 --replication-factor 1
-
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
-        --topic order.failed --partitions 6 --replication-factor 1
-
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
-        --topic vehicle.status.changed --partitions 6 --replication-factor 1
-
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
-        --topic route.calculated --partitions 6 --replication-factor 1
-
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
-        --topic traffic.incident --partitions 3 --replication-factor 1
-
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
-        --topic vehicle.telemetry --partitions 12 --replication-factor 1 \
-        --config retention.ms=3600000
-
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
-        --topic outbox.order --partitions 6 --replication-factor 1
-
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
-        --topic outbox.dispatcher --partitions 6 --replication-factor 1
-
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
-        --topic vehicle.telemetry.dlq --partitions 3 --replication-factor 1
-
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
-        --topic order.created.dlq --partitions 3 --replication-factor 1
-
-      echo 'Topics created successfully!'
-      kafka-topics --bootstrap-server kafka:9092 --list
-      "
     networks:
       - logistics-net
 
