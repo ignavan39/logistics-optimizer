@@ -9,26 +9,24 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 
 export interface AuthenticatedSocket extends Socket {
   userId?: string;
   customerId?: string;
-}
-
-export interface ClientEventPayload {
-  event: string;
-  data: unknown;
+  isAuthenticated?: boolean;
 }
 
 @WebSocketGateway({
+  namespace: '/notifications',
   cors: {
-    origin: '*',
+    origin: process.env['CORS_ORIGIN'] || false,
     credentials: true,
   },
-  namespace: '/notifications',
+  pingTimeout: 10000,
+  pingInterval: 5000,
 })
 export class NotificationsGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -37,21 +35,37 @@ export class NotificationsGateway
   server: Server;
 
   private readonly logger = new Logger(NotificationsGateway.name);
+  private readonly allowedOrigins: string[];
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    this.allowedOrigins = (configService.get('CORS_ORIGIN', '*') as string)
+      .split(',')
+      .map((o) => o.trim());
+  }
 
-  afterInit(): void {
+  afterInit(server: Server): void {
     this.logger.log('WebSocket Gateway initialized');
+    this.server = server;
   }
 
   async handleConnection(client: AuthenticatedSocket): Promise<void> {
+    const origin = client.handshake.headers?.origin;
+    if (this.allowedOrigins[0] !== '*' && origin && !this.allowedOrigins.includes(origin)) {
+      this.logger.warn(`Client ${client.id} — invalid origin: ${origin}`);
+      client.disconnect();
+      return;
+    }
+
     try {
-      const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.split(' ')[1];
+      const token =
+        client.handshake.auth?.token ||
+        client.handshake.headers?.authorization?.split(' ')[1];
+
       if (!token) {
-        this.logger.warn(`Client ${client.id} — no token, disconnecting`);
+        this.logger.warn(`Client ${client.id} — no token`);
         client.disconnect();
         return;
       }
@@ -61,25 +75,34 @@ export class NotificationsGateway
       });
 
       if (!payload?.sub) {
+        this.logger.warn(`Client ${client.id} — invalid token`);
         client.disconnect();
         return;
       }
 
       client.userId = payload.sub;
       client.customerId = payload.customerId;
+      client.isAuthenticated = true;
 
       if (client.customerId) {
         client.join(`customer:${client.customerId}`);
+        this.logger.log(`Client ${client.id} joined customer:${client.customerId}`);
       }
 
-      this.logger.log(`Client ${client.id} connected: user=${client.userId}`);
-    } catch {
+      this.logger.log(`Client ${client.id} authenticated: user=${payload.sub}`);
+
+      client.emit('connected', {
+        userId: payload.sub,
+        timestamp: Date.now(),
+      });
+    } catch (err) {
+      this.logger.warn(`Client ${client.id} — auth failed: ${err}`);
       client.disconnect();
     }
   }
 
   handleDisconnect(client: AuthenticatedSocket): void {
-    this.logger.log(`Client ${client.id} disconnected`);
+    this.logger.log(`Client ${client.id} disconnected (was auth: ${client.isAuthenticated})`);
   }
 
   @SubscribeMessage('subscribe:order')
@@ -87,6 +110,15 @@ export class NotificationsGateway
     @MessageBody() orderId: string,
     @ConnectedSocket() client: AuthenticatedSocket,
   ): { event: string; data: unknown } {
+    if (!client.isAuthenticated) {
+      return { event: 'error', data: { message: 'Not authenticated' } };
+    }
+
+    const canAccess = this.canAccessOrder(client, orderId);
+    if (!canAccess) {
+      return { event: 'error', data: { message: 'Access denied' } };
+    }
+
     client.join(`order:${orderId}`);
     this.logger.log(`Client ${client.id} subscribed to order:${orderId}`);
     return { event: 'subscribed', data: { room: `order:${orderId}` } };
@@ -97,8 +129,17 @@ export class NotificationsGateway
     @MessageBody() orderId: string,
     @ConnectedSocket() client: AuthenticatedSocket,
   ): { event: string; data: unknown } {
+    if (!client.isAuthenticated) {
+      return { event: 'error', data: { message: 'Not authenticated' } };
+    }
+
     client.leave(`order:${orderId}`);
-    return { event: 'unsubscribed', data: { room: `order:${orderId}` } };
+    return { event: 'unscribed', data: { room: `order:${orderId}` } };
+  }
+
+  @SubscribeMessage('ping')
+  handlePing(@ConnectedSocket() client: AuthenticatedSocket): { event: string; data: unknown } {
+    return { event: 'pong', data: { timestamp: Date.now() } };
   }
 
   emitOrderEvent(
@@ -114,5 +155,12 @@ export class NotificationsGateway
   ): void {
     this.server.to(`order:${orderId}`).emit(event, payload);
     this.server.to(`customer:${payload.customerId}`).emit(event, payload);
+  }
+
+  private canAccessOrder(client: AuthenticatedSocket, orderId: string): boolean {
+    if (client.customerId) {
+      return orderId.startsWith(client.customerId) || orderId.includes(client.userId || '');
+    }
+    return true;
   }
 }
