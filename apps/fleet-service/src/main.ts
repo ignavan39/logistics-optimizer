@@ -13,13 +13,15 @@ async function bootstrap(): Promise<void> {
     transport: Transport.GRPC,
     options: {
       package: 'fleet',
-      protoPath: join(__dirname, '../../libs/proto/src/fleet.proto'),
+      protoPath: '/app/libs/proto/src/fleet.proto',
       url: `0.0.0.0:${process.env['GRPC_FLEET_PORT'] ?? 50052}`,
     },
   })
 
   await app.startAllMicroservices()
-  await app.listen(process.env['HTTP_METRICS_PORT'] ?? 9464)
+  const httpPort = process.env['HTTP_PORT'] ?? 3012
+  const httpHost = process.env['HTTP_HOST'] ?? '0.0.0.0'
+  await app.listen(httpPort, httpHost)
 
   logger.log('Fleet Service started')
   logger.log(`gRPC on :${process.env['GRPC_FLEET_PORT'] ?? 50052}`)

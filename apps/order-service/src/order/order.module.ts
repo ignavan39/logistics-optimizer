@@ -6,6 +6,7 @@ import { OrderEntity } from './entities/order.entity';
 import { OutboxEventEntity } from './entities/outbox-event.entity';
 import { OrderService } from './order.service';
 import { OrderGrpcController } from './order.grpc.controller';
+import { OrderHttpController } from './order.http.controller';
 import { OutboxProcessor } from './outbox/outbox.processor';
 
 @Module({
@@ -34,7 +35,7 @@ import { OutboxProcessor } from './outbox/outbox.processor';
       },
     ]),
   ],
-  controllers: [OrderGrpcController],
+  controllers: [OrderGrpcController, OrderHttpController],
   providers: [OrderService, OutboxProcessor],
 })
 export class OrderModule {}

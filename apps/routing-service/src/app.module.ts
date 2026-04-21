@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { RoutingGrpcController } from './routing.grpc.controller'
+import { RoutingHttpController } from './routing.http.controller'
+import { RoutingService } from './routing.service'
 
 @Module({
   imports: [
@@ -27,6 +29,7 @@ import { RoutingGrpcController } from './routing.grpc.controller'
       }),
     }),
   ],
-  controllers: [RoutingGrpcController],
+  controllers: [RoutingGrpcController, RoutingHttpController],
+  providers: [RoutingService],
 })
 export class AppModule {}
