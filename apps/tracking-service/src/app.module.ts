@@ -15,8 +15,8 @@ import { TrackingBatchWriter } from './tracking/batch/tracking-batch-writer'
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
         type: 'postgres',
-        host: cfg.get('TRACKING_DB_HOST', 'pgbouncer-tracking'),
-        port: cfg.get<number>('PGBOUNCER_PORT', 6432),
+        host: cfg.get('TRACKING_DB_HOST', 'pg-tracking'),
+        port: cfg.get<number>('PG_PORT_BASE', 5432),
         username: cfg.get('PG_USER', 'logistics'),
         password: cfg.get('PG_PASSWORD', 'logistics_secret'),
         database: cfg.get('TRACKING_DB_NAME', 'tracking_db'),
@@ -25,7 +25,6 @@ import { TrackingBatchWriter } from './tracking/batch/tracking-batch-writer'
         extra: {
           max: 10,
           connectionTimeoutMillis: 5000,
-          statement_timeout: 10000,
         },
       }),
     }),

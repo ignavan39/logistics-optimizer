@@ -1,4 +1,3 @@
-// ⚠️  Tracing must be initialized BEFORE any other imports
 import './tracing';
 
 import { NestFactory } from '@nestjs/core';

@@ -10,6 +10,13 @@ x-service-common: &service-common
   env_file: .env
   networks:
     - logistics-net
+  depends_on:
+    pg-order:
+      condition: service_healthy
+    kafka:
+      condition: service_healthy
+    kafka-init:
+      condition: service_completed_successfully
 
 services:
   api-gateway:
@@ -47,7 +54,7 @@ services:
       SERVICE_NAME: order-service
       HTTP_METRICS_PORT: 9464
       GRPC_ORDER_PORT: 50051
-      ORDER_DB_HOST: pgbouncer-order
+      ORDER_DB_HOST: pg-order
     depends_on:
       kafka:
         condition: service_healthy
@@ -64,7 +71,7 @@ services:
       SERVICE_NAME: fleet-service
       HTTP_METRICS_PORT: 9464
       GRPC_FLEET_PORT: 50052
-      FLEET_DB_HOST: pgbouncer-fleet
+      FLEET_DB_HOST: pg-fleet
     depends_on:
       kafka:
         condition: service_healthy
@@ -81,7 +88,7 @@ services:
       SERVICE_NAME: routing-service
       HTTP_METRICS_PORT: 9464
       GRPC_ROUTING_PORT: 50053
-      ROUTING_DB_HOST: pgbouncer-routing
+      ROUTING_DB_HOST: pg-routing
     depends_on:
       kafka:
         condition: service_healthy
@@ -98,7 +105,7 @@ services:
       SERVICE_NAME: tracking-service
       HTTP_METRICS_PORT: 9464
       GRPC_TRACKING_PORT: 50054
-      TRACKING_DB_HOST: pgbouncer-tracking
+      TRACKING_DB_HOST: pg-tracking
       TRACKING_BATCH_SIZE: 500
       TRACKING_BATCH_TIMEOUT_MS: 200
     depends_on:
@@ -117,7 +124,7 @@ services:
       SERVICE_NAME: dispatcher-service
       HTTP_METRICS_PORT: 9464
       GRPC_DISPATCHER_PORT: 50055
-      DISPATCHER_DB_HOST: pgbouncer-dispatcher
+      DISPATCHER_DB_HOST: pg-dispatcher
       GRPC_ORDER_HOST: order-service:50051
       GRPC_FLEET_HOST: fleet-service:50052
       GRPC_ROUTING_HOST: routing-service:50053

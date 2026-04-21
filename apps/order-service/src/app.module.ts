@@ -16,8 +16,8 @@ import { OutboxEventEntity } from './order/entities/outbox-event.entity'
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
         type: 'postgres',
-        host: cfg.get('ORDER_DB_HOST', 'pgbouncer-order'),
-        port: cfg.get<number>('PGBOUNCER_PORT', 6432),
+        host: cfg.get('ORDER_DB_HOST', 'pg-order'),
+        port: cfg.get<number>('PG_PORT_BASE', 5432),
         username: cfg.get('PG_USER', 'logistics'),
         password: cfg.get('PG_PASSWORD', 'logistics_secret'),
         database: cfg.get('ORDER_DB_NAME', 'order_db'),
@@ -30,7 +30,6 @@ import { OutboxEventEntity } from './order/entities/outbox-event.entity'
           max: 10,
           connectionTimeoutMillis: 5_000,
           query_timeout: 10_000,
-          statement_timeout: 10_000,
         },
       }),
     }),
