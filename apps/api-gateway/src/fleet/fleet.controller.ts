@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import { FleetService } from './fleet.service'
 import { GetAvailableVehiclesDto, AssignVehicleDto, ReleaseVehicleDto } from './dto/fleet.dto'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { RbacGuard } from '../auth/guards/rbac.guard'
 import { Permissions } from '../auth/decorators/permissions.decorator'
 
 @ApiTags('fleet')
@@ -11,7 +12,7 @@ export class FleetController {
   constructor(private fleetService: FleetService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions('vehicles.read')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get available vehicles near a location' })
@@ -33,7 +34,7 @@ export class FleetController {
   }
 
   @Get(':vehicleId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions('vehicles.read')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get vehicle by ID' })
