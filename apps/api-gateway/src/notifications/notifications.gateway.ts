@@ -16,6 +16,7 @@ import { ConfigService } from '@nestjs/config';
 export interface AuthenticatedSocket extends Socket {
   userId?: string;
   customerId?: string;
+  permissions?: string[];
   isAuthenticated?: boolean;
 }
 
@@ -82,6 +83,7 @@ export class NotificationsGateway
 
       client.userId = payload.sub;
       client.customerId = payload.customerId;
+      client.permissions = payload.permissions || [];
       client.isAuthenticated = true;
 
       if (client.customerId) {
@@ -162,5 +164,14 @@ export class NotificationsGateway
       return orderId.startsWith(client.customerId) || orderId.includes(client.userId || '');
     }
     return true;
+  }
+
+  private hasPermission(client: AuthenticatedSocket, required: string): boolean {
+    const permissions = client.permissions || [];
+    if (permissions.includes(required)) {
+      return true;
+    }
+    const [resource] = required.split('.');
+    return permissions.some((p) => p === `${resource}.*`);
   }
 }

@@ -67,7 +67,17 @@ export class AuthService {
 
     await this.userRepository.save(user);
 
+    await this.assignDefaultRole(user.id);
+
     return this.generateTokens(user);
+  }
+
+  private async assignDefaultRole(userId: string) {
+    await this.dataSource.query(
+      `INSERT INTO user_roles (user_id, role_id, assigned_at) 
+       SELECT $1, r.id, NOW() FROM roles r WHERE r.name = 'viewer'`,
+      [userId],
+    );
   }
 
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {

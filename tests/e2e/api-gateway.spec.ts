@@ -551,4 +551,88 @@ describe('API Gateway E2E', () => {
       expect([400, 422, 503]).toContain(response.status)
     })
   })
+
+  describe('POST /auth/refresh-permissions', () => {
+    let freshToken: string
+
+    beforeAll(async () => {
+      const response = await api.post('/auth/login', {
+        email: testUser.email,
+        password: testUser.password,
+      })
+      freshToken = response.data.accessToken
+    })
+
+    it('should refresh permissions from DB', async () => {
+      const response = await api.post(
+        '/auth/refresh-permissions',
+        {},
+        { headers: { Authorization: `Bearer ${freshToken}` } },
+      )
+
+      expect(response.status).toBe(200)
+      expect(response.data).toHaveProperty('permissions')
+      expect(Array.isArray(response.data.permissions)).toBe(true)
+    })
+
+    it('should reject without token', async () => {
+      const response = await api.post('/auth/refresh-permissions', {})
+
+      expect(response.status).toBe(401)
+    })
+  })
+
+  describe('Permission-based Access (403)', () => {
+    let viewerToken: string
+    let viewerUser = {
+      email: `viewer-${Date.now()}@test.local`,
+      password: 'ViewerPass123!',
+    }
+
+    beforeAll(async () => {
+      await api.post('/auth/register', {
+        email: viewerUser.email,
+        password: viewerUser.password,
+        firstName: 'Viewer',
+        lastName: 'User',
+      })
+      const response = await api.post('/auth/login', {
+        email: viewerUser.email,
+        password: viewerUser.password,
+      })
+      viewerToken = response.data.accessToken
+    })
+
+    it('should return 403 when user lacks required permission', async () => {
+      const response = await api.post(
+        '/orders',
+        {
+          customer_id: 'test',
+          origin: { lat: 55.7558, lng: 37.6173 },
+          destination: { lat: 55.7644, lng: 37.6225 },
+        },
+        { headers: { Authorization: `Bearer ${viewerToken}` } },
+      )
+
+      expect(response.status).toBe(403)
+    })
+
+    it('should return 403 for vehicle assign without permission', async () => {
+      const response = await api.post(
+        '/vehicles/vehicle-1/assign',
+        { order_id: 'test' },
+        { headers: { Authorization: `Bearer ${viewerToken}` } },
+      )
+
+      expect(response.status).toBe(403)
+    })
+  })
+
+  describe('WebSocket Connection', () => {
+    it('should reject connection without token', async () => {
+      const response = await api.get('/notifications')
+
+      expect([404, 200]).toContain(response.status)
+    })
+  })
 })

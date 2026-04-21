@@ -1,11 +1,19 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { NotificationsGateway } from './notifications.gateway';
 import { NotificationsConsumer } from './notifications.consumer';
 
 @Module({
   imports: [
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get('JWT_SECRET'),
+        signOptions: { expiresIn: '15m' },
+      }),
+    }),
     ClientsModule.registerAsync([
       {
         name: 'KAFKA_CLIENT',
