@@ -11,7 +11,7 @@ interface TrackingGrpcClient {
 
 @Injectable()
 export class TrackingService implements OnModuleInit, OnModuleDestroy {
-  private trackingClient: TrackingGrpcClient
+  private trackingClient!: TrackingGrpcClient
 
   constructor(
     private configService: ConfigService,

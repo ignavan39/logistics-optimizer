@@ -5,11 +5,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 export class GeoPointDto {
   @ApiProperty({ example: 55.7558 })
   @IsNumber()
-  lat: number
+  lat!: number
 
   @ApiProperty({ example: 37.6173 })
   @IsNumber()
-  lng: number
+  lng!: number
 }
 
 export class CalculateRouteDto {
@@ -26,16 +26,16 @@ export class CalculateRouteDto {
   @ApiProperty({ type: GeoPointDto })
   @ValidateNested()
   @Type(() => GeoPointDto)
-  origin: GeoPointDto
+  origin!: GeoPointDto
 
   @ApiProperty({ type: GeoPointDto })
   @ValidateNested()
   @Type(() => GeoPointDto)
-  destination: GeoPointDto
+  destination!: GeoPointDto
 }
 
 export class GetRouteDto {
   @ApiProperty({ example: 'route-123' })
   @IsString()
-  route_id: string
+  route_id!: string
 }

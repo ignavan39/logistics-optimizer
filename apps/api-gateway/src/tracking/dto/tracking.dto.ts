@@ -4,13 +4,13 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 export class GetLatestPositionDto {
   @ApiProperty({ example: 'vehicle-123' })
   @IsString()
-  vehicle_id: string
+  vehicle_id!: string
 }
 
 export class GetTrackDto {
   @ApiProperty({ example: 'vehicle-123' })
   @IsString()
-  vehicle_id: string
+  vehicle_id!: string
 
   @ApiPropertyOptional({ example: 1700000000 })
   @IsNumber()

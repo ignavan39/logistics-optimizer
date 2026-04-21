@@ -20,7 +20,7 @@ interface OrderGrpcClient {
 
 @Injectable()
 export class OrdersService implements OnModuleInit, OnModuleDestroy {
-  private orderClient: OrderGrpcClient
+  private orderClient!: OrderGrpcClient
 
   constructor(
     private configService: ConfigService,

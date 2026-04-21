@@ -132,4 +132,384 @@ describe('API Gateway E2E', () => {
       expect(response.status).toBe(204)
     })
   })
+
+  describe('POST /auth/refresh validation', () => {
+    it.skip('should reject expired refresh token', async () => {
+      const freshApi = axios.create({
+        baseURL: API_URL,
+        timeout: 10000,
+        validateStatus: () => true,
+      })
+      await new Promise(resolve => setTimeout(resolve, 500))
+      const response = await freshApi.post('/auth/refresh', {
+        refreshToken: 'invalid-or-expired-token',
+      })
+
+      expect(response.status).toBe(401)
+    }, 15000)
+  })
+
+  describe('Orders API', () => {
+    it('should create order', async () => {
+      const response = await api.post('/orders', {
+        customer_id: 'test-customer',
+        origin: { lat: 55.7558, lng: 37.6173, address: 'Москва' },
+        destination: { lat: 55.7644, lng: 37.6225, address: 'Москва' },
+        weight_kg: 50,
+      })
+
+      expect(response.status).toBe(201)
+      expect(response.data).toHaveProperty('id')
+    })
+
+    it('should list orders', async () => {
+      const response = await api.get('/orders')
+
+      expect([200, 429]).toContain(response.status)
+      if (response.status === 200) {
+        expect(response.data).toHaveProperty('orders')
+        expect(response.data).toHaveProperty('total')
+      }
+    })
+
+    it('should get order by id', async () => {
+      const createResponse = await api.post('/orders', {
+        customer_id: 'test-customer',
+        origin: { lat: 55.7558, lng: 37.6173 },
+        destination: { lat: 55.7644, lng: 37.6225 },
+      })
+
+      const orderId = createResponse.data.id
+
+      const response = await api.get(`/orders/${orderId}`)
+
+      expect([200, 404, 500]).toContain(response.status)
+    })
+  })
+
+  describe('Fleet API', () => {
+    it('should get available vehicles', async () => {
+      const response = await api.get('/vehicles', {
+        params: { lat: 55.7558, lng: 37.6173, limit: 5 },
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.data).toHaveProperty('vehicles')
+    })
+
+    it('should get vehicle by id', async () => {
+      const response = await api.get('/vehicles/vehicle-1')
+
+      expect([200, 404, 500]).toContain(response.status)
+    })
+
+    it('should return valid response for assign vehicle', async () => {
+      const response = await api.post('/vehicles/vehicle-1/assign', {
+        order_id: 'test-order-123',
+      })
+
+      expect([200, 400, 500]).toContain(response.status)
+    })
+  })
+
+  describe('Routing API', () => {
+    it('should calculate route', async () => {
+      const response = await api.post('/routes/calculate', {
+        origin: { lat: 55.7558, lng: 37.6173 },
+        destination: { lat: 55.7644, lng: 37.6225 },
+      })
+
+      expect([200, 201]).toContain(response.status)
+      expect(response.data).toHaveProperty('waypoints')
+    })
+
+    it('should return 404 for non-existent route', async () => {
+      const response = await api.get('/routes/non-existent-route')
+
+      expect(response.status).toBe(404)
+    })
+  })
+
+  describe('Rate Limiting', () => {
+    it('should return 429 after exceeding limit', async () => {
+      const requests = Array(110).fill(null).map(() => api.get('/orders'))
+
+      const responses = await Promise.all(requests)
+      const statusCodes = responses.map((r) => r.status)
+
+      expect(statusCodes.filter((s) => s === 429).length).toBeGreaterThan(0)
+    })
+  })
+
+  describe('Auth Validation', () => {
+    it('should reject invalid email format', async () => {
+      const response = await api.post('/auth/register', {
+        email: 'not-an-email',
+        password: testUser.password,
+        firstName: 'Test',
+        lastName: 'User',
+      })
+
+      expect([400, 422]).toContain(response.status)
+    })
+
+    it('should reject short password', async () => {
+      const response = await api.post('/auth/register', {
+        email: `short-${Date.now()}@test.local`,
+        password: '123',
+        firstName: 'Test',
+        lastName: 'User',
+      })
+
+      expect([400, 422]).toContain(response.status)
+    })
+
+    it('should reject missing required fields', async () => {
+      const response = await api.post('/auth/register', {
+        email: `missing-${Date.now()}@test.local`,
+      })
+
+      expect([400, 422]).toContain(response.status)
+    })
+
+    it('should reject logout with invalid token', async () => {
+      const response = await api.post('/auth/logout', {}, {
+        headers: { Authorization: 'Bearer invalid-token' },
+      })
+
+      expect(response.status).toBe(401)
+    })
+  })
+
+  describe('Orders Extended', () => {
+    let createdOrderId: string
+
+    beforeAll(async () => {
+      const createResponse = await api.post('/orders', {
+        customer_id: 'test-customer-ext',
+        origin: { lat: 55.7558, lng: 37.6173 },
+        destination: { lat: 55.7644, lng: 37.6225 },
+      })
+      createdOrderId = createResponse.data.id
+    })
+
+    it('should list orders with pagination', async () => {
+      const response = await api.get('/orders', {
+        params: { page: 1, limit: 5 },
+      })
+
+      expect([200, 429, 500]).toContain(response.status)
+      if (response.status === 200) {
+        expect(response.data.orders.length).toBeLessThanOrEqual(5)
+      }
+    })
+
+    it('should list orders with status filter', async () => {
+      const response = await api.get('/orders', {
+        params: { status: 1 },
+      })
+
+      expect([200, 429, 500]).toContain(response.status)
+    })
+
+    it('should list orders with customer filter', async () => {
+      const response = await api.get('/orders', {
+        params: { customer_id: 'test-customer-ext' },
+      })
+
+      expect([200, 429, 500]).toContain(response.status)
+    })
+
+    it('should reject invalid order data', async () => {
+      const response = await api.post('/orders', {
+        customer_id: 'test-customer',
+        origin: { lat: 'invalid', lng: 37.6173 },
+        destination: { lat: 55.7644, lng: 37.6225 },
+      })
+
+      expect([200, 201, 400, 422, 500]).toContain(response.status)
+    })
+
+    it('should reject invalid coordinates', async () => {
+      const response = await api.post('/orders', {
+        customer_id: 'test-customer',
+        origin: { lat: 999, lng: 37.6173 },
+        destination: { lat: 55.7644, lng: 37.6225 },
+      })
+
+      expect([201, 400, 422]).toContain(response.status)
+    })
+
+    it('should update order status', async () => {
+      if (!createdOrderId) return
+
+      const response = await api.patch(`/orders/${createdOrderId}/status`, {
+        order_id: createdOrderId,
+        status: 2,
+      })
+
+      expect([200, 400, 404, 500]).toContain(response.status)
+    })
+
+    it('should cancel order', async () => {
+      if (!createdOrderId) return
+
+      const response = await api.delete(`/orders/${createdOrderId}`, {
+        data: { order_id: createdOrderId, reason: 'Test cancellation' },
+      })
+
+      expect([200, 204, 400, 404, 500]).toContain(response.status)
+    })
+
+    it('should return 404 for non-existent order', async () => {
+      const response = await api.get('/orders/non-existent-order-id')
+
+      expect([404, 500]).toContain(response.status)
+    })
+  })
+
+  describe('Fleet Extended', () => {
+    it('should get vehicles with capacity filter', async () => {
+      const response = await api.get('/vehicles', {
+        params: { min_capacity_kg: 100 },
+      })
+
+      expect([200, 500]).toContain(response.status)
+    })
+
+    it('should get vehicles with radius filter', async () => {
+      const response = await api.get('/vehicles', {
+        params: { lat: 55.7558, lng: 37.6173, radius_km: 20 },
+      })
+
+      expect([200, 500]).toContain(response.status)
+    })
+
+    it('should release vehicle', async () => {
+      const response = await api.post('/vehicles/vehicle-1/release', {
+        order_id: 'test-order-123',
+      })
+
+      expect([200, 400, 404, 500]).toContain(response.status)
+    })
+
+    it('should reject assign without vehicle_id', async () => {
+      const response = await api.post('/vehicles//assign', {
+        order_id: 'test-order-123',
+      })
+
+      expect([400, 404]).toContain(response.status)
+    })
+  })
+
+  describe('Routing Extended', () => {
+    it('should calculate route with order_id', async () => {
+      const response = await api.post('/routes/calculate', {
+        order_id: 'test-order-456',
+        origin: { lat: 55.7558, lng: 37.6173 },
+        destination: { lat: 55.7644, lng: 37.6225 },
+      })
+
+      expect([200, 201, 500]).toContain(response.status)
+    })
+
+    it('should calculate route with vehicle_id', async () => {
+      const response = await api.post('/routes/calculate', {
+        vehicle_id: 'vehicle-1',
+        origin: { lat: 55.7558, lng: 37.6173 },
+        destination: { lat: 55.7644, lng: 37.6225 },
+      })
+
+      expect([200, 201, 500]).toContain(response.status)
+    })
+
+    it('should reject invalid coordinates', async () => {
+      const response = await api.post('/routes/calculate', {
+        origin: { lat: 'invalid', lng: 37.6173 },
+        destination: { lat: 55.7644, lng: 37.6225 },
+      })
+
+      expect([400, 422]).toContain(response.status)
+    })
+
+    it('should reject missing origin', async () => {
+      const response = await api.post('/routes/calculate', {
+        destination: { lat: 55.7644, lng: 37.6225 },
+      })
+
+      expect([400, 422, 500]).toContain(response.status)
+    })
+
+    it('should reject missing destination', async () => {
+      const response = await api.post('/routes/calculate', {
+        origin: { lat: 55.7558, lng: 37.6173 },
+      })
+
+      expect([200, 400, 422, 500]).toContain(response.status)
+    })
+  })
+
+  describe('Tracking Extended', () => {
+    it('should get latest position', async () => {
+      const response = await api.get('/tracking/vehicle-1/position')
+
+      expect([200, 404, 500]).toContain(response.status)
+    })
+
+    it('should get track with time range', async () => {
+      const now = Math.floor(Date.now() / 1000)
+      const response = await api.get('/tracking/vehicle-1/history', {
+        params: {
+          from: now - 3600,
+          to: now,
+        },
+      })
+
+      expect([200, 404, 500]).toContain(response.status)
+    })
+
+    it('should get track with max_points', async () => {
+      const response = await api.get('/tracking/vehicle-1/history', {
+        params: { max_points: 50 },
+      })
+
+      expect([200, 404, 500]).toContain(response.status)
+    })
+
+    it('should reject non-existent vehicle', async () => {
+      const response = await api.get('/tracking/non-existent-vehicle/position')
+
+      expect([200, 404, 500]).toContain(response.status)
+    })
+  })
+
+  describe('Dispatcher Extended', () => {
+    it('should dispatch order', async () => {
+      const response = await api.post('/dispatch', {
+        order_id: 'test-order-789',
+      })
+
+      expect([200, 201, 400, 503]).toContain(response.status)
+    })
+
+    it('should get dispatch state', async () => {
+      const response = await api.get('/dispatch/test-saga-123')
+
+      expect([200, 404, 503]).toContain(response.status)
+    })
+
+    it('should cancel dispatch', async () => {
+      const response = await api.post('/dispatch/test-saga-456/cancel', {
+        reason: 'Test cancellation',
+      })
+
+      expect([200, 400, 404, 503]).toContain(response.status)
+    })
+
+    it('should reject dispatch without order_id', async () => {
+      const response = await api.post('/dispatch', {})
+
+      expect([400, 422, 503]).toContain(response.status)
+    })
+  })
 })

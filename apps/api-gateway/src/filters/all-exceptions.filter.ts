@@ -52,6 +52,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   private mapGrpcToHttp(grpcCode?: number): HttpStatus {
+    if (grpcCode === undefined) return HttpStatus.INTERNAL_SERVER_ERROR
     const map: Record<number, HttpStatus> = {
       5: HttpStatus.NOT_FOUND,
       7: HttpStatus.FORBIDDEN,

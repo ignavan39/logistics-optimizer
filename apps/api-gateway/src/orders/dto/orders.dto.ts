@@ -20,11 +20,11 @@ export enum OrderPriorityEnum {
 export class GeoPointDto {
   @ApiProperty({ example: 55.7558 })
   @IsNumber()
-  lat: number
+  lat!: number
 
   @ApiProperty({ example: 37.6173 })
   @IsNumber()
-  lng: number
+  lng!: number
 
   @ApiPropertyOptional({ example: 'ул. Ленина 1, Москва' })
   @IsString()
@@ -35,7 +35,7 @@ export class GeoPointDto {
 export class CreateOrderDto {
   @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01' })
   @IsString()
-  customer_id: string
+  customer_id!: string
 
   @ApiProperty({ type: GeoPointDto })
   @IsOptional()
@@ -74,7 +74,7 @@ export class CreateOrderDto {
 export class GetOrderDto {
   @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01' })
   @IsString()
-  order_id: string
+  order_id!: string
 }
 
 export class ListOrdersDto {
@@ -105,11 +105,11 @@ export class ListOrdersDto {
 export class UpdateOrderStatusDto {
   @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01' })
   @IsString()
-  order_id: string
+  order_id!: string
 
   @ApiProperty({ enum: OrderStatusEnum, example: 2 })
   @IsEnum(OrderStatusEnum)
-  status: OrderStatusEnum
+  status!: OrderStatusEnum
 
   @ApiPropertyOptional({ example: 'Доставлен' })
   @IsString()
@@ -125,7 +125,7 @@ export class UpdateOrderStatusDto {
 export class CancelOrderDto {
   @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01' })
   @IsString()
-  order_id: string
+  order_id!: string
 
   @ApiPropertyOptional({ example: 'Клиент отменил' })
   @IsString()
