@@ -3,15 +3,17 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import { FleetService } from './fleet.service'
 import { GetAvailableVehiclesDto, AssignVehicleDto, ReleaseVehicleDto } from './dto/fleet.dto'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
-import { Public } from '../auth/decorators/public.decorator'
+import { Permissions } from '../auth/decorators/permissions.decorator'
 
 @ApiTags('fleet')
 @Controller('vehicles')
 export class FleetController {
   constructor(private fleetService: FleetService) {}
 
-  @Public()
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @Permissions('vehicles.read')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get available vehicles near a location' })
   async getAvailableVehicles(
     @Query('lat') lat?: string,
@@ -30,15 +32,19 @@ export class FleetController {
     })
   }
 
-  @Public()
   @Get(':vehicleId')
+  @UseGuards(JwtAuthGuard)
+  @Permissions('vehicles.read')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get vehicle by ID' })
   async getVehicle(@Param('vehicleId') vehicleId: string) {
     return this.fleetService.getVehicle(vehicleId)
   }
 
-  @Public()
   @Post(':vehicleId/assign')
+  @UseGuards(JwtAuthGuard)
+  @Permissions('vehicles.assign')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Assign vehicle to order' })
   async assignVehicle(
     @Param('vehicleId') vehicleId: string,
@@ -50,8 +56,10 @@ export class FleetController {
     })
   }
 
-  @Public()
   @Post(':vehicleId/release')
+  @UseGuards(JwtAuthGuard)
+  @Permissions('vehicles.release')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Release vehicle from order' })
   async releaseVehicle(
     @Param('vehicleId') vehicleId: string,
