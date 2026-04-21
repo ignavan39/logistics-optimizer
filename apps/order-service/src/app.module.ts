@@ -24,7 +24,7 @@ import { OutboxEventEntity } from './order/entities/outbox-event.entity'
         entities: [OrderEntity, OutboxEventEntity],
         migrations: [__dirname + '/migrations/*.{ts,js}'],
         migrationsRun: true,
-        synchronize: false,
+        synchronize: true,
         logging: cfg.get('NODE_ENV') === 'development',
         extra: {
           max: 10,
