@@ -6,6 +6,10 @@ import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { OrdersModule } from './orders/orders.module';
+import { FleetModule } from './fleet/fleet.module';
+import { RoutingModule } from './routing/routing.module';
+import { TrackingModule } from './tracking/tracking.module';
+import { DispatcherModule } from './dispatcher/dispatcher.module';
 import { User, Role, Permission, UserRole, RolePermission, Session, ApiKey, RefreshToken } from './auth/entities';
 
 @Module({
@@ -46,6 +50,10 @@ import { User, Role, Permission, UserRole, RolePermission, Session, ApiKey, Refr
     }),
     AuthModule,
     OrdersModule,
+    FleetModule,
+    RoutingModule,
+    TrackingModule,
+    DispatcherModule,
   ],
   providers: [
     {
