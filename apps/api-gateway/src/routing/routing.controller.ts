@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import { RoutingService } from './routing.service'
 import { CalculateRouteDto } from './dto/routing.dto'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { RbacGuard } from '../auth/guards/rbac.guard'
 import { Permissions } from '../auth/decorators/permissions.decorator'
 
 @ApiTags('routing')
@@ -11,7 +12,7 @@ export class RoutingController {
   constructor(private routingService: RoutingService) {}
 
   @Post('calculate')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions('routes.calculate')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Calculate route between two points' })
@@ -20,7 +21,7 @@ export class RoutingController {
   }
 
   @Get(':routeId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions('routes.read')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get route by ID' })

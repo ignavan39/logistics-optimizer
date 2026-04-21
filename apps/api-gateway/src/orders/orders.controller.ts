@@ -21,6 +21,7 @@ import {
   CancelOrderDto,
 } from './dto/orders.dto'
 import { JwtAuthGuard, CurrentUser } from '../auth/guards/jwt-auth.guard'
+import { RbacGuard } from '../auth/guards/rbac.guard'
 import { Permissions } from '../auth/decorators/permissions.decorator'
 import { RequestUser } from '../auth/strategies/jwt.strategy'
 
@@ -31,7 +32,7 @@ export class OrdersController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions('orders.create')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create new order' })
@@ -41,7 +42,7 @@ export class OrdersController {
   }
 
   @Get(':orderId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions('orders.read')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get order by ID' })
@@ -50,7 +51,7 @@ export class OrdersController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions('orders.read')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List orders with pagination' })
@@ -71,7 +72,7 @@ export class OrdersController {
 
   @Patch(':orderId/status')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions('orders.update')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update order status' })
@@ -87,7 +88,7 @@ export class OrdersController {
 
   @Delete(':orderId')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions('orders.cancel')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancel order' })

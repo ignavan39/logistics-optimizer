@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import { DispatcherService } from './dispatcher.service'
 import { DispatchOrderDto, CancelDispatchDto } from './dto/dispatcher.dto'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { RbacGuard } from '../auth/guards/rbac.guard'
 import { Permissions } from '../auth/decorators/permissions.decorator'
 
 @ApiTags('dispatcher')
@@ -11,7 +12,7 @@ export class DispatcherController {
   constructor(private dispatcherService: DispatcherService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions('dispatch.execute')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Dispatch order to vehicle' })
@@ -20,7 +21,7 @@ export class DispatcherController {
   }
 
   @Get(':sagaId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions('dispatch.read')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get dispatch state' })
@@ -29,7 +30,7 @@ export class DispatcherController {
   }
 
   @Post(':sagaId/cancel')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions('dispatch.cancel')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancel dispatch' })

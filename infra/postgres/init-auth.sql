@@ -152,15 +152,23 @@ INSERT INTO permissions (name, resource, action, description) VALUES
     ('orders.create', 'orders', 'create', 'Create new orders'),
     ('orders.read', 'orders', 'read', 'Read orders'),
     ('orders.update', 'orders', 'update', 'Update orders'),
-    ('orders.delete', 'orders', 'delete', 'Delete orders'),
+    ('orders.cancel', 'orders', 'cancel', 'Cancel orders'),
     ('orders.assign', 'orders', 'assign', 'Assign orders to drivers'),
+    ('vehicles.read', 'vehicles', 'read', 'Read vehicle data'),
+    ('vehicles.assign', 'vehicles', 'assign', 'Assign vehicle to order'),
+    ('vehicles.release', 'vehicles', 'release', 'Release vehicle from order'),
     ('fleet.vehicles.read', 'fleet:vehicles', 'read', 'Read vehicle data'),
     ('fleet.vehicles.update', 'fleet:vehicles', 'update', 'Update vehicle data'),
     ('fleet.drivers.read', 'fleet:drivers', 'read', 'Read driver data'),
     ('fleet.drivers.update', 'fleet:drivers', 'update', 'Update driver data'),
     ('tracking.read', 'tracking', 'read', 'Read tracking data'),
     ('tracking.write', 'tracking', 'write', 'Write tracking data'),
-    ('routing.calculate', 'routing', 'calculate', 'Calculate routes'),
+    ('routes.calculate', 'routes', 'calculate', 'Calculate routes'),
+    ('routes.read', 'routes', 'read', 'Read routes'),
+    ('routing.calculate', 'routing', 'calculate', 'Calculate routes (legacy)'),
+    ('dispatch.execute', 'dispatch', 'execute', 'Execute dispatch'),
+    ('dispatch.read', 'dispatch', 'read', 'Read dispatch state'),
+    ('dispatch.cancel', 'dispatch', 'cancel', 'Cancel dispatch'),
     ('users.manage', 'users', 'manage', 'Manage users and roles'),
     ('users.read', 'users', 'read', 'Read user data'),
     ('api_keys.manage', 'api_keys', 'manage', 'Manage API keys'),
@@ -176,9 +184,11 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permissions p
 WHERE r.name = 'dispatcher'
 AND p.name IN (
-    'orders.create', 'orders.read', 'orders.update', 'orders.assign',
-    'fleet.vehicles.read', 'fleet.drivers.read',
-    'tracking.read', 'routing.calculate',
+    'orders.create', 'orders.read', 'orders.update', 'orders.cancel', 'orders.assign',
+    'vehicles.read', 'vehicles.assign', 'vehicles.release',
+    'tracking.read',
+    'routes.calculate', 'routes.read',
+    'dispatch.execute', 'dispatch.read', 'dispatch.cancel',
     'reports.read', 'reports.export'
 )
 ON CONFLICT DO NOTHING;
@@ -188,9 +198,9 @@ SELECT r.id, p.id FROM roles r, permissions p
 WHERE r.name = 'driver'
 AND p.name IN (
     'orders.read', 'orders.update',
-    'fleet.vehicles.read',
+    'vehicles.read',
     'tracking.write',
-    'routing.calculate'
+    'routes.calculate'
 )
 ON CONFLICT DO NOTHING;
 
@@ -199,8 +209,9 @@ SELECT r.id, p.id FROM roles r, permissions p
 WHERE r.name = 'viewer'
 AND p.name IN (
     'orders.read',
-    'fleet.vehicles.read', 'fleet.drivers.read',
+    'vehicles.read',
     'tracking.read',
+    'routes.read',
     'reports.read'
 )
 ON CONFLICT DO NOTHING;
@@ -210,8 +221,11 @@ SELECT r.id, p.id FROM roles r, permissions p
 WHERE r.name = 'api_client'
 AND p.name IN (
     'orders.create', 'orders.read',
-    'fleet.vehicles.read',
-    'tracking.read'
+    'vehicles.read',
+    'tracking.read',
+    'routes.read'
+)
+ON CONFLICT DO NOTHING;
 )
 ON CONFLICT DO NOTHING;
 
