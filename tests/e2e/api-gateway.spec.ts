@@ -45,6 +45,45 @@ describe('API Gateway E2E', () => {
     })
   })
 
+  describe('Protected Endpoints - Auth Required', () => {
+    it('should reject POST /orders without token', async () => {
+      const response = await api.post('/orders', {
+        customer_id: 'test',
+        origin: { lat: 55.7558, lng: 37.6173 },
+        destination: { lat: 55.7644, lng: 37.6225 },
+      })
+      expect(response.status).toBe(401)
+    })
+
+    it('should reject GET /orders without token', async () => {
+      const response = await api.get('/orders')
+      expect(response.status).toBe(401)
+    })
+
+    it('should reject GET /vehicles without token', async () => {
+      const response = await api.get('/vehicles')
+      expect(response.status).toBe(401)
+    })
+
+    it('should reject POST /routes/calculate without token', async () => {
+      const response = await api.post('/routes/calculate', {
+        origin: { lat: 55.7558, lng: 37.6173 },
+        destination: { lat: 55.7644, lng: 37.6225 },
+      })
+      expect(response.status).toBe(401)
+    })
+
+    it('should reject GET /tracking/:id without token', async () => {
+      const response = await api.get('/tracking/vehicle-1/position')
+      expect(response.status).toBe(401)
+    })
+
+    it('should reject POST /dispatch without token', async () => {
+      const response = await api.post('/dispatch', { order_id: 'test' })
+      expect(response.status).toBe(401)
+    })
+  })
+
   describe('POST /auth/login', () => {
     it('should login with valid credentials', async () => {
       const response = await api.post('/auth/login', {
