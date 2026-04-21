@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -33,6 +34,7 @@ export class AuthController {
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register new user' })
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
@@ -41,6 +43,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   async login(@Body() dto: LoginDto, @Req() req: any) {
     const ipAddress = req.ip || req.connection?.remoteAddress;
     const userAgent = req.get('User-Agent');

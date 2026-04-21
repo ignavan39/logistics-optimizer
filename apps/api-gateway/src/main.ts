@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const logger = new Logger('API-Gateway');
@@ -11,6 +12,9 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const port = configService.get('PORT', 3000);
+
+  // Security headers
+  app.use(helmet());
 
   app.useGlobalFilters(new AllExceptionsFilter());
 
