@@ -18,7 +18,7 @@ interface FleetGrpcClient {
 
 @Injectable()
 export class FleetService implements OnModuleInit, OnModuleDestroy {
-  private fleetClient: FleetGrpcClient
+  private fleetClient!: FleetGrpcClient
 
   constructor(
     private configService: ConfigService,

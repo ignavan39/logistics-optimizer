@@ -12,7 +12,7 @@ interface DispatcherGrpcClient {
 
 @Injectable()
 export class DispatcherService implements OnModuleInit, OnModuleDestroy {
-  private dispatcherClient: DispatcherGrpcClient
+  private dispatcherClient!: DispatcherGrpcClient
 
   constructor(
     private configService: ConfigService,

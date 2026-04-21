@@ -80,7 +80,8 @@ export class OrderGrpcController {
       6: 'failed',
       7: 'cancelled',
     }
-    const dbStatus = req.status ? statusMap[req.status] : undefined
+    const statusKey = typeof req.status === 'number' ? req.status : -1
+    const dbStatus = statusKey in statusMap ? statusMap[statusKey] : undefined
 
     const { orders, total } = await this.orderService.listOrders(
       req.customer_id || undefined,

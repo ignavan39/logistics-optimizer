@@ -48,17 +48,17 @@ export class GetAvailableVehiclesDto {
 export class GetVehicleDto {
   @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01' })
   @IsString()
-  vehicle_id: string
+  vehicle_id!: string
 }
 
 export class AssignVehicleDto {
   @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01' })
   @IsString()
-  vehicle_id: string
+  vehicle_id!: string
 
   @ApiProperty({ example: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a02' })
   @IsString()
-  order_id: string
+  order_id!: string
 
   @ApiPropertyOptional({ example: 1 })
   @IsNumber()
@@ -69,9 +69,9 @@ export class AssignVehicleDto {
 export class ReleaseVehicleDto {
   @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01' })
   @IsString()
-  vehicle_id: string
+  vehicle_id!: string
 
   @ApiProperty({ example: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a02' })
   @IsString()
-  order_id: string
+  order_id!: string
 }

@@ -54,8 +54,8 @@ export class FleetService {
     if (!vehicle) throw new NotFoundException(`Vehicle ${vehicleId} not found`)
 
     vehicle.status = 'available'
-    vehicle.currentDriverId = null
-    vehicle.currentOrderId = null
+    vehicle.currentDriverId = undefined
+    vehicle.currentOrderId = undefined
     await this.vehicleRepo.save(vehicle)
   }
 }

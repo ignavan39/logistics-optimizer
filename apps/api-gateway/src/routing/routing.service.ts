@@ -11,7 +11,7 @@ interface RoutingGrpcClient {
 
 @Injectable()
 export class RoutingService implements OnModuleInit, OnModuleDestroy {
-  private routingClient: RoutingGrpcClient
+  private routingClient!: RoutingGrpcClient
 
   constructor(
     private configService: ConfigService,
