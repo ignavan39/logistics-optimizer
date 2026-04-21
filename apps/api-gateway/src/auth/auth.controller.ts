@@ -96,6 +96,19 @@ export class AuthController {
     };
   }
 
+  @Post('refresh-permissions')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Refresh user permissions from DB without re-login' })
+  async refreshPermissions(@CurrentUser() user: RequestUser) {
+    const permissions = await this.authService.getUserPermissions(user.userId);
+    return {
+      userId: user.userId,
+      permissions,
+    };
+  }
+
   @Get('roles')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @ApiBearerAuth()
