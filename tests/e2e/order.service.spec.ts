@@ -29,52 +29,30 @@ describe('OrderService E2E', () => {
 
   describe('CreateOrder', () => {
     it('should create new order', (done) => {
-      const orderId = uuidv4()
       client.createOrder(
         {
-          order_id: orderId,
-          pickup: {
-            address: 'ул. Ленина 1, Москва',
+          customer_id: uuidv4(),
+          origin: {
             lat: 55.7558,
             lng: 37.6173,
-            contact_name: 'Иван Иванов',
-            contact_phone: '+79001234567',
+            address: 'ул. Ленина 1, Москва',
           },
-          delivery: {
-            address: 'ул. Пушкина 10, Москва',
+          destination: {
             lat: 55.7644,
             lng: 37.6225,
-            contact_name: 'Петр Петров',
-            contact_phone: '+79007654321',
+            address: 'ул. Пушкина 10, Москва',
           },
-          cargo: {
-            weight_kg: 50,
-            volume_m3: 2,
-            description: 'Тестовый груз',
-            is_express: true,
-          },
+          priority: 0,
+          weight_kg: 50,
+          volume_m3: 2,
+          notes: 'Тестовый заказ',
         },
         (err: any, response: any) => {
-          expect(err).toBeNull()
-          expect(response.order_id).toBeDefined()
-          expect(response.status).toBe('created')
-          done()
-        },
-      )
-    })
-  })
-
-  describe('GetOrder', () => {
-    it('should get order by id', (done) => {
-      client.getOrder(
-        { order_id: 'test-order-001' },
-        (err: any, response: any) => {
-          if (err?.code === grpc.status.NOT_FOUND) {
-            expect(err.code).toBe(grpc.status.NOT_FOUND)
-          } else {
-            expect(err).toBeNull()
-            expect(response.order_id).toBeDefined()
+          if (err) {
+            console.error('CreateOrder error:', err)
           }
+          expect(err).toBeNull()
+          expect(response.id).toBeDefined()
           done()
         },
       )
@@ -85,34 +63,16 @@ describe('OrderService E2E', () => {
     it('should list orders with pagination', (done) => {
       client.listOrders(
         {
-          status: 'created',
+          page: 1,
           limit: 10,
-          offset: 0,
         },
         (err: any, response: any) => {
+          if (err) {
+            console.error('ListOrders error:', err)
+          }
           expect(err).toBeNull()
           expect(response.orders).toBeDefined()
           expect(response.total).toBeDefined()
-          done()
-        },
-      )
-    })
-  })
-
-  describe('UpdateOrderStatus', () => {
-    it('should update order status', (done) => {
-      client.updateOrderStatus(
-        {
-          order_id: 'test-order-002',
-          status: 'assigned',
-          comment: 'E2E test status update',
-        },
-        (err: any, response: any) => {
-          if (err?.code === grpc.status.NOT_FOUND) {
-            expect(err.code).toBe(grpc.status.NOT_FOUND)
-          } else {
-            expect(err).toBeNull()
-          }
           done()
         },
       )

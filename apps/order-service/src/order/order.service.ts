@@ -110,14 +110,17 @@ export class OrderService {
   }
 
   async listOrders(
-    customerId: string,
+    customerId?: string,
     status?: OrderStatus,
     page = 1,
     limit = 20,
   ): Promise<{ orders: OrderEntity[]; total: number }> {
     const qb = this.orderRepo
-      .createQueryBuilder('o')
-      .where('o.customer_id = :customerId', { customerId });
+      .createQueryBuilder('o');
+
+    if (customerId) {
+      qb.where('o.customer_id = :customerId', { customerId });
+    }
 
     if (status) qb.andWhere('o.status = :status', { status });
 

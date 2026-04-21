@@ -28,11 +28,11 @@ services:
         SERVICE: api-gateway
     ports:
       - '${HTTP_GATEWAY_PORT:-3000}:3000'
-      - '9464:9464'
+      - '9410:9414'
     environment:
       SERVICE_NAME: api-gateway
       HTTP_PORT: 3000
-      HTTP_METRICS_PORT: 9464
+      HTTP_METRICS_PORT: 9414
       GRPC_ORDER_HOST: order-service:50051
       GRPC_FLEET_HOST: fleet-service:50052
       GRPC_ROUTING_HOST: routing-service:50053
@@ -52,11 +52,12 @@ services:
       args: { SERVICE: order-service }
     ports:
       - '3011:3011'
-      - '9464:9464'
+      - '50051:50051'
+      - '9411:9414'
     environment:
       SERVICE_NAME: order-service
       HTTP_PORT: 3011
-      HTTP_METRICS_PORT: 9464
+      HTTP_METRICS_PORT: 9414
       GRPC_ORDER_PORT: 50051
       ORDER_DB_HOST: pg-order
     depends_on:
@@ -73,11 +74,12 @@ services:
       args: { SERVICE: fleet-service }
     ports:
       - '3012:3012'
-      - '9465:9464'
+      - '50052:50052'
+      - '9412:9414'
     environment:
       SERVICE_NAME: fleet-service
       HTTP_PORT: 3012
-      HTTP_METRICS_PORT: 9464
+      HTTP_METRICS_PORT: 9414
       GRPC_FLEET_PORT: 50052
       FLEET_DB_HOST: pg-fleet
     depends_on:
@@ -94,11 +96,12 @@ services:
       args: { SERVICE: routing-service }
     ports:
       - '3013:3013'
-      - '9466:9464'
+      - '50053:50053'
+      - '9413:9414'
     environment:
       SERVICE_NAME: routing-service
       HTTP_PORT: 3013
-      HTTP_METRICS_PORT: 9464
+      HTTP_METRICS_PORT: 9414
       GRPC_ROUTING_PORT: 50053
       ROUTING_DB_HOST: pg-routing
     depends_on:
@@ -113,9 +116,12 @@ services:
     <<: *service-common
     build:
       args: { SERVICE: tracking-service }
+    ports:
+      - '50054:50054'
+      - '9414:9414'
     environment:
       SERVICE_NAME: tracking-service
-      HTTP_METRICS_PORT: 9464
+      HTTP_METRICS_PORT: 9414
       GRPC_TRACKING_PORT: 50054
       TRACKING_DB_HOST: pg-tracking
       TRACKING_BATCH_SIZE: 500
@@ -132,9 +138,12 @@ services:
     <<: *service-common
     build:
       args: { SERVICE: dispatcher-service }
+    ports:
+      - '50055:50055'
+      - '9415:9414'
     environment:
       SERVICE_NAME: dispatcher-service
-      HTTP_METRICS_PORT: 9464
+      HTTP_METRICS_PORT: 9414
       GRPC_DISPATCHER_PORT: 50055
       DISPATCHER_DB_HOST: pg-dispatcher
       GRPC_ORDER_HOST: order-service:50051
