@@ -12,7 +12,7 @@ const config: Config = {
     '^@logistics/proto(.*)$': '<rootDir>/libs/proto/src$1',
     '^@logistics/kafka-utils(.*)$': '<rootDir>/libs/kafka-utils/src$1',
   },
-  testMatch: ['**/tests/**/*.spec.ts', '**/test/**/*.spec.ts'],
+  testMatch: ['**/tests/**/*.spec.ts', '**/test/**/*.spec.ts', '**/src/**/*.spec.ts'],
 }
 
 export default config

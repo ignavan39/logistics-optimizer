@@ -29,9 +29,29 @@ async function bootstrap() {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Logistics Optimizer API')
-    .setDescription('API Gateway with Authentication')
+    .setDescription(`
+## API для управления логистикой
+
+### Модули
+- **Auth** - аутентификация и авторизация
+- **Orders** - управление заказами
+- **Fleet** - управление транспортом
+- **Routing** - построение маршрутов
+- **Tracking** - отслеживание ТС
+- **Dispatcher** - диспетчеризация заказов
+
+### Аутентификация
+API использует JWT токены. Для защищённых эндпоинтов добавьте:
+\`Authorization: Bearer <access_token>\`
+    `)
     .setVersion('1.0')
     .addBearerAuth()
+    .addTag('auth', 'Аутентификация и авторизация')
+    .addTag('orders', 'Управление заказами')
+    .addTag('fleet', 'Управление транспортом')
+    .addTag('routing', 'Построение маршрутов')
+    .addTag('tracking', 'Отслеживание ТС')
+    .addTag('dispatcher', 'Диспетчеризация')
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
