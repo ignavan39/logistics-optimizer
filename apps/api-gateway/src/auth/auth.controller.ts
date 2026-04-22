@@ -129,4 +129,14 @@ export class AuthController {
   ) {
     return this.authService.createApiKey(user.userId, dto);
   }
+
+  @Get('admin/users')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all users (admin only)' })
+  async findUsers(
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.authService.findUsers();
+  }
 }
