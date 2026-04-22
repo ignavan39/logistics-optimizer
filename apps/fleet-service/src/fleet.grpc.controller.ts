@@ -79,6 +79,22 @@ interface ReleaseVehicleResponse {
   success: boolean
 }
 
+interface UpdateVehicleRequest {
+  vehicle_id: string
+  type?: string
+  capacity_kg?: number
+  capacity_m3?: number
+  current_lat?: number
+  current_lng?: number
+  expected_version?: number
+}
+
+interface UpdateVehicleResponse {
+  success: boolean
+  message?: string
+  vehicle: GetVehicleDetailsResponse['vehicle']
+}
+
 @Controller()
 export class FleetGrpcController {
   private readonly logger = new Logger(FleetGrpcController.name)
@@ -207,6 +223,64 @@ export class FleetGrpcController {
       return { success: true }
     } catch {
       return { success: false }
+    }
+  }
+
+  @GrpcMethod('FleetService', 'UpdateVehicle')
+  async updateVehicle(
+    request: UpdateVehicleRequest,
+  ): Promise<UpdateVehicleResponse> {
+    try {
+      const result = await this.fleetService.updateVehicle(
+        request.vehicle_id,
+        {
+          type: request.type,
+          capacityKg: request.capacity_kg,
+          capacityM3: request.capacity_m3,
+          currentLat: request.current_lat,
+          currentLng: request.current_lng,
+        },
+        request.expected_version,
+      )
+      if (!result.success) {
+        return { success: false, message: result.message, vehicle: null }
+      }
+      const v = result.vehicle.vehicle
+      return {
+        success: true,
+        message: result.message,
+        vehicle: {
+          id: v.id,
+          type: v.type,
+          capacity_kg: v.capacityKg,
+          capacity_m3: Number(v.capacityM3),
+          status: v.status,
+          current_lat: v.currentLat || 0,
+          current_lng: v.currentLng || 0,
+          current_driver_id: v.currentDriverId || '',
+          current_order_id: v.currentOrderId || '',
+          last_update: v.lastUpdate?.getTime() || 0,
+          version: (v as any).version || 0,
+          created_at: (v as any).createdAt?.getTime() || 0,
+          driver: v.driver ? {
+            id: v.driver.id,
+            email: v.driver.email,
+            first_name: v.driver.firstName,
+            last_name: v.driver.lastName,
+            phone: v.driver.phone,
+          } : null,
+          order: v.order ? {
+            id: v.order.id,
+            status: v.order.status,
+            priority: v.order.priority,
+            pickup_address: v.order.pickupAddress,
+            delivery_address: v.order.deliveryAddress,
+            created_at: v.order.createdAt?.getTime() || 0,
+          } : null,
+        }
+      }
+    } catch (e: any) {
+      return { success: false, message: e.message, vehicle: null }
     }
   }
 }

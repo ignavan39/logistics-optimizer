@@ -8,6 +8,7 @@ import {
   GetVehicleDto,
   AssignVehicleDto,
   ReleaseVehicleDto,
+  UpdateVehicleDto,
 } from './dto/fleet.dto'
 
 interface FleetGrpcClient {
@@ -16,6 +17,7 @@ interface FleetGrpcClient {
   getVehicleDetails(data: { vehicleId: string }, metadata?: Metadata): any
   assignVehicle(data: AssignVehicleDto, metadata?: Metadata): any
   releaseVehicle(data: ReleaseVehicleDto, metadata?: Metadata): any
+  updateVehicle(data: any, metadata?: Metadata): any
 }
 
 @Injectable()
@@ -63,6 +65,25 @@ export class FleetService implements OnModuleInit, OnModuleDestroy {
     return this.fleetClient.releaseVehicle({
       vehicle_id: dto.vehicle_id,
       order_id: dto.order_id,
+    })
+  }
+
+  async updateVehicle(vehicleId: string, dto: {
+    type?: string
+    capacity_kg?: number
+    capacity_m3?: number
+    current_lat?: number
+    current_lng?: number
+    expected_version?: number
+  }) {
+    return this.fleetClient.updateVehicle({
+      vehicle_id: vehicleId,
+      type: dto.type,
+      capacity_kg: dto.capacity_kg,
+      capacity_m3: dto.capacity_m3,
+      current_lat: dto.current_lat,
+      current_lng: dto.current_lng,
+      expected_version: dto.expected_version,
     })
   }
 }
