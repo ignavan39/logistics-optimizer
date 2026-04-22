@@ -11,9 +11,9 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { RbacGuard } from './guards/rbac.guard';
-import { Permissions } from './decorators/permissions.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../auth/guards/rbac.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { RolesService } from './roles.service';
 import { AssignRoleDto } from './dto/role.dto';
 

@@ -108,7 +108,7 @@ export class RolesService {
     await this.roleRepository.delete({ id });
   }
 
-  async assignRoleToUser(roleId: string, dto: AssignRoleDto) {
+  async assignRoleToUser(roleId: string, dto: { userId: string }) {
     const exists = await this.userRoleRepository.findOne({
       where: { userId: dto.userId, roleId },
     });
@@ -126,6 +126,22 @@ export class RolesService {
 
   async removeRoleFromUser(roleId: string, userId: string) {
     await this.userRoleRepository.delete({ userId, roleId });
+  }
+
+  async bulkAssignRoles(userId: string, roleIds: string[]) {
+    const results = [];
+    for (const roleId of roleIds) {
+      const exists = await this.userRoleRepository.findOne({
+        where: { userId, roleId },
+      });
+      if (exists) {
+        results.push({ roleId, status: 'already_assigned' });
+        continue;
+      }
+      await this.userRoleRepository.save({ userId, roleId });
+      results.push({ roleId, status: 'assigned' });
+    }
+    return results;
   }
 }
 

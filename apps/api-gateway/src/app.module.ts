@@ -11,7 +11,18 @@ import { RoutingModule } from './routing/routing.module';
 import { TrackingModule } from './tracking/tracking.module';
 import { DispatcherModule } from './dispatcher/dispatcher.module';
 import { NotificationsModule } from './notifications/notifications.module';
-import { User, Role, Permission, UserRole, RolePermission, Session, ApiKey, RefreshToken } from './auth/entities';
+import { UsersModule } from './users/users.module';
+import { RolesModule } from './roles/roles.module';
+import { AdminModule } from './admin/admin.module';
+import { User } from './users/entities/user.entity';
+import { Session } from './users/entities/session.entity';
+import { ApiKey } from './users/entities/api-key.entity';
+import { RefreshToken } from './users/entities/refresh-token.entity';
+import { Role } from './roles/entities/role.entity';
+import { Permission } from './roles/entities/permission.entity';
+import { UserRole } from './roles/entities/user-role.entity';
+import { RolePermission } from './roles/entities/role-permission.entity';
+import { AuditLog } from './auth/entities/audit-log.entity';
 
 @Module({
   imports: [
@@ -39,7 +50,7 @@ import { User, Role, Permission, UserRole, RolePermission, Session, ApiKey, Refr
         username: cfg.get('PG_USER', 'logistics'),
         password: cfg.get('PG_PASSWORD', 'logistics_secret'),
         database: cfg.get('AUTH_DB_NAME', 'auth_db'),
-        entities: [User, Role, Permission, UserRole, RolePermission, Session, ApiKey, RefreshToken],
+        entities: [User, Role, Permission, UserRole, RolePermission, Session, ApiKey, RefreshToken, AuditLog],
         synchronize: false,
         namingStrategy: new SnakeNamingStrategy(),
         logging: cfg.get('NODE_ENV') === 'development',
@@ -50,6 +61,9 @@ import { User, Role, Permission, UserRole, RolePermission, Session, ApiKey, Refr
       }),
     }),
     AuthModule,
+    UsersModule,
+    RolesModule,
+    AdminModule,
     OrdersModule,
     FleetModule,
     RoutingModule,

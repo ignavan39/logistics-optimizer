@@ -42,6 +42,15 @@ export class FleetController {
     return this.fleetService.getVehicle(vehicleId)
   }
 
+  @Get(':vehicleId/details')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('vehicles.read')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get vehicle details' })
+  async getVehicleDetails(@Param('vehicleId') vehicleId: string) {
+    return this.fleetService.getVehicleDetails(vehicleId)
+  }
+
   @Post(':vehicleId/assign')
   @UseGuards(JwtAuthGuard)
   @Permissions('vehicles.assign')

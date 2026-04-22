@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { ClientGrpc } from '@nestjs/microservices'
 import { Inject } from '@nestjs/common'
+import { Metadata } from '@grpc/grpc-js'
 import {
   GetAvailableVehiclesDto,
   GetVehicleDto,
@@ -10,10 +11,11 @@ import {
 } from './dto/fleet.dto'
 
 interface FleetGrpcClient {
-  getAvailableVehicles(data: GetAvailableVehiclesDto): Promise<any>
-  getVehicle(data: GetVehicleDto): Promise<any>
-  assignVehicle(data: AssignVehicleDto): Promise<any>
-  releaseVehicle(data: ReleaseVehicleDto): Promise<any>
+  getAvailableVehicles(data: GetAvailableVehiclesDto, metadata?: Metadata): any
+  getVehicle(data: { vehicleId: string }, metadata?: Metadata): any
+  getVehicleDetails(data: { vehicleId: string }, metadata?: Metadata): any
+  assignVehicle(data: AssignVehicleDto, metadata?: Metadata): any
+  releaseVehicle(data: ReleaseVehicleDto, metadata?: Metadata): any
 }
 
 @Injectable()
@@ -42,7 +44,11 @@ export class FleetService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getVehicle(vehicleId: string) {
-    return this.fleetClient.getVehicle({ vehicle_id: vehicleId })
+    return this.fleetClient.getVehicle({ vehicleId })
+  }
+
+  async getVehicleDetails(vehicleId: string) {
+    return this.fleetClient.getVehicleDetails({ vehicleId })
   }
 
   async assignVehicle(dto: AssignVehicleDto) {

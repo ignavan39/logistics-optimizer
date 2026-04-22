@@ -103,6 +103,43 @@ export const useAuthStore = create<AuthState>()(
   )
 )
 
+export async function apiFetchWithAuth<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const headers = getAuthHeader()
+  const res = await fetch(`/api${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+      ...options?.headers,
+    },
+  })
+
+  if (res.status === 401) {
+    const { refresh } = useAuthStore.getState()
+    await refresh()
+    const newHeaders = getAuthHeader()
+    const retryRes = await fetch(`/api${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...newHeaders,
+        ...options?.headers,
+      },
+    })
+    if (!retryRes.ok) {
+      const error = await retryRes.json().catch(() => ({ message: 'Request failed' }))
+      throw new Error(error.message || `HTTP ${retryRes.status}`)
+    }
+    return retryRes.json()
+  }
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: 'Request failed' }))
+    throw new Error(error.message || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
 export { apiFetch } from './utils'
 
 export function getAuthHeader(): Record<string, string> {

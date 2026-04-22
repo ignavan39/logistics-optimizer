@@ -145,9 +145,9 @@ export class AuthController {
   @Get('all-roles')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all roles' })
-  async getAllRoles() {
-    return this.rolesService.listRoles();
+  @ApiOperation({ summary: 'List all system roles' })
+  async listAllRoles() {
+    return await this.rolesService.listRoles();
   }
 
   @Post('api-keys')

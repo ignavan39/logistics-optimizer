@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
 } from 'typeorm';
-import { UserRole } from './user-role.entity';
+import { UserRole } from '../../roles/entities/user-role.entity';
 import { Session } from './session.entity';
 import { ApiKey } from './api-key.entity';
 
