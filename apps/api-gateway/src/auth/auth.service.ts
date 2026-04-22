@@ -55,6 +55,9 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, this.SALT_ROUNDS);
 
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
     const user = this.userRepository.create({
       email: dto.email,
       passwordHash,
@@ -63,13 +66,18 @@ export class AuthService {
       phone: dto.phone,
       isActive: true,
       isVerified: false,
+      verificationToken,
+      verificationExpiresAt,
     });
 
     await this.userRepository.save(user);
 
     await this.assignDefaultRole(user.id);
 
-    return this.generateTokens(user);
+    return {
+      ...await this.generateTokens(user),
+      verificationToken,
+    };
   }
 
   private async assignDefaultRole(userId: string) {
@@ -154,6 +162,27 @@ export class AuthService {
       accessToken,
       refreshToken: newRefreshToken,
     };
+  }
+
+  async verifyEmail(token: string) {
+    const user = await this.userRepository.findOne({
+      where: { verificationToken: token },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid verification token');
+    }
+
+    if (user.verificationExpiresAt && user.verificationExpiresAt < new Date()) {
+      throw new UnauthorizedException('Verification token expired');
+    }
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationExpiresAt = undefined;
+    await this.userRepository.save(user);
+
+    return { message: 'Email verified successfully' };
   }
 
   async logout(userId: string, sessionId?: string) {

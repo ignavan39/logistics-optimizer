@@ -11,6 +11,8 @@ CREATE TABLE users (
     avatar_url VARCHAR(500),
     is_active BOOLEAN DEFAULT true,
     is_verified BOOLEAN DEFAULT false,
+    verification_token VARCHAR(64),
+    verification_expires_at TIMESTAMPTZ,
     last_login_at TIMESTAMPTZ,
     password_changed_at TIMESTAMPTZ DEFAULT NOW(),
     failed_login_attempts INT DEFAULT 0,
