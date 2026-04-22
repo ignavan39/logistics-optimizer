@@ -17,6 +17,11 @@ export class FleetHttpController {
     return vehicle;
   }
 
+  @Get('vehicles/:id/details')
+  async getVehicleDetails(@Param('id') id: string) {
+    return this.fleetService.getVehicleDetails(id);
+  }
+
   @Post('vehicles/:id/assign')
   async assignVehicle(@Param('id') id: string, @Body() body: { driverId: string; orderId: string }) {
     return this.fleetService.assignVehicle(id, body.driverId, body.orderId);

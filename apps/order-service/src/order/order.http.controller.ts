@@ -31,6 +31,13 @@ export class OrderHttpController {
     return this.toResponse(order);
   }
 
+  @Get(':id/history')
+  async getOrderHistory(@Param('id') id: string) {
+    await this.orderService.getOrder(id);
+    const history = await this.orderService.getOrderHistory(id);
+    return { history };
+  }
+
   @Get()
   async listOrders(
     @Query('customerId') customerId: string,

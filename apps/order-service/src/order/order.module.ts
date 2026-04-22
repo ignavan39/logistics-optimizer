@@ -4,6 +4,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { OrderEntity } from './entities/order.entity';
 import { OutboxEventEntity } from './entities/outbox-event.entity';
+import { OrderStatusHistoryEntity } from './entities/order-status-history.entity';
 import { OrderService } from './order.service';
 import { OrderGrpcController } from './order.grpc.controller';
 import { OrderHttpController } from './order.http.controller';
@@ -11,7 +12,7 @@ import { OutboxProcessor } from './outbox/outbox.processor';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OrderEntity, OutboxEventEntity]),
+    TypeOrmModule.forFeature([OrderEntity, OutboxEventEntity, OrderStatusHistoryEntity]),
 
     // Kafka client for OutboxProcessor to publish events
     ClientsModule.registerAsync([

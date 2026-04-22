@@ -69,6 +69,26 @@ export class OrderGrpcController {
     }
   }
 
+@GrpcMethod('OrderService', 'GetOrderHistory')
+  async getOrderHistory(req: GetOrderRequest) {
+    try {
+      const history = await this.orderService.getOrderHistory(req.order_id);
+      return {
+        history: history.map(h => ({
+          id: h.id,
+          order_id: h.orderId,
+          previous_status: h.previousStatus || '',
+          new_status: h.newStatus,
+          changed_by: h.changedBy || '',
+          reason: h.reason || '',
+          created_at_unix: h.createdAt?.getTime() ? Math.floor(h.createdAt.getTime() / 1000) : 0,
+        })),
+      };
+    } catch (err) {
+      throw this.toRpcException(err);
+    }
+  }
+
   @GrpcMethod('OrderService', 'ListOrders')
   async listOrders(req: ListOrdersRequest) {
     const statusMap: Record<number, string> = {

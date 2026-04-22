@@ -39,6 +39,27 @@ export class FleetService {
     return this.vehicleRepo.findOne({ where: { id } })
   }
 
+  async getVehicleDetails(id: string) {
+    const vehicle = await this.vehicleRepo.findOne({ where: { id } })
+    if (!vehicle) throw new NotFoundException(`Vehicle ${id} not found`)
+
+    return {
+      vehicle: {
+        id: vehicle.id,
+        type: vehicle.type,
+        capacityKg: vehicle.capacityKg,
+        capacityM3: vehicle.capacityM3,
+        status: vehicle.status,
+        currentLat: vehicle.currentLat,
+        currentLng: vehicle.currentLng,
+        currentDriverId: vehicle.currentDriverId,
+        currentOrderId: vehicle.currentOrderId,
+        lastUpdate: vehicle.lastUpdate,
+        createdAt: vehicle.createdAt,
+      },
+    }
+  }
+
   async assignVehicle(vehicleId: string, driverId: string, orderId: string): Promise<VehicleEntity> {
     const vehicle = await this.vehicleRepo.findOne({ where: { id: vehicleId } })
     if (!vehicle) throw new NotFoundException(`Vehicle ${vehicleId} not found`)

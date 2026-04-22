@@ -50,6 +50,15 @@ export class OrdersController {
     return this.ordersService.getOrder(orderId)
   }
 
+  @Get(':orderId/history')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('orders.read')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get order status history' })
+  async getOrderHistory(@Param('orderId') orderId: string) {
+    return this.ordersService.getOrderHistory(orderId)
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions('orders.read')

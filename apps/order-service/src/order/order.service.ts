@@ -9,6 +9,7 @@ import { Repository, DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { OrderEntity, OrderStatus, OrderPriority } from './entities/order.entity';
 import { OutboxEventEntity } from './entities/outbox-event.entity';
+import { OrderStatusHistoryEntity } from './entities/order-status-history.entity';
 
 export interface CreateOrderDto {
   customerId: string;
@@ -42,6 +43,9 @@ export class OrderService {
 
     @InjectRepository(OutboxEventEntity)
     private readonly outboxRepo: Repository<OutboxEventEntity>,
+
+    @InjectRepository(OrderStatusHistoryEntity)
+    private readonly historyRepo: Repository<OrderStatusHistoryEntity>,
 
     @InjectDataSource()
     private readonly dataSource: DataSource,
@@ -98,6 +102,14 @@ export class OrderService {
         },
       });
 
+      // 3. Записать в историю статус
+      await manager.save(OrderStatusHistoryEntity, {
+        orderId: saved.id,
+        previousStatus: null,
+        newStatus: OrderStatus.PENDING,
+        reason: 'Order created',
+      });
+
       this.logger.log(`Order created: ${saved.id} for customer ${saved.customerId}`);
       return saved;
     });
@@ -107,6 +119,13 @@ export class OrderService {
     const order = await this.orderRepo.findOne({ where: { id: orderId } });
     if (!order) throw new NotFoundException(`Order ${orderId} not found`);
     return order;
+  }
+
+  async getOrderHistory(orderId: string): Promise<OrderStatusHistoryEntity[]> {
+    return this.historyRepo.find({
+      where: { orderId },
+      order: { createdAt: 'ASC' },
+    });
   }
 
   async listOrders(
@@ -174,6 +193,15 @@ export class OrderService {
             reason: dto.reason,
           },
         },
+      });
+
+      // Write to status history
+      await manager.save(OrderStatusHistoryEntity, {
+        orderId: updated.id,
+        previousStatus: prevStatus,
+        newStatus: updated.status,
+        changedBy: dto.updatedBy,
+        reason: dto.reason,
       });
 
       this.logger.log(
