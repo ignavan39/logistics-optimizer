@@ -50,6 +50,12 @@ export class User {
   @Column({ name: 'is_verified', default: false })
   isVerified!: boolean;
 
+  @Column({ name: 'verification_token', length: 64, nullable: true })
+  verificationToken?: string;
+
+  @Column({ name: 'verification_expires_at', type: 'timestamptz', nullable: true })
+  verificationExpiresAt?: Date;
+
   @Column({ name: 'last_login_at', type: 'timestamptz', nullable: true })
   lastLoginAt?: Date;
 
