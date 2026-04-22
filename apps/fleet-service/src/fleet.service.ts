@@ -43,6 +43,21 @@ export class FleetService {
     const vehicle = await this.vehicleRepo.findOne({ where: { id } })
     if (!vehicle) throw new NotFoundException(`Vehicle ${id} not found`)
 
+    const driver = vehicle.currentDriverId
+      ? await this.dataSource.query(
+          `SELECT id, email, first_name, last_name, phone FROM users WHERE id = $1`,
+          [vehicle.currentDriverId],
+        ).then(rows => rows[0])
+      : null
+
+    const order = vehicle.currentOrderId
+      ? await this.dataSource.query(
+          `SELECT id, status, priority, pickup_address, delivery_address, created_at
+           FROM orders WHERE id = $1`,
+          [vehicle.currentOrderId],
+        ).then(rows => rows[0])
+      : null
+
     return {
       vehicle: {
         id: vehicle.id,
@@ -56,6 +71,21 @@ export class FleetService {
         currentOrderId: vehicle.currentOrderId,
         lastUpdate: vehicle.lastUpdate,
         createdAt: vehicle.createdAt,
+        driver: driver ? {
+          id: driver.id,
+          email: driver.email,
+          firstName: driver.first_name,
+          lastName: driver.last_name,
+          phone: driver.phone,
+        } : null,
+        order: order ? {
+          id: order.id,
+          status: order.status,
+          priority: order.priority,
+          pickupAddress: order.pickup_address,
+          deliveryAddress: order.delivery_address,
+          createdAt: order.created_at,
+        } : null,
       },
     }
   }
