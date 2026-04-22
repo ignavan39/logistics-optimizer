@@ -3,7 +3,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices'
 import { ConfigService } from '@nestjs/config'
 import { DispatcherController } from './dispatcher.controller'
 import { DispatcherService } from './dispatcher.service'
-import { join } from 'path'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { join } from 'path'
           transport: Transport.GRPC,
           options: {
             package: 'dispatcher',
-            protoPath: join(__dirname, '../../..', 'libs', 'proto', 'src', 'dispatcher.proto'),
+            protoPath: join(process.cwd(), 'libs', 'proto', 'src', 'dispatcher.proto'),
             url: configService.get('GRPC_DISPATCHER_HOST', 'dispatcher-service:50055'),
           },
         }),
