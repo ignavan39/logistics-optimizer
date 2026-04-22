@@ -174,13 +174,11 @@ function UsersTab() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | undefined>()
 
-  const { data, isLoading, error } = useQuery<{ users: User[] }>({
+  const { data, isLoading } = useQuery<{ users: { id: string; email: string; first_name?: string; last_name?: string; is_active: boolean; is_verified: boolean }[] }>({
     queryKey: ['admin-users'],
     queryFn: () => apiFetch('/auth/admin/users'),
     retry: 1,
   })
-
-  console.log('UsersTab error:', error)
 
   const deleteMutation = useMutation({
     mutationFn: (userId: string) =>
@@ -224,7 +222,13 @@ function UsersTab() {
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-accent-lavender" />
 
-  const users = data?.users
+  const users = data?.users?.map(u => ({
+    userId: u.id,
+    email: u.email,
+    type: u.is_active ? 'active' : 'inactive',
+    roles: [],
+    permissions: [],
+  })) || []
 
   return (
     <div>
@@ -259,7 +263,7 @@ function UsersTab() {
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
+              {users.filter(u => u?.userId).map((user) => (
                 <tr
                   key={user.userId}
                   className="border-b border-border hover:bg-surface-hover cursor-pointer"
@@ -269,8 +273,8 @@ function UsersTab() {
                   <td className="p-4 text-text-secondary">{user.type || '-'}</td>
                   <td className="p-4">
                     <div className="flex flex-wrap gap-1">
-                      {(user.roles || []).map((role) => (
-                        <span key={role} className="px-2 py-0.5 bg-accent-lilac/20 text-accent-lilac text-xs rounded">
+                      {(user.roles || []).map((role, i) => (
+                        <span key={`${user.userId}-role-${i}`} className="px-2 py-0.5 bg-accent-lilac/20 text-accent-lilac text-xs rounded">
                           {role}
                         </span>
                       ))}
@@ -278,8 +282,8 @@ function UsersTab() {
                   </td>
                   <td className="p-4">
                     <div className="flex flex-wrap gap-1 max-w-xs">
-                      {(user.permissions || []).slice(0, 3).map((p) => (
-                        <span key={p} className="px-2 py-0.5 bg-accent-mint/20 text-accent-mint text-xs rounded">
+                      {(user.permissions || []).slice(0, 3).map((p, i) => (
+                        <span key={`${user.userId}-perm-${i}`} className="px-2 py-0.5 bg-accent-sky/20 text-accent-sky text-xs rounded">
                           {p}
                         </span>
                       ))}
@@ -348,9 +352,9 @@ function RolesTab() {
                 <p className="text-text-secondary text-sm mb-2">{role.description}</p>
               )}
               <div className="flex flex-wrap gap-1">
-                {rolePerms.map((p) => (
-                  <span key={p} className="px-2 py-0.5 bg-accent-mint/20 text-accent-mint text-xs rounded">
-                    {p}
+{rolePerms.map((p, i) => (
+                <span key={p + i} className="px-2 py-0.5 bg-accent-sky/20 text-accent-sky text-xs rounded">
+                  {p}
                   </span>
                 ))}
               </div>
@@ -363,20 +367,16 @@ function RolesTab() {
 }
 
 function PermissionsTab() {
-  const { data, isLoading } = useQuery<{ permissions: Permission[] }>({
+  const { data, isLoading } = useQuery<{ id: string; name: string; description?: string }[]>({
     queryKey: ['permissions'],
     queryFn: () => apiFetch('/permissions'),
   })
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-accent-lavender" />
 
-  const permissions = data?.permissions
+  const perms = data || []
 
-  if (!permissions) {
-    return <div className="text-text-secondary">Нет данных о правах</div>
-  }
-
-  if (permissions.length === 0) {
+  if (perms.length === 0) {
     return <div className="text-text-secondary">Нет прав</div>
   }
 
@@ -390,7 +390,7 @@ function PermissionsTab() {
           </tr>
         </thead>
         <tbody>
-          {permissions.map((perm) => (
+          {perms.map((perm) => (
             <tr key={perm.id} className="border-b border-border hover:bg-surface-hover">
               <td className="p-4 text-text-primary font-mono text-sm">{perm.name}</td>
               <td className="p-4 text-text-secondary">{perm.description}</td>
@@ -416,9 +416,9 @@ export function AdminPage() {
       <h1 className="text-2xl font-semibold text-text-primary mb-6">Администрирование</h1>
 
       <div className="flex gap-2 mb-6 border-b border-border">
-        {tabs.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
+{tabs.map(({ id, label, icon: Icon }, i) => (
+                <button
+                  key={id || i}
             onClick={() => setTab(id)}
             className={`flex items-center gap-2 px-4 py-2 -mb-px border-b-2 transition-colors ${
               tab === id

@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import { Loader2, Navigation } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import L from 'leaflet'
-import { apiFetch, getAuthHeader } from '@/lib/auth'
+import { apiFetchWithAuth as apiFetch } from '@/lib/auth'
 
 interface Vehicle {
   id: string
@@ -37,7 +37,7 @@ export function TrackingPage() {
 
   const { data: vehiclesData, isLoading: vehiclesLoading } = useQuery<VehiclesResponse>({
     queryKey: ['vehicles'],
-    queryFn: () => apiFetch('/vehicles', { headers: getAuthHeader() }),
+    queryFn: () => apiFetch('/vehicles'),
     refetchInterval: 30000,
   })
 
