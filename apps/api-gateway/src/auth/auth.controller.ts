@@ -18,6 +18,7 @@ import {
   RefreshTokenDto,
   ChangePasswordDto,
   CreateApiKeyDto,
+  CreateUserDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard, CurrentUser } from './guards/jwt-auth.guard';
 import { RbacGuard } from './guards/rbac.guard';
@@ -146,5 +147,17 @@ export class AuthController {
     @CurrentUser() user: RequestUser,
   ) {
     return this.authService.findUsers();
+  }
+
+  @Post('admin/users')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create new user (admin only)' })
+  async createUser(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CreateUserDto,
+  ) {
+    return this.authService.createUser(dto);
   }
 }

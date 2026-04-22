@@ -88,3 +88,22 @@ export class AssignRolesDto {
   @IsString({ each: true })
   roleIds!: string[];
 }
+
+export class CreateUserDto {
+  @ApiProperty({ example: 'user@example.com' })
+  @IsEmail()
+  email!: string;
+
+  @ApiProperty({ example: 'SecureP@ss123!' })
+  @IsString()
+  @MinLength(8)
+  password!: string;
+
+  @ApiProperty({ example: 'Иван' })
+  @IsString()
+  firstName!: string;
+
+  @ApiProperty({ example: 'Петров' })
+  @IsString()
+  lastName!: string;
+}

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, getAuthHeader } from '@/lib/auth'
-import { Users, Shield, Key, Plus, Loader2, Trash2 } from 'lucide-react'
+import { Users, Shield, Key, Plus, Loader2, Trash2, X, Mail, Lock, User } from 'lucide-react'
 
 interface User {
   userId: string
@@ -26,8 +26,152 @@ interface Permission {
 
 type Tab = 'users' | 'roles' | 'permissions'
 
+interface UserFormData {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+}
+
+function UserModal({
+  user,
+  onClose,
+  onSave,
+}: {
+  user?: User
+  onClose: () => void
+  onSave: (data: UserFormData) => void
+}) {
+  const [formData, setFormData] = useState<UserFormData>({
+    email: user?.email || '',
+    password: '',
+    firstName: '',
+    lastName: '',
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      onSave(formData)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка сохранения')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-surface rounded-xl border border-border w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold text-text-primary">
+            {user ? 'Редактировать пользователя' : 'Добавить пользователя'}
+          </h2>
+          <button onClick={onClose} className="p-1 hover:bg-surface-hover rounded">
+            <X className="w-5 h-5 text-text-muted" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 bg-status-error/10 border border-status-error rounded-lg text-status-error text-sm">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm text-text-secondary mb-1">Email</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-lavender"
+                placeholder="user@example.com"
+                required
+                disabled={!!user}
+              />
+            </div>
+          </div>
+
+          {!user && (
+            <div>
+              <label className="block text-sm text-text-secondary mb-1">Пароль</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-lavender"
+                  placeholder="••••••••"
+                  required={!user}
+                  minLength={8}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-text-secondary mb-1">Имя</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                <input
+                  type="text"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-lavender"
+                  placeholder="Иван"
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm text-text-secondary mb-1">Фамилия</label>
+              <input
+                type="text"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                className="w-full px-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-lavender"
+                placeholder="Петров"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2 border border-border rounded-lg text-text-secondary hover:bg-surface-hover transition-colors"
+            >
+              Отмена
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 py-2 bg-accent-lavender text-background rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Сохранить'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 function UsersTab() {
   const queryClient = useQueryClient()
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | undefined>()
+
   const { data, isLoading } = useQuery<{ users: User[] }>({
     queryKey: ['admin-users'],
     queryFn: () => apiFetch('/admin/users', { headers: getAuthHeader() }),
@@ -42,24 +186,74 @@ function UsersTab() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
   })
 
+  const createMutation = useMutation({
+    mutationFn: (data: UserFormData) =>
+      apiFetch('/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      setModalOpen(false)
+    },
+  })
+
+  const handleSave = (formData: UserFormData) => {
+    if (editingUser) {
+      // TODO: edit mutation
+    } else {
+      createMutation.mutate(formData)
+    }
+  }
+
+  const handleRowClick = (user: User) => {
+    setEditingUser(user)
+    setModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setModalOpen(false)
+    setEditingUser(undefined)
+  }
+
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-accent-lavender" />
 
   return (
-    <div className="bg-surface rounded-xl border border-border overflow-hidden">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-border">
-            <th className="text-left p-4 text-text-secondary font-medium">Email</th>
-            <th className="text-left p-4 text-text-secondary font-medium">Тип</th>
-            <th className="text-left p-4 text-text-secondary font-medium">Роли</th>
-            <th className="text-left p-4 text-text-secondary font-medium">Permissions</th>
-            <th className="p-4"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {data?.users.map((user) => (
-            <tr key={user.userId} className="border-b border-border hover:bg-surface-hover">
-              <td className="p-4 text-text-primary">{user.email}</td>
+    <div>
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setModalOpen(true)}
+          className="flex items-center gap-2 px-3 py-2 bg-accent-lavender text-background rounded-lg text-sm font-medium hover:opacity-90"
+        >
+          <Plus className="w-4 h-4" />
+          Добавить пользователя
+        </button>
+      </div>
+
+      {modalOpen && (
+        <UserModal user={editingUser} onClose={handleCloseModal} onSave={handleSave} />
+      )}
+
+      <div className="bg-surface rounded-xl border border-border overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left p-4 text-text-secondary font-medium">Email</th>
+              <th className="text-left p-4 text-text-secondary font-medium">Тип</th>
+              <th className="text-left p-4 text-text-secondary font-medium">Роли</th>
+              <th className="text-left p-4 text-text-secondary font-medium">Permissions</th>
+              <th className="p-4"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {data?.users.map((user) => (
+              <tr
+                key={user.userId}
+                className="border-b border-border hover:bg-surface-hover cursor-pointer"
+                onClick={() => handleRowClick(user)}
+              >
+                <td className="p-4 text-text-primary">{user.email}</td>
               <td className="p-4 text-text-secondary">{user.type}</td>
               <td className="p-4">
                 <div className="flex flex-wrap gap-1">
@@ -84,7 +278,10 @@ function UsersTab() {
               </td>
               <td className="p-4">
                 <button
-                  onClick={() => deleteMutation.mutate(user.userId)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    deleteMutation.mutate(user.userId)
+                  }}
                   className="p-2 text-status-error hover:bg-status-error/10 rounded transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -94,6 +291,7 @@ function UsersTab() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }

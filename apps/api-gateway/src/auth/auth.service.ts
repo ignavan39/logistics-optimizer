@@ -16,7 +16,7 @@ import { Permission } from './entities/permission.entity';
 import { Session } from './entities/session.entity';
 import { ApiKey } from './entities/api-key.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
-import { RegisterDto, LoginDto, CreateApiKeyDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, CreateApiKeyDto, CreateUserDto } from './dto/auth.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
 
 @Injectable()
@@ -55,9 +55,6 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, this.SALT_ROUNDS);
 
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
     const user = this.userRepository.create({
       email: dto.email,
       passwordHash,
@@ -65,19 +62,14 @@ export class AuthService {
       lastName: dto.lastName,
       phone: dto.phone,
       isActive: true,
-      isVerified: false,
-      verificationToken,
-      verificationExpiresAt,
+      isVerified: true,
     });
 
     await this.userRepository.save(user);
 
     await this.assignDefaultRole(user.id);
 
-    return {
-      ...await this.generateTokens(user),
-      verificationToken,
-    };
+    return this.generateTokens(user);
   }
 
   private async assignDefaultRole(userId: string) {
@@ -333,6 +325,38 @@ export class AuthService {
       total,
       limit,
       offset,
+    };
+  }
+
+  async createUser(dto: CreateUserDto) {
+    const existing = await this.userRepository.findOne({
+      where: { email: dto.email },
+    });
+
+    if (existing) {
+      throw new ConflictException('Email already registered');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, this.SALT_ROUNDS);
+
+    const user = this.userRepository.create({
+      email: dto.email,
+      passwordHash,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      isActive: true,
+      isVerified: true,
+    });
+
+    await this.userRepository.save(user);
+
+    await this.assignDefaultRole(user.id);
+
+    return {
+      userId: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
     };
   }
 
