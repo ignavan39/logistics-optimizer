@@ -269,6 +269,44 @@ export class AuthService {
     );
   }
 
+  async findUsers(options?: { limit?: number; offset?: number; search?: string }) {
+    const limit = options?.limit || 50;
+    const offset = options?.offset || 0;
+    
+    const whereClause = options?.search 
+      ? `WHERE u.email ILIKE $3 OR u.first_name ILIKE $3 OR u.last_name ILIKE $3`
+      : '';
+    
+    const params: any[] = [limit, offset];
+    if (options?.search) {
+      params.push(`%${options.search}%`);
+    }
+    
+    const [users, countResult] = await Promise.all([
+      this.dataSource.query(
+        `SELECT u.id, u.email, u.first_name, u.last_name, u.is_active, u.is_verified, u.created_at
+         FROM users u
+         ${whereClause}
+         ORDER BY u.created_at DESC
+         LIMIT $1 OFFSET $2`,
+        params,
+      ),
+      this.dataSource.query(
+        `SELECT COUNT(*) as total FROM users u ${whereClause}`,
+        options?.search ? [`%${options.search}%`] : [],
+      ),
+    ]);
+    
+    const total = parseInt(countResult[0]?.total || '0', 10);
+    
+    return {
+      users,
+      total,
+      limit,
+      offset,
+    };
+  }
+
   async assignRoles(userId: string, roleIds: string[]) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
