@@ -54,6 +54,8 @@ interface GetVehicleDetailsResponse {
     last_update: number
     version: number
     created_at: number
+    driver: { id: string; email: string; first_name: string; last_name: string; phone: string } | null
+    order: { id: string; status: string; priority: string; pickup_address: string; delivery_address: string; created_at: Date } | null
   }
 }
 
@@ -161,6 +163,21 @@ export class FleetGrpcController {
         last_update: v.lastUpdate?.getTime() || 0,
         version: (v as any).version || 0,
         created_at: (v as any).createdAt?.getTime() || 0,
+        driver: v.driver ? {
+          id: v.driver.id,
+          email: v.driver.email,
+          first_name: v.driver.firstName,
+          last_name: v.driver.lastName,
+          phone: v.driver.phone || '',
+        } : null,
+        order: v.order ? {
+          id: v.order.id,
+          status: v.order.status,
+          priority: v.order.priority,
+          pickup_address: v.order.pickupAddress,
+          delivery_address: v.order.deliveryAddress,
+          created_at: v.order.createdAt?.getTime() || 0,
+        } : null,
       },
     }
   }
