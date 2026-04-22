@@ -75,7 +75,7 @@ export class AuthService {
   private async assignDefaultRole(userId: string) {
     await this.dataSource.query(
       `INSERT INTO user_roles (user_id, role_id, assigned_at) 
-       SELECT $1, r.id, NOW() FROM roles r WHERE r.name = 'viewer'`,
+       SELECT $1, r.id, NOW() FROM roles r WHERE r.name = 'dispatcher'`,
       [userId],
     );
   }
@@ -230,10 +230,10 @@ export class AuthService {
 
   async getUserPermissions(userId: string): Promise<string[]> {
     const result = await this.dataSource.query(
-      `SELECT get_user_permissions($1) as permissions`,
+      `SELECT * FROM get_user_permissions($1)`,
       [userId],
     );
-    return result[0]?.permissions || [];
+    return result.map(row => row.get_user_permissions) || [];
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
