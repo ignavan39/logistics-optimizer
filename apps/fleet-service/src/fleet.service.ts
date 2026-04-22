@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, DataSource } from 'typeorm'
 import { VehicleEntity } from './entities/vehicle.entity'
@@ -108,5 +108,38 @@ export class FleetService {
     vehicle.currentDriverId = undefined
     vehicle.currentOrderId = undefined
     await this.vehicleRepo.save(vehicle)
+  }
+
+  async updateVehicle(
+    vehicleId: string,
+    data: {
+      type?: string
+      capacityKg?: number
+      capacityM3?: number
+      currentLat?: number | null
+      currentLng?: number | null
+    },
+    expectedVersion?: number,
+  ) {
+    const vehicle = await this.vehicleRepo.findOne({ where: { id: vehicleId } })
+    if (!vehicle) throw new NotFoundException(`Vehicle ${vehicleId} not found`)
+
+    if (expectedVersion !== undefined && vehicle.version !== expectedVersion) {
+      throw new ConflictException(`Version mismatch: expected ${expectedVersion}, got ${vehicle.version}`)
+    }
+
+    if (data.type) vehicle.type = data.type
+    if (data.capacityKg) vehicle.capacityKg = data.capacityKg
+    if (data.capacityM3) vehicle.capacityM3 = data.capacityM3
+    if (data.currentLat !== undefined) vehicle.currentLat = data.currentLat ?? undefined
+    if (data.currentLng !== undefined) vehicle.currentLng = data.currentLng ?? undefined
+
+    await this.vehicleRepo.save(vehicle)
+
+    return {
+      success: true,
+      message: 'Vehicle updated',
+      vehicle: await this.getVehicleDetails(vehicleId),
+    }
   }
 }

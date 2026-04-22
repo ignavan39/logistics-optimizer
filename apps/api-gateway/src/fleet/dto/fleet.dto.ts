@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsEnum, Min, Max } from 'class-validator'
+import { IsString, IsNumber, IsOptional, IsEnum, Min, Max, IsInt } from 'class-validator'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class GeoPointDto {
@@ -74,4 +74,38 @@ export class ReleaseVehicleDto {
   @ApiProperty({ example: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a02' })
   @IsString()
   order_id!: string
+}
+
+export class UpdateVehicleDto {
+  @ApiPropertyOptional({ enum: ['CAR', 'VAN', 'TRUCK'] })
+  @IsOptional()
+  @IsString()
+  type?: 'CAR' | 'VAN' | 'TRUCK'
+
+  @ApiPropertyOptional({ example: 1500 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  capacity_kg?: number
+
+  @ApiPropertyOptional({ example: 8 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  capacity_m3?: number
+
+  @ApiPropertyOptional({ example: 55.7558 })
+  @IsOptional()
+  @IsNumber()
+  current_lat?: number
+
+  @ApiPropertyOptional({ example: 37.6173 })
+  @IsOptional()
+  @IsNumber()
+  current_lng?: number
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsInt()
+  expected_version?: number
 }
