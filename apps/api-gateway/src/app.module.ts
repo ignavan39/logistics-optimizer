@@ -25,7 +25,7 @@ import { User, Role, Permission, UserRole, RolePermission, Session, ApiKey, Refr
         throttlers: [
           {
             ttl: config.get('THROTTLE_TTL', 60000),
-            limit: config.get('THROTTLE_LIMIT', 100),
+            limit: config.get('THROTTLE_LIMIT', 10000),
           },
         ],
       }),
