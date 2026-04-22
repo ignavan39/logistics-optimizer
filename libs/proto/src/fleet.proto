@@ -6,6 +6,7 @@ service FleetService {
   rpc GetAvailableVehicles(GetAvailableVehiclesRequest) returns (GetAvailableVehiclesResponse);
   rpc GetVehicle(GetVehicleRequest) returns (GetVehicleResponse);
   rpc GetVehicleDetails(GetVehicleRequest) returns (GetVehicleDetailsResponse);
+  rpc UpdateVehicle(UpdateVehicleRequest) returns (UpdateVehicleResponse);
   rpc AssignVehicle(AssignVehicleRequest) returns (AssignVehicleResponse);
   rpc ReleaseVehicle(ReleaseVehicleRequest) returns (ReleaseVehicleResponse);
   rpc GetVehicleLocation(GetVehicleLocationRequest) returns (stream VehicleLocation);
@@ -33,6 +34,22 @@ message GetVehicleResponse {
 
 message GetVehicleDetailsResponse {
   VehicleDetails vehicle = 1;
+}
+
+message UpdateVehicleRequest {
+  string vehicle_id = 1;
+  VehicleType type = 2;
+  int32 capacity_kg = 3;
+  float capacity_m3 = 4;
+  float current_lat = 5;
+  float current_lng = 6;
+  int32 expected_version = 7;
+}
+
+message UpdateVehicleResponse {
+  bool success = 1;
+  string message = 2;
+  VehicleDetails vehicle = 3;
 }
 
 message VehicleDetails {
