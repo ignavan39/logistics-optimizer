@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { apiFetch } from '@/lib/utils'
-import { getAuthHeader } from '@/lib/auth'
+import { apiFetchWithAuth as apiFetch } from '@/lib/auth'
 import { Package, Plus, Loader2 } from 'lucide-react'
 
 interface Order {
@@ -35,7 +34,7 @@ const STATUS_MAP: Record<number, { label: string; color: string }> = {
 export function OrdersPage() {
   const { data, isLoading, error } = useQuery<OrdersResponse>({
     queryKey: ['orders'],
-    queryFn: () => apiFetch('/orders', { headers: getAuthHeader() }),
+    queryFn: () => apiFetch('/orders'),
   })
 
   return (
