@@ -5,6 +5,7 @@ import {
   Body,
   UseGuards,
   Req,
+  Param,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -12,6 +13,8 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
+import { RolesService, PermissionsService } from '../roles/roles.service';
+import { UsersService } from '../users/users.service';
 import {
   RegisterDto,
   LoginDto,
@@ -19,7 +22,7 @@ import {
   ChangePasswordDto,
   CreateApiKeyDto,
   CreateUserDto,
-} from './dto/auth.dto';
+} from './dto/user-auth.dto';
 import { JwtAuthGuard, CurrentUser } from './guards/jwt-auth.guard';
 import { RbacGuard } from './guards/rbac.guard';
 import { Permissions } from './decorators/permissions.decorator';
@@ -29,7 +32,12 @@ import { RequestUser } from './strategies/jwt.strategy';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) { }
+  constructor(
+    private authService: AuthService,
+    private rolesService: RolesService,
+    private permissionsService: PermissionsService,
+    private usersService: UsersService,
+  ) {}
 
   @Public()
   @Post('register')
@@ -118,13 +126,28 @@ export class AuthController {
     };
   }
 
-  @Get('roles')
-  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Get('my-roles')
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @Permissions('users.manage')
-  @ApiOperation({ summary: 'Get user roles' })
-  async getUserRoles(@CurrentUser() user: RequestUser) {
-    return this.authService.getUserRoles(user.userId);
+  @ApiOperation({ summary: 'Get current user roles' })
+  async getMyRoles(@CurrentUser() user: RequestUser) {
+    return this.usersService.getUserRoles(user.userId);
+  }
+
+  @Get('permissions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all available permissions' })
+  async getAllPermissions() {
+    return this.permissionsService.listPermissions();
+  }
+
+  @Get('all-roles')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all roles' })
+  async getAllRoles() {
+    return this.rolesService.listRoles();
   }
 
   @Post('api-keys')
@@ -146,7 +169,7 @@ export class AuthController {
   async findUsers(
     @CurrentUser() user: RequestUser,
   ) {
-    return this.authService.findUsers();
+    return this.usersService.findUsers();
   }
 
   @Post('admin/users')
@@ -159,5 +182,17 @@ export class AuthController {
     @Body() dto: CreateUserDto,
   ) {
     return this.authService.createUser(dto);
+  }
+
+  @Get('user-roles/:userId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get user roles by user ID' })
+  async getUserRoles(
+    @CurrentUser() user: RequestUser,
+    @Param('userId') userId?: string,
+  ) {
+    const targetUserId = userId || user.userId;
+    return this.authService.getUserRoles(targetUserId);
   }
 }
