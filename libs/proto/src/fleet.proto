@@ -5,6 +5,7 @@ package fleet;
 service FleetService {
   rpc GetAvailableVehicles(GetAvailableVehiclesRequest) returns (GetAvailableVehiclesResponse);
   rpc GetVehicle(GetVehicleRequest) returns (GetVehicleResponse);
+  rpc GetVehicleDetails(GetVehicleRequest) returns (GetVehicleDetailsResponse);
   rpc AssignVehicle(AssignVehicleRequest) returns (AssignVehicleResponse);
   rpc ReleaseVehicle(ReleaseVehicleRequest) returns (ReleaseVehicleResponse);
   rpc GetVehicleLocation(GetVehicleLocationRequest) returns (stream VehicleLocation);
@@ -28,6 +29,25 @@ message GetVehicleRequest {
 
 message GetVehicleResponse {
   Vehicle vehicle = 1;
+}
+
+message GetVehicleDetailsResponse {
+  VehicleDetails vehicle = 1;
+}
+
+message VehicleDetails {
+  string id = 1;
+  VehicleType type = 2;
+  int32 capacity_kg = 3;
+  float capacity_m3 = 4;
+  string status = 5;
+  float current_lat = 6;
+  float current_lng = 7;
+  string current_driver_id = 8;
+  string current_order_id = 9;
+  int64 last_update = 10;
+  int32 version = 11;
+  int64 created_at = 12;
 }
 
 message AssignVehicleRequest {
