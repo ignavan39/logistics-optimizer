@@ -1,6 +1,7 @@
-import { Controller, Logger } from '@nestjs/common'
+import { Controller, Logger, Inject } from '@nestjs/common'
 import { GrpcMethod, RpcException } from '@nestjs/microservices'
 import { status as GrpcStatus } from '@grpc/grpc-js'
+import { FleetService } from './fleet.service'
 
 interface GetAvailableVehiclesRequest {
   near_point: { lat: number; lng: number }
@@ -24,7 +25,8 @@ interface GetAvailableVehiclesResponse {
 }
 
 interface GetVehicleRequest {
-  vehicle_id: string
+  vehicleId: string
+  vehicle_id?: string
 }
 
 interface GetVehicleResponse {
@@ -35,6 +37,23 @@ interface GetVehicleResponse {
     capacity_m3: number
     status: string
     version: number
+  }
+}
+
+interface GetVehicleDetailsResponse {
+  vehicle: {
+    id: string
+    type: string
+    capacity_kg: number
+    capacity_m3: number
+    status: string
+    current_lat: number
+    current_lng: number
+    current_driver_id: string
+    current_order_id: string
+    last_update: number
+    version: number
+    created_at: number
   }
 }
 
@@ -61,83 +80,116 @@ interface ReleaseVehicleResponse {
 @Controller()
 export class FleetGrpcController {
   private readonly logger = new Logger(FleetGrpcController.name)
-  private readonly vehicles = new Map<string, any>()
 
-  constructor() {
-    for (let i = 0; i < 50; i++) {
-      const id = `vehicle-${i + 1}`
-      this.vehicles.set(id, {
-        id,
-        type: i < 30 ? 'VEHICLE_TYPE_VAN' : 'VEHICLE_TYPE_TRUCK',
-        capacity_kg: i < 30 ? 1500 : 5000,
-        capacity_m3: i < 30 ? 8 : 20,
-        status: 'VEHICLE_STATUS_IDLE',
-        version: 1,
-        current_location: {
-          lat: 55.7558 + (Math.random() - 0.5) * 0.1,
-          lng: 37.6173 + (Math.random() - 0.5) * 0.1,
-        },
-        last_update: Date.now(),
-      })
-    }
-  }
+  constructor(private readonly fleetService: FleetService) {}
 
   @GrpcMethod('FleetService', 'GetAvailableVehicles')
   async getAvailableVehicles(
     request: GetAvailableVehiclesRequest,
   ): Promise<GetAvailableVehiclesResponse> {
-    const idleVehicles = Array.from(this.vehicles.values()).filter(
-      (v) => v.status === 'VEHICLE_STATUS_IDLE',
+    const nearPoint = request.near_point
+      ? { lat: request.near_point.lat, lng: request.near_point.lng }
+      : undefined
+
+    const vehicles = await this.fleetService.getAvailableVehicles(
+      nearPoint,
+      request.radius_km * 1000,
     )
 
     return {
-      vehicles: idleVehicles.slice(0, request.limit || 10),
+      vehicles: vehicles.slice(0, request.limit || 10).map((v) => ({
+        id: v.id,
+        type: v.type,
+        capacity_kg: v.capacityKg,
+        capacity_m3: Number(v.capacityM3),
+        status: v.status,
+        version: v.version,
+        current_location: v.currentLat && v.currentLng
+          ? { lat: v.currentLat, lng: v.currentLng }
+          : undefined,
+        last_update: v.lastUpdate.getTime(),
+      })),
     }
   }
 
   @GrpcMethod('FleetService', 'GetVehicle')
   async getVehicle(request: GetVehicleRequest): Promise<GetVehicleResponse> {
-    const vehicle = this.vehicles.get(request.vehicle_id)
+    const vehicleId = request.vehicleId || request.vehicle_id
+    const vehicle = await this.fleetService.getVehicle(vehicleId)
     if (!vehicle) {
       throw new RpcException({
         code: GrpcStatus.NOT_FOUND,
-        message: `Vehicle ${request.vehicle_id} not found`,
+        message: `Vehicle ${vehicleId} not found`,
       })
     }
-    return { vehicle }
+    return {
+      vehicle: {
+        id: vehicle.id,
+        type: vehicle.type,
+        capacity_kg: vehicle.capacityKg,
+        capacity_m3: Number(vehicle.capacityM3),
+        status: vehicle.status,
+        version: vehicle.version,
+      },
+    }
+  }
+
+  @GrpcMethod('FleetService', 'GetVehicleDetails')
+  async getVehicleDetails(
+    request: GetVehicleRequest,
+  ): Promise<GetVehicleDetailsResponse> {
+    const vehicleId = request.vehicleId || request.vehicle_id
+    const result = await this.fleetService.getVehicleDetails(vehicleId)
+    if (!result.vehicle) {
+      throw new RpcException({
+        code: GrpcStatus.NOT_FOUND,
+        message: `Vehicle ${vehicleId} not found`,
+      })
+    }
+    const v = result.vehicle
+    return {
+      vehicle: {
+        id: v.id,
+        type: v.type,
+        capacity_kg: v.capacityKg,
+        capacity_m3: Number(v.capacityM3),
+        status: v.status,
+        current_lat: v.currentLat || 0,
+        current_lng: v.currentLng || 0,
+        current_driver_id: v.currentDriverId || '',
+        current_order_id: v.currentOrderId || '',
+        last_update: v.lastUpdate?.getTime() || 0,
+        version: (v as any).version || 0,
+        created_at: (v as any).createdAt?.getTime() || 0,
+      },
+    }
   }
 
   @GrpcMethod('FleetService', 'AssignVehicle')
   async assignVehicle(
     request: AssignVehicleRequest,
   ): Promise<AssignVehicleResponse> {
-    const vehicle = this.vehicles.get(request.vehicle_id)
-    if (!vehicle) {
-      return { success: false, message: 'Vehicle not found' }
+    try {
+      await this.fleetService.assignVehicle(
+        request.vehicle_id,
+        '',
+        request.order_id,
+      )
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, message: e.message }
     }
-    if (vehicle.version !== request.expected_version) {
-      return { success: false, message: 'Version mismatch' }
-    }
-    if (vehicle.status !== 'VEHICLE_STATUS_IDLE') {
-      return { success: false, message: 'Vehicle not available' }
-    }
-
-    vehicle.status = 'VEHICLE_STATUS_ASSIGNED'
-    vehicle.version++
-    return { success: true }
   }
 
   @GrpcMethod('FleetService', 'ReleaseVehicle')
   async releaseVehicle(
     request: ReleaseVehicleRequest,
   ): Promise<ReleaseVehicleResponse> {
-    const vehicle = this.vehicles.get(request.vehicle_id)
-    if (!vehicle) {
+    try {
+      await this.fleetService.releaseVehicle(request.vehicle_id)
+      return { success: true }
+    } catch {
       return { success: false }
     }
-
-    vehicle.status = 'VEHICLE_STATUS_IDLE'
-    vehicle.version++
-    return { success: true }
   }
 }
