@@ -19,6 +19,7 @@ import { ApiKey } from '../users/entities/api-key.entity';
 import { RefreshToken } from '../users/entities/refresh-token.entity';
 import { UsersModule } from '../users/users.module';
 import { RolesModule } from '../roles/roles.module';
+import { RolesService, PermissionsService } from '../roles/roles.service';
 
 @Module({
   imports: [
@@ -47,7 +48,9 @@ import { RolesModule } from '../roles/roles.module';
     JwtStrategy,
     JwtAuthGuard,
     RbacGuard,
+    RolesService,
+    PermissionsService,
   ],
-  exports: [AuthService, TokenService, SessionService, PasswordService, ApiKeyService, JwtAuthGuard, RbacGuard],
+  exports: [AuthService, TokenService, SessionService, PasswordService, ApiKeyService, JwtAuthGuard, RbacGuard, RolesModule],
 })
 export class AuthModule {}

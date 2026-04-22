@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiFetch, getAuthHeader } from '@/lib/auth'
+import { apiFetchWithAuth as apiFetch } from '@/lib/auth'
 import { Users, Shield, Key, Plus, Loader2, Trash2, X, Mail, Lock, User } from 'lucide-react'
 
 interface User {
@@ -14,14 +14,16 @@ interface User {
 interface Role {
   id: string
   name: string
-  permissions: string[]
-  userCount: number
+  description?: string
+  rolePermissions?: Array<{ permission: Permission }>
+  userCount?: number
 }
 
 interface Permission {
   id: string
   name: string
-  description: string
+  description?: string
+  resource?: string
 }
 
 type Tab = 'users' | 'roles' | 'permissions'
@@ -172,27 +174,30 @@ function UsersTab() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | undefined>()
 
-  const { data, isLoading } = useQuery<{ users: User[] }>({
+  const { data, isLoading, error } = useQuery<{ users: User[] }>({
     queryKey: ['admin-users'],
-    queryFn: () => apiFetch('/admin/users', { headers: getAuthHeader() }),
+    queryFn: () => apiFetch('/auth/admin/users'),
+    retry: 1,
   })
+
+  console.log('UsersTab error:', error)
 
   const deleteMutation = useMutation({
     mutationFn: (userId: string) =>
-      fetch(`/api/admin/users/${userId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-      }),
+      apiFetch(`/auth/admin/users/${userId}`, { method: 'DELETE' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
+    onError: (err) => console.error('Delete error:', err),
   })
 
   const createMutation = useMutation({
     mutationFn: (data: UserFormData) =>
-      apiFetch('/admin/users', {
+      apiFetch('/auth/admin/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify(data),
       }),
+    onError: (error) => {
+      console.error('Create user error:', error)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
       setModalOpen(false)
@@ -219,6 +224,8 @@ function UsersTab() {
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-accent-lavender" />
 
+  const users = data?.users
+
   return (
     <div>
       <div className="flex justify-end mb-4">
@@ -235,74 +242,90 @@ function UsersTab() {
         <UserModal user={editingUser} onClose={handleCloseModal} onSave={handleSave} />
       )}
 
-      <div className="bg-surface rounded-xl border border-border overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left p-4 text-text-secondary font-medium">Email</th>
-              <th className="text-left p-4 text-text-secondary font-medium">Тип</th>
-              <th className="text-left p-4 text-text-secondary font-medium">Роли</th>
-              <th className="text-left p-4 text-text-secondary font-medium">Permissions</th>
-              <th className="p-4"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {data?.users.map((user) => (
-              <tr
-                key={user.userId}
-                className="border-b border-border hover:bg-surface-hover cursor-pointer"
-                onClick={() => handleRowClick(user)}
-              >
-                <td className="p-4 text-text-primary">{user.email}</td>
-              <td className="p-4 text-text-secondary">{user.type}</td>
-              <td className="p-4">
-                <div className="flex flex-wrap gap-1">
-                  {user.roles.map((role) => (
-                    <span key={role} className="px-2 py-0.5 bg-accent-lilac/20 text-accent-lilac text-xs rounded">
-                      {role}
-                    </span>
-                  ))}
-                </div>
-              </td>
-              <td className="p-4">
-                <div className="flex flex-wrap gap-1 max-w-xs">
-                  {user.permissions.slice(0, 3).map((p) => (
-                    <span key={p} className="px-2 py-0.5 bg-accent-mint/20 text-accent-mint text-xs rounded">
-                      {p}
-                    </span>
-                  ))}
-                  {user.permissions.length > 3 && (
-                    <span className="text-text-muted text-xs">+{user.permissions.length - 3}</span>
-                  )}
-                </div>
-              </td>
-              <td className="p-4">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    deleteMutation.mutate(user.userId)
-                  }}
-                  className="p-2 text-status-error hover:bg-status-error/10 rounded transition-colors"
+      {!users ? (
+        <div className="text-text-secondary">Загрузка...</div>
+      ) : users.length === 0 ? (
+        <div className="text-text-secondary">Нет пользователей</div>
+      ) : (
+        <div className="bg-surface rounded-xl border border-border overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left p-4 text-text-secondary font-medium">Email</th>
+                <th className="text-left p-4 text-text-secondary font-medium">Тип</th>
+                <th className="text-left p-4 text-text-secondary font-medium">Роли</th>
+                <th className="text-left p-4 text-text-secondary font-medium">Permissions</th>
+                <th className="p-4"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr
+                  key={user.userId}
+                  className="border-b border-border hover:bg-surface-hover cursor-pointer"
+                  onClick={() => handleRowClick(user)}
                 >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      </div>
+                  <td className="p-4 text-text-primary">{user.email}</td>
+                  <td className="p-4 text-text-secondary">{user.type || '-'}</td>
+                  <td className="p-4">
+                    <div className="flex flex-wrap gap-1">
+                      {(user.roles || []).map((role) => (
+                        <span key={role} className="px-2 py-0.5 bg-accent-lilac/20 text-accent-lilac text-xs rounded">
+                          {role}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex flex-wrap gap-1 max-w-xs">
+                      {(user.permissions || []).slice(0, 3).map((p) => (
+                        <span key={p} className="px-2 py-0.5 bg-accent-mint/20 text-accent-mint text-xs rounded">
+                          {p}
+                        </span>
+                      ))}
+                      {(user.permissions?.length || 0) > 3 && (
+                        <span className="text-text-muted text-xs">+{(user.permissions?.length || 0) - 3}</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deleteMutation.mutate(user.userId)
+                      }}
+                      className="p-2 text-status-error hover:bg-status-error/10 rounded transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }
 
 function RolesTab() {
-  const { data, isLoading } = useQuery<{ roles: Role[] }>({
+  const { data, isLoading } = useQuery<Role[]>({
     queryKey: ['roles'],
-    queryFn: () => apiFetch('/roles', { headers: getAuthHeader() }),
+    queryFn: () => apiFetch('/roles'),
   })
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-accent-lavender" />
+
+  const roles = data
+
+  if (!roles) {
+    return <div className="text-text-secondary">Нет данных о ролях</div>
+  }
+
+  if (roles.length === 0) {
+    return <div className="text-text-secondary">Нет ролей</div>
+  }
 
   return (
     <div className="space-y-4">
@@ -313,21 +336,27 @@ function RolesTab() {
         </button>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {data?.roles.map((role) => (
-          <div key={role.id} className="bg-surface rounded-xl border border-border p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-medium text-text-primary">{role.name}</h3>
-              <span className="text-text-muted text-sm">{role.userCount} чел.</span>
+        {roles.map((role) => {
+          const rolePerms = role.rolePermissions?.map(rp => rp.permission?.name).filter(Boolean) || []
+          return (
+            <div key={role.id} className="bg-surface rounded-xl border border-border p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-medium text-text-primary">{role.name}</h3>
+                <span className="text-text-muted text-sm">{role.userCount || 0} чел.</span>
+              </div>
+              {role.description && (
+                <p className="text-text-secondary text-sm mb-2">{role.description}</p>
+              )}
+              <div className="flex flex-wrap gap-1">
+                {rolePerms.map((p) => (
+                  <span key={p} className="px-2 py-0.5 bg-accent-mint/20 text-accent-mint text-xs rounded">
+                    {p}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-1">
-              {role.permissions.map((p) => (
-                <span key={p} className="px-2 py-0.5 bg-accent-mint/20 text-accent-mint text-xs rounded">
-                  {p}
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
@@ -336,10 +365,20 @@ function RolesTab() {
 function PermissionsTab() {
   const { data, isLoading } = useQuery<{ permissions: Permission[] }>({
     queryKey: ['permissions'],
-    queryFn: () => apiFetch('/permissions', { headers: getAuthHeader() }),
+    queryFn: () => apiFetch('/permissions'),
   })
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-accent-lavender" />
+
+  const permissions = data?.permissions
+
+  if (!permissions) {
+    return <div className="text-text-secondary">Нет данных о правах</div>
+  }
+
+  if (permissions.length === 0) {
+    return <div className="text-text-secondary">Нет прав</div>
+  }
 
   return (
     <div className="bg-surface rounded-xl border border-border overflow-hidden">
@@ -351,7 +390,7 @@ function PermissionsTab() {
           </tr>
         </thead>
         <tbody>
-          {data?.permissions.map((perm) => (
+          {permissions.map((perm) => (
             <tr key={perm.id} className="border-b border-border hover:bg-surface-hover">
               <td className="p-4 text-text-primary font-mono text-sm">{perm.name}</td>
               <td className="p-4 text-text-secondary">{perm.description}</td>

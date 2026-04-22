@@ -7,7 +7,7 @@ const navItems = [
   { to: '/orders', icon: Package, label: 'Заказы' },
   { to: '/vehicles', icon: Truck, label: 'Автопарк' },
   { to: '/tracking', icon: MapPin, label: 'Трекинг' },
-  { to: '/admin', icon: Settings, label: 'Админка', permission: 'users.manage' },
+  { to: '/admin', icon: Settings, label: 'Админка' },
 ]
 
 export function Layout() {
@@ -19,8 +19,6 @@ export function Layout() {
     navigate('/login')
   }
 
-  const userPermissions = user?.permissions || []
-
   return (
     <div className="flex min-h-screen">
       <aside className="w-56 bg-surface border-r border-border flex flex-col">
@@ -31,8 +29,7 @@ export function Layout() {
           </div>
         </div>
         <nav className="flex-1 p-2">
-          {navItems.map(({ to, icon: Icon, label, permission }) => {
-            if (permission && !userPermissions.includes(permission)) return null
+          {navItems.map(({ to, icon: Icon, label }) => {
             return (
               <NavLink
                 key={to}

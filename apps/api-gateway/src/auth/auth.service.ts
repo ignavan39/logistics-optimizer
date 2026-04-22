@@ -101,6 +101,12 @@ export class AuthService {
     return {
       ...tokens,
       sessionId: session?.id,
+      user: {
+        userId: user.id,
+        email: user.email,
+        type: 'user',
+        permissions: await this.tokenService.getUserPermissions(user.id),
+      },
     };
   }
 
@@ -126,6 +132,12 @@ export class AuthService {
     return {
       accessToken,
       refreshToken: newRefreshToken,
+      user: {
+        userId: user.id,
+        email: user.email,
+        type: 'user',
+        permissions: await this.tokenService.getUserPermissions(user.id),
+      },
     };
   }
 

@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch, VEHICLE_STATUS } from '@/lib/utils'
-import { Truck, Loader2 } from 'lucide-react'
+import { getAuthHeader } from '@/lib/auth'
+import { Truck, Loader2, X, MapPin, User, Package } from 'lucide-react'
 
 interface Vehicle {
   id: string
@@ -17,9 +19,43 @@ interface VehiclesResponse {
 }
 
 export function VehiclesPage() {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
   const { data, isLoading, error } = useQuery<VehiclesResponse>({
     queryKey: ['vehicles'],
-    queryFn: () => apiFetch('/vehicles'),
+    queryFn: () => apiFetch('/vehicles', { headers: getAuthHeader() }),
+  })
+
+  const { data: details, isLoading: detailsLoading } = useQuery({
+    queryKey: ['vehicle-details', selectedId],
+    queryFn: () => apiFetch<{ 
+      vehicle: { 
+        id: string
+        type: number
+        status: string
+        capacityKg?: number
+        capacityM3?: number
+        currentLat?: number
+        currentLng?: number
+        currentDriverId?: string
+        currentOrderId?: string
+        driver?: {
+          id: string
+          email: string
+          firstName: string
+          lastName: string
+          phone?: string
+        }
+        order?: {
+          id: string
+          status: number
+          priority: number
+          pickupAddress: string
+          deliveryAddress: string
+        }
+      }
+    }>(`/vehicles/${selectedId}/details`, { headers: getAuthHeader() }),
+    enabled: !!selectedId,
   })
 
   return (
@@ -43,9 +79,10 @@ export function VehiclesPage() {
       {data && (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {data.vehicles.map((vehicle) => (
-            <div
+            <button
               key={vehicle.id}
-              className="bg-surface rounded-xl border border-border p-4 hover:bg-surface-hover transition-colors"
+              onClick={() => setSelectedId(vehicle.id)}
+              className="bg-surface rounded-xl border border-border p-4 hover:bg-surface-hover transition-colors text-left"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -73,7 +110,7 @@ export function VehiclesPage() {
                   <p className="text-text-primary">{vehicle.capacity_m3} м³</p>
                 </div>
               </div>
-            </div>
+            </button>
           ))}
           {data.vehicles.length === 0 && (
             <div className="col-span-full p-8 text-center text-text-muted">
@@ -81,6 +118,70 @@ export function VehiclesPage() {
               <p>Нет транспорта</p>
             </div>
           )}
+        </div>
+      )}
+
+      {selectedId && details?.vehicle && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelectedId(null)}>
+          <div className="bg-surface rounded-xl border border-border p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-text-primary">Транспорт {selectedId?.slice(0, 8)}</h2>
+              <button onClick={() => setSelectedId(null)} className="p-1 hover:bg-surface-hover rounded">
+                <X className="w-5 h-5 text-text-muted" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-surface-hover rounded-lg">
+                <Truck className="w-5 h-5 text-accent-lavender" />
+                <div>
+                  <p className="text-text-muted text-sm">Тип</p>
+                  <p className="text-text-primary">{details?.vehicle?.type ? ['', 'Легковой', 'Фургон', 'Грузовик'][details?.vehicle?.type ?? 0] : 'Неизвестно'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-surface-hover rounded-lg">
+                <Package className="w-5 h-5 text-accent-lavender" />
+                <div>
+                  <p className="text-text-muted text-sm">Грузоподъёмность</p>
+                  <p className="text-text-primary">{details?.vehicle?.capacityKg || 0} кг</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 p-3 bg-surface-hover rounded-lg">
+                  <MapPin className="w-5 h-5 text-accent-lavender" />
+                  <div>
+                    <p className="text-text-muted text-sm">Локация</p>
+                    <p className="text-text-primary text-xs">
+                      {details?.vehicle?.currentLat ? details.vehicle.currentLat.toFixed(4) : '—'}, {details?.vehicle?.currentLng ? details.vehicle.currentLng.toFixed(4) : '—'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-surface-hover rounded-lg">
+                  <User className="w-5 h-5 text-accent-lavender" />
+                  <div>
+                    <p className="text-text-muted text-sm">Водитель</p>
+                    <p className="text-text-primary text-xs">
+                      {details?.vehicle?.driver ? `${details.vehicle.driver.firstName} ${details.vehicle.driver.lastName}` : 'Нет'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {details?.vehicle?.order && (
+                <div className="flex items-center gap-3 p-3 bg-surface-hover rounded-lg">
+                  <Package className="w-5 h-5 text-accent-lavender" />
+                  <div>
+                    <p className="text-text-muted text-sm">Заказ</p>
+                    <p className="text-text-primary text-xs">{details.vehicle.order.pickupAddress} → {details.vehicle.order.deliveryAddress}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {detailsLoading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Loader2 className="w-8 h-8 text-accent-lavender animate-spin" />
         </div>
       )}
     </div>
