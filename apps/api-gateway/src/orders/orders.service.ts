@@ -13,6 +13,7 @@ import {
 interface OrderGrpcClient {
   createOrder(data: CreateOrderDto): Promise<any>
   getOrder(data: GetOrderDto): Promise<any>
+  getOrderHistory(data: GetOrderDto): Promise<any>
   listOrders(data: ListOrdersDto): Promise<any>
   updateOrderStatus(data: UpdateOrderStatusDto): Promise<any>
   cancelOrder(data: CancelOrderDto): Promise<any>
@@ -39,6 +40,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
   async getOrder(orderId: string) {
     return this.orderClient.getOrder({ order_id: orderId })
+  }
+
+  async getOrderHistory(orderId: string) {
+    return this.orderClient.getOrderHistory({ order_id: orderId })
   }
 
   async listOrders(dto: ListOrdersDto) {

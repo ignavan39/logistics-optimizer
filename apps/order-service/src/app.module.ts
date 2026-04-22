@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { OrderModule } from './order/order.module'
 import { OrderEntity } from './order/entities/order.entity'
 import { OutboxEventEntity } from './order/entities/outbox-event.entity'
+import { OrderStatusHistoryEntity } from './order/entities/order-status-history.entity'
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { OutboxEventEntity } from './order/entities/outbox-event.entity'
         username: cfg.get('PG_USER', 'logistics'),
         password: cfg.get('PG_PASSWORD', 'logistics_secret'),
         database: cfg.get('ORDER_DB_NAME', 'order_db'),
-        entities: [OrderEntity, OutboxEventEntity],
+        entities: [OrderEntity, OutboxEventEntity, OrderStatusHistoryEntity],
         migrations: [__dirname + '/migrations/*.{ts,js}'],
         migrationsRun: true,
         synchronize: true,

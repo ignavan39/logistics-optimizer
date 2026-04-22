@@ -12,6 +12,7 @@ option java_multiple_files = true;
 service OrderService {
   rpc CreateOrder (CreateOrderRequest) returns (OrderResponse);
   rpc GetOrder (GetOrderRequest) returns (OrderResponse);
+  rpc GetOrderHistory (GetOrderRequest) returns (GetOrderHistoryResponse);
   rpc ListOrders (ListOrdersRequest) returns (ListOrdersResponse);
   rpc UpdateOrderStatus (UpdateOrderStatusRequest) returns (OrderResponse);
   rpc CancelOrder (CancelOrderRequest) returns (OrderResponse);
@@ -101,4 +102,18 @@ message ListOrdersResponse {
   repeated OrderResponse orders = 1;
   int32 total = 2;
   int32 page  = 3;
+}
+
+message OrderStatusHistory {
+  string id = 1;
+  string order_id = 2;
+  string previous_status = 3;
+  string new_status = 4;
+  string changed_by = 5;
+  string reason = 6;
+  int64 created_at_unix = 7;
+}
+
+message GetOrderHistoryResponse {
+  repeated OrderStatusHistory history = 1;
 }
