@@ -19,6 +19,18 @@ import { InvoicesService } from './invoices.service';
         }),
         inject: [ConfigService],
       },
+      {
+        name: 'COUNTERPARTY_PACKAGE',
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.GRPC,
+          options: {
+            package: 'counterparty',
+            protoPath: '/app/libs/proto/src/counterparty.proto',
+            url: configService.get('GRPC_COUNTERPARTY_HOST', 'counterparty-service:50056'),
+          },
+        }),
+        inject: [ConfigService],
+      },
     ]),
   ],
   controllers: [InvoicesController],
