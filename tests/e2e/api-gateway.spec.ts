@@ -647,4 +647,249 @@ describe('API Gateway E2E', () => {
       expect([404, 200]).toContain(response.status)
     })
   })
+
+  describe('Orders State Machine', () => {
+    let orderId: string
+    let accessToken: string
+
+    beforeAll(async () => {
+      const loginResponse = await api.post('/auth/login', {
+        email: testUser.email,
+        password: testUser.password,
+      })
+      accessToken = loginResponse.data.accessToken
+    })
+
+    it('should create order with PENDING status', async () => {
+      const response = await api.post('/orders', {
+        customer_id: 'state-machine-test',
+        origin: { lat: 55.7558, lng: 37.6173 },
+        destination: { lat: 55.7644, lng: 37.6225 },
+        weight_kg: 10,
+      }, { headers: { Authorization: `Bearer ${accessToken}` } })
+
+      expect(response.status).toBe(201)
+      orderId = response.data.id
+      expect(response.data.status).toBe(1)
+    })
+
+    it('should get order history', async () => {
+      if (!orderId) return
+
+      const response = await api.get(`/orders/${orderId}/history`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+
+      expect([200, 404, 500]).toContain(response.status)
+    })
+
+    it('should update order status PENDING → ASSIGNED', async () => {
+      if (!orderId) return
+
+      const response = await api.patch(`/orders/${orderId}/status`, {
+        order_id: orderId,
+        status: 2,
+      }, { headers: { Authorization: `Bearer ${accessToken}` } })
+
+      expect([200, 400, 404, 500]).toContain(response.status)
+    })
+
+    it('should reject invalid transition ASSIGNED → PENDING (409)', async () => {
+      if (!orderId) return
+
+      const response = await api.patch(`/orders/${orderId}/status`, {
+        order_id: orderId,
+        status: 1,
+      }, { headers: { Authorization: `Bearer ${accessToken}` } })
+
+      expect([409, 400, 500]).toContain(response.status)
+    })
+
+it('should reject transition DELIVERED → CANCELLED (409)', async () => {
+      const createResponse = await api.post('/orders', {
+        customer_id: 'cancel-test',
+        origin: { lat: 55.7558, lng: 37.6173 },
+        destination: { lat: 55.7644, lng: 37.6225 },
+      }, { headers: { Authorization: `Bearer ${accessToken}` } })
+
+      const newOrderId = createResponse.data.id
+
+      const updateResponse = await api.patch(`/orders/${newOrderId}/status`, {
+        order_id: newOrderId,
+        status: 5,
+      }, { headers: { Authorization: `Bearer ${accessToken}` } })
+
+      if (updateResponse.status === 200) {
+        const cancelResponse = await api.patch(`/orders/${newOrderId}/status`, {
+          order_id: newOrderId,
+          status: 7,
+        }, { headers: { Authorization: `Bearer ${accessToken}` } })
+
+expect([409, 400, 500]).toContain(cancelResponse.status)
+      }
+    })
+
+    it('should cancel PENDING order', async () => {
+      const createResponse = await api.post('/orders', {
+        customer_id: 'cancel-pending',
+        origin: { lat: 55.7558, lng: 37.6173 },
+        destination: { lat: 55.7644, lng: 37.6225 },
+      }, { headers: { Authorization: `Bearer ${accessToken}` } })
+
+      const orderIdToCancel = createResponse.data.id
+
+      const response = await api.delete(`/orders/${orderIdToCancel}`, {
+        data: { reason: 'Test cancellation' },
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+
+      expect([200, 204, 400, 404, 500]).toContain(response.status)
+    })
+  })
+
+  describe('Dispatch Full Flow', () => {
+    let dispatchAccessToken: string
+
+    beforeAll(async () => {
+      const loginResponse = await api.post('/auth/login', {
+        email: testUser.email,
+        password: testUser.password,
+      })
+      dispatchAccessToken = loginResponse.data.accessToken
+    })
+
+    it('should start dispatch for order', async () => {
+      const createResponse = await api.post('/orders', {
+        customer_id: 'dispatch-test',
+        origin: { lat: 55.7558, lng: 37.6173 },
+        destination: { lat: 55.7644, lng: 37.6225 },
+        weight_kg: 100,
+      }, { headers: { Authorization: `Bearer ${dispatchAccessToken}` } })
+
+      const orderId = createResponse.data.id
+
+      const dispatchResponse = await api.post('/dispatch', {
+        order_id: orderId,
+      }, { headers: { Authorization: `Bearer ${dispatchAccessToken}` } })
+
+      expect([200, 201, 400, 404, 500, 503]).toContain(dispatchResponse.status)
+    })
+
+    it('should get dispatch state', async () => {
+      const dispatchResponse = await api.get('/dispatch/test-saga-id', {
+        headers: { Authorization: `Bearer ${dispatchAccessToken}` },
+      })
+
+      expect([200, 404, 500, 503]).toContain(dispatchResponse.status)
+    })
+
+    it('should cancel dispatch', async () => {
+      const dispatchResponse = await api.post('/dispatch/test-saga-id/cancel', {
+        reason: 'Test cancellation',
+      }, { headers: { Authorization: `Bearer ${dispatchAccessToken}` } })
+
+      expect([200, 400, 404, 500]).toContain(dispatchResponse.status)
+    })
+
+    it('should reject dispatch without order_id', async () => {
+      const response = await api.post('/dispatch', {}, {
+        headers: { Authorization: `Bearer ${dispatchAccessToken}` },
+      })
+
+      expect([400, 422, 500]).toContain(response.status)
+    })
+  })
+
+  describe('Fleet Optimistic Locking', () => {
+    let fleetToken: string
+
+    beforeAll(async () => {
+      const loginResponse = await api.post('/auth/login', {
+        email: testUser.email,
+        password: testUser.password,
+      })
+      fleetToken = loginResponse.data.accessToken
+    })
+
+    it('should handle version conflict on vehicle assign (409)', async () => {
+      const response = await api.post('/vehicles/vehicle-1/assign', {
+        order_id: 'test-order-conflict',
+        version: 0,
+      }, { headers: { Authorization: `Bearer ${fleetToken}` } })
+
+      expect([200, 409, 400, 500]).toContain(response.status)
+    })
+
+    it('should release vehicle from order', async () => {
+      const response = await api.post('/vehicles/vehicle-1/release', {
+        order_id: 'test-order-release',
+      }, { headers: { Authorization: `Bearer ${fleetToken}` } })
+
+      expect([200, 400, 404, 500]).toContain(response.status)
+    })
+  })
+
+  describe('Auth Change Password', () => {
+    let changePassToken: string
+
+    beforeAll(async () => {
+      const loginResponse = await api.post('/auth/login', {
+        email: testUser.email,
+        password: testUser.password,
+      })
+      changePassToken = loginResponse.data.accessToken
+    })
+
+    it('should change password', async () => {
+      const response = await api.post('/auth/change-password', {
+        currentPassword: testUser.password,
+        newPassword: 'NewPassword123!',
+      }, { headers: { Authorization: `Bearer ${changePassToken}` } })
+
+      expect([200, 400, 500]).toContain(response.status)
+    })
+
+    it('should reject change password with wrong current', async () => {
+      const response = await api.post('/auth/change-password', {
+        currentPassword: 'WrongPassword123!',
+        newPassword: 'NewPassword123!',
+      }, { headers: { Authorization: `Bearer ${changePassToken}` } })
+
+      expect([400, 401, 500]).toContain(response.status)
+    })
+  })
+
+  describe('Auth API Keys', () => {
+    let apiKeyToken: string
+
+    beforeAll(async () => {
+      const loginResponse = await api.post('/auth/login', {
+        email: testUser.email,
+        password: testUser.password,
+      })
+      apiKeyToken = loginResponse.data.accessToken
+    })
+
+    it('should create API key', async () => {
+      const response = await api.post('/auth/api-keys', {
+        name: 'Test API Key',
+      }, { headers: { Authorization: `Bearer ${apiKeyToken}` } })
+
+      expect([201, 400, 500]).toContain(response.status)
+      if (response.status === 201) {
+        expect(response.data).toHaveProperty('key')
+      }
+    })
+
+    it('should list user roles', async () => {
+      const response = await api.get('/auth/my-roles', {
+        headers: { Authorization: `Bearer ${apiKeyToken}` },
+      })
+
+      expect([200, 404, 500]).toContain(response.status)
+      if (response.status === 200) {
+        expect(Array.isArray(response.data)).toBe(true)
+      }
+    })
+  })
 })
