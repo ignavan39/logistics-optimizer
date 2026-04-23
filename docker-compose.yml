@@ -199,6 +199,19 @@ services:
       - pg-auth-data:/var/lib/postgresql/data
       - ./infra/postgres/init-auth.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
+  pg-counterparty:
+    <<: *pg-common
+    container_name: logistics-pg-counterparty
+    ports:
+      - '5439:5432'
+    environment:
+      POSTGRES_USER: ${PG_USER:-logistics}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-logistics_secret}
+      POSTGRES_DB: ${COUNTERPARTY_DB_NAME:-counterparty_db}
+    volumes:
+      - pg-counterparty-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-counterparty.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
   pgbouncer-order:
     <<: *pgbouncer-common
     container_name: logistics-pgbouncer-order
@@ -336,6 +349,7 @@ volumes:
   pg-tracking-data:
   pg-dispatcher-data:
   pg-auth-data:
+  pg-counterparty-data:
   prometheus-data:
   grafana-data:
 

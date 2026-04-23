@@ -11,6 +11,8 @@ import { RoutingModule } from './routing/routing.module';
 import { TrackingModule } from './tracking/tracking.module';
 import { DispatcherModule } from './dispatcher/dispatcher.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { CounterpartyModule } from './counterparty/counterparty.module';
+import { InvoicesModule } from './invoices/invoices.module';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { AdminModule } from './admin/admin.module';
@@ -70,6 +72,8 @@ import { AuditLog } from './auth/entities/audit-log.entity';
     TrackingModule,
     DispatcherModule,
     NotificationsModule,
+    CounterpartyModule,
+    InvoicesModule,
   ],
   providers: [
     {

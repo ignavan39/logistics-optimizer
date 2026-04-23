@@ -6,7 +6,10 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   VersionColumn,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
+import { OrderTariffSnapshotEntity } from './order-tariff-snapshot.entity';
 
 export enum OrderStatus {
   PENDING    = 'pending',
@@ -82,6 +85,28 @@ export class OrderEntity {
 
   @Column({ name: 'route_id', nullable: true })
   routeId?: string;
+
+  @Column({ name: 'counterparty_id', nullable: true })
+  counterpartyId?: string;
+
+  @Column({ name: 'sender_counterparty_id', nullable: true })
+  senderCounterpartyId?: string;
+
+  @Column({ name: 'receiver_counterparty_id', nullable: true })
+  receiverCounterpartyId?: string;
+
+  @Column({ name: 'contract_id', nullable: true })
+  contractId?: string;
+
+  @Column({ name: 'estimated_price', type: 'numeric', precision: 12, scale: 2, nullable: true })
+  estimatedPrice?: number;
+
+  @Column({ name: 'currency', length: 3, default: 'RUB' })
+  currency!: string;
+
+  @OneToOne(() => OrderTariffSnapshotEntity)
+  @JoinColumn({ name: 'tariff_snapshot_id' })
+  tariffSnapshot?: OrderTariffSnapshotEntity;
 
   
   @Column({ name: 'sla_deadline', type: 'timestamptz', nullable: true })
