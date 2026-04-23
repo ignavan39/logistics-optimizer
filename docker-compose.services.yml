@@ -38,12 +38,15 @@ services:
       GRPC_ROUTING_HOST: routing-service:50053
       GRPC_TRACKING_HOST: tracking-service:50054
       GRPC_DISPATCHER_HOST: dispatcher-service:50055
+      GRPC_COUNTERPARTY_HOST: counterparty-service:50056
     depends_on:
       kafka:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
       order-service:
+        condition: service_started
+      counterparty-service:
         condition: service_started
 
   order-service:
@@ -162,6 +165,28 @@ services:
         condition: service_started
       routing-service:
         condition: service_started
+
+  counterparty-service:
+    <<: *service-common
+    build:
+      args: { SERVICE: counterparty-service }
+    ports:
+      - '3016:3016'
+      - '50056:50056'
+      - '9416:9414'
+    environment:
+      SERVICE_NAME: counterparty-service
+      HTTP_PORT: 3016
+      HTTP_METRICS_PORT: 9414
+      GRPC_COUNTERPARTY_PORT: 50056
+      COUNTERPARTY_DB_HOST: pg-counterparty
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      pg-counterparty:
+        condition: service_healthy
 
   telemetry-sim:
     image: node:20-alpine
