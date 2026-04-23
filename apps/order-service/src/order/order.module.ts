@@ -15,12 +15,14 @@ import { OrderHttpController } from './order.http.controller';
 import { OutboxProcessor } from './outbox/outbox.processor';
 import { CounterpartyModule } from '../counterparty/counterparty.module';
 import { RoutingModule } from '../routing/routing.module';
+import { InvoiceModule } from './invoice.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([OrderEntity, OrderTariffSnapshotEntity, OutboxEventEntity, OrderStatusHistoryEntity, CargoEntity, DocumentEntity, InvoiceEntity]),
     CounterpartyModule,
     RoutingModule,
+    InvoiceModule,
 
     // Kafka client for OutboxProcessor to publish events
     ClientsModule.registerAsync([

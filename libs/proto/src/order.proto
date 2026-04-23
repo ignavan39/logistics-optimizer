@@ -16,6 +16,10 @@ service OrderService {
   rpc ListOrders (ListOrdersRequest) returns (ListOrdersResponse);
   rpc UpdateOrderStatus (UpdateOrderStatusRequest) returns (OrderResponse);
   rpc CancelOrder (CancelOrderRequest) returns (OrderResponse);
+  rpc GetInvoice (GetInvoiceRequest) returns (InvoiceResponse);
+  rpc GetInvoiceByOrder (GetInvoiceByOrderRequest) returns (InvoiceResponse);
+  rpc ListInvoices (ListInvoicesRequest) returns (ListInvoicesResponse);
+  rpc UpdateInvoiceStatus (UpdateInvoiceStatusRequest) returns (InvoiceResponse);
 }
 
 // ── Enums ──
@@ -116,4 +120,66 @@ message OrderStatusHistory {
 
 message GetOrderHistoryResponse {
   repeated OrderStatusHistory history = 1;
+}
+
+// ── Invoice ──
+
+enum InvoiceStatus {
+  INVOICE_STATUS_UNSPECIFIED = 0;
+  INVOICE_STATUS_DRAFT = 1;
+  INVOICE_STATUS_SENT = 2;
+  INVOICE_STATUS_PAID = 3;
+  INVOICE_STATUS_OVERDUE = 4;
+  INVOICE_STATUS_CANCELLED = 5;
+}
+
+enum InvoiceType {
+  INVOICE_TYPE_UNSPECIFIED = 0;
+  INVOICE_TYPE_INVOICE = 1;
+  INVOICE_TYPE_ACT = 2;
+  INVOICE_TYPE_FACTURA = 3;
+}
+
+message GetInvoiceRequest {
+  string invoice_id = 1;
+}
+
+message GetInvoiceByOrderRequest {
+  string order_id = 1;
+}
+
+message ListInvoicesRequest {
+  string counterparty_id = 1;
+  InvoiceStatus status = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message UpdateInvoiceStatusRequest {
+  string invoice_id = 1;
+  InvoiceStatus status = 2;
+  int32 expected_version = 3;
+}
+
+message InvoiceResponse {
+  string id = 1;
+  string order_id = 2;
+  string number = 3;
+  InvoiceType type = 4;
+  int64 amount_rub = 5;
+  int64 vat_rate = 6;
+  int64 vat_amount = 7;
+  InvoiceStatus status = 8;
+  int64 due_date = 9;
+  int64 paid_at = 10;
+  string counterparty_id = 11;
+  string contract_id = 12;
+  int64 created_at = 13;
+  int32 version = 14;
+}
+
+message ListInvoicesResponse {
+  repeated InvoiceResponse invoices = 1;
+  int32 total = 2;
+  int32 page = 3;
 }
