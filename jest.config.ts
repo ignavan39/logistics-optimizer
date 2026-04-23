@@ -6,7 +6,7 @@ const config: Config = {
   testEnvironment: 'node',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   transform: {
-    '^.+\\.ts$': ['ts-jest', { tsconfig: 'tsconfig.base.json' }],
+    '^.+\\.ts$': ['ts-jest', { tsconfig: 'libs/document-templates/tsconfig.test.json' }],
   },
   moduleNameMapper: {
     '^@logistics/proto(.*)$': '<rootDir>/libs/proto/src$1',
