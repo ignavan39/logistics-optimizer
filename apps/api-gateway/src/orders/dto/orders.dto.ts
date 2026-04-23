@@ -69,6 +69,11 @@ export class CreateOrderDto {
   @IsNumber()
   @IsOptional()
   sla_deadline_unix?: number
+
+  @ApiPropertyOptional({ example: 'contract-uuid' })
+  @IsString()
+  @IsOptional()
+  contract_id?: string
 }
 
 export class GetOrderDto {

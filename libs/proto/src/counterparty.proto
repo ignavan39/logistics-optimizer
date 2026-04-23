@@ -1,0 +1,195 @@
+syntax = "proto3";
+
+package counterparty;
+
+service CounterpartyService {
+  rpc CreateCounterparty(CreateCounterpartyRequest) returns (CounterpartyResponse);
+  rpc GetCounterparty(GetCounterpartyRequest) returns (CounterpartyResponse);
+  rpc UpdateCounterparty(UpdateCounterpartyRequest) returns (CounterpartyResponse);
+  rpc ListCounterparties(ListCounterpartiesRequest) returns (ListCounterpartiesResponse);
+  rpc CreateContract(CreateContractRequest) returns (ContractResponse);
+  rpc GetContract(GetContractRequest) returns (ContractResponse);
+  rpc UpdateContract(UpdateContractRequest) returns (ContractResponse);
+  rpc ListContracts(ListContractsRequest) returns (ListContractsResponse);
+  rpc GetContractTariffs(GetContractTariffsRequest) returns (ListContractTariffsResponse);
+  rpc CreateContractTariff(CreateContractTariffRequest) returns (ContractTariffResponse);
+}
+
+message CreateCounterpartyRequest {
+  string name = 1;
+  CounterpartyType type = 2;
+  string inn = 3;
+  string kpp = 4;
+  string ogrn = 5;
+  Address address = 6;
+  repeated Contact contacts = 7;
+  string phone = 8;
+  string email = 9;
+}
+
+message GetCounterpartyRequest {
+  string id = 1;
+}
+
+message UpdateCounterpartyRequest {
+  string id = 1;
+  string name = 2;
+  CounterpartyType type = 3;
+  string inn = 4;
+  string kpp = 5;
+  string ogrn = 6;
+  Address address = 7;
+  repeated Contact contacts = 8;
+  string phone = 9;
+  string email = 10;
+  int32 expected_version = 11;
+}
+
+message ListCounterpartiesRequest {
+  CounterpartyType type = 1;
+  string inn = 2;
+  string name_like = 3;
+  int32 limit = 4;
+  int32 offset = 5;
+}
+
+message ListCounterpartiesResponse {
+  repeated CounterpartyResponse items = 1;
+}
+
+message ListContractsResponse {
+  repeated ContractResponse items = 1;
+}
+
+message ListContractTariffsResponse {
+  repeated ContractTariffResponse items = 1;
+}
+
+message CounterpartyResponse {
+  string id = 1;
+  string name = 2;
+  CounterpartyType type = 3;
+  string inn = 4;
+  string kpp = 5;
+  string ogrn = 6;
+  Address address = 7;
+  repeated Contact contacts = 8;
+  string phone = 9;
+  string email = 10;
+  int64 created_at = 11;
+  int64 updated_at = 12;
+  int32 version = 13;
+}
+
+message Address {
+  string full = 1;
+  float lat = 2;
+  float lng = 3;
+  string city = 4;
+  string region = 5;
+}
+
+message Contact {
+  string name = 1;
+  string phone = 2;
+  string email = 3;
+  string position = 4;
+}
+
+enum CounterpartyType {
+  COUNTERPARTY_TYPE_UNSPECIFIED = 0;
+  COUNTERPARTY_TYPE_CARRIER = 1;
+  COUNTERPARTY_TYPE_WAREHOUSE = 2;
+  COUNTERPARTY_TYPE_INDIVIDUAL = 3;
+}
+
+message CreateContractRequest {
+  string counterparty_id = 1;
+  string number = 2;
+  int64 valid_from = 3;
+  int64 valid_to = 4;
+  int64 total_limit_rub = 5;
+  int32 payment_terms_days = 6;
+  string description = 7;
+}
+
+message GetContractRequest {
+  string id = 1;
+}
+
+message UpdateContractRequest {
+  string id = 1;
+  string number = 2;
+  int64 valid_from = 3;
+  int64 valid_to = 4;
+  ContractStatus status = 5;
+  int64 total_limit_rub = 6;
+  int32 payment_terms_days = 7;
+  string description = 8;
+  int32 expected_version = 9;
+}
+
+message ListContractsRequest {
+  string counterparty_id = 1;
+  ContractStatus status = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ContractResponse {
+  string id = 1;
+  string counterparty_id = 2;
+  string number = 3;
+  int64 valid_from = 4;
+  int64 valid_to = 5;
+  ContractStatus status = 6;
+  int64 total_limit_rub = 7;
+  int32 payment_terms_days = 8;
+  string description = 9;
+  int64 created_at = 10;
+  int64 updated_at = 11;
+  int32 version = 12;
+}
+
+enum ContractStatus {
+  CONTRACT_STATUS_UNSPECIFIED = 0;
+  CONTRACT_STATUS_DRAFT = 1;
+  CONTRACT_STATUS_ACTIVE = 2;
+  CONTRACT_STATUS_EXPIRED = 3;
+  CONTRACT_STATUS_TERMINATED = 4;
+}
+
+message GetContractTariffsRequest {
+  string contract_id = 1;
+  string zone = 2;
+}
+
+message CreateContractTariffRequest {
+  string contract_id = 1;
+  string zone = 2;
+  int64 price_per_km = 3;
+  int64 price_per_kg = 4;
+  int64 min_price = 5;
+  int64 min_weight_kg = 6;
+  int64 loading_rate = 7;
+  int64 unloading_rate = 8;
+  int64 waiting_rate = 9;
+  int64 additional_insurance = 10;
+}
+
+message ContractTariffResponse {
+  string id = 1;
+  string contract_id = 2;
+  string zone = 3;
+  int64 price_per_km = 4;
+  int64 price_per_kg = 5;
+  int64 min_price = 6;
+  int64 min_weight_kg = 7;
+  int64 loading_rate = 8;
+  int64 unloading_rate = 9;
+  int64 waiting_rate = 10;
+  int64 additional_insurance = 11;
+  int64 created_at = 12;
+  int64 updated_at = 13;
+  int32 version = 14;
+}
