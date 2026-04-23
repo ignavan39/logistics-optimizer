@@ -3,13 +3,17 @@ import { ConflictException } from '@nestjs/common';
 import { OrderService, CreateOrderDto, UpdateOrderStatusDto } from './order.service';
 import { OrderEntity, OrderStatus, OrderPriority } from './entities/order.entity';
 import { OutboxEventEntity } from './entities/outbox-event.entity';
+import { OrderStatusHistoryEntity } from './entities/order-status-history.entity';
 import { getRepositoryToken, getDataSourceToken } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
+import { CounterpartyService } from '../counterparty/counterparty.service';
+import { RoutingService } from '../routing/routing.service';
 
 describe('OrderService', () => {
   let service: OrderService;
   let orderRepo: Repository<OrderEntity>;
   let outboxRepo: Repository<OutboxEventEntity>;
+  let historyRepo: Repository<OrderStatusHistoryEntity>;
   let dataSource: DataSource;
 
   const mockOrderRepo = {
@@ -18,6 +22,10 @@ describe('OrderService', () => {
   };
 
   const mockOutboxRepo = {
+    save: jest.fn(),
+  };
+
+  const mockHistoryRepo = {
     save: jest.fn(),
   };
 
@@ -32,13 +40,24 @@ describe('OrderService', () => {
     }),
   };
 
+  const mockCounterpartyService = {
+    calculateEstimatedPrice: jest.fn().mockResolvedValue(1000),
+  };
+
+  const mockRoutingService = {
+    calculateDistance: jest.fn().mockResolvedValue(50),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrderService,
         { provide: getRepositoryToken(OrderEntity), useValue: mockOrderRepo },
         { provide: getRepositoryToken(OutboxEventEntity), useValue: mockOutboxRepo },
+        { provide: getRepositoryToken(OrderStatusHistoryEntity), useValue: mockHistoryRepo },
         { provide: getDataSourceToken(), useValue: mockDataSource },
+        { provide: CounterpartyService, useValue: mockCounterpartyService },
+        { provide: RoutingService, useValue: mockRoutingService },
       ],
     }).compile();
 

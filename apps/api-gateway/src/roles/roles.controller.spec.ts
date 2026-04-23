@@ -97,7 +97,7 @@ describe('RolesService', () => {
     it('should assign role to user', async () => {
       mockUserRoleRepository.findOne.mockResolvedValue(null);
 
-      const result = await service.assignRoleToUser('role-1', { userId: 'user-1', roleId: 'role-1' });
+      const result = await service.assignRoleToUser('role-1', { userId: 'user-1' });
 
       expect(result.message).toBe('Role assigned successfully');
     });
@@ -105,7 +105,7 @@ describe('RolesService', () => {
     it('should return if role already assigned', async () => {
       mockUserRoleRepository.findOne.mockResolvedValue({ id: 'existing' });
 
-      const result = await service.assignRoleToUser('role-1', { userId: 'user-1', roleId: 'role-1' });
+      const result = await service.assignRoleToUser('role-1', { userId: 'user-1' });
 
       expect(result.message).toBe('Role already assigned');
     });

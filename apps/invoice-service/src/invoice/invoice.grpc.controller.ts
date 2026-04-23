@@ -2,7 +2,11 @@ import { Controller, Logger, Inject } from '@nestjs/common';
 import { GrpcMethod, RpcException } from '@nestjs/microservices';
 import { status as GrpcStatus } from '@grpc/grpc-js';
 import { InvoiceService } from './invoice.service';
-import { InvoiceStatus, InvoiceType } from './entities/invoice.entity';
+import { InvoiceEntity, InvoiceStatus, InvoiceType } from './entities/invoice.entity';
+
+interface OrderGrpcClient {
+  GetOrder(data: { orderId: string }): Promise<any>;
+}
 
 interface GetInvoiceRequest {
   invoiceId: string;
@@ -19,6 +23,19 @@ interface ListInvoicesRequest {
   limit?: number;
 }
 
+interface CreateInvoiceRequest {
+  orderId: string;
+  number: string;
+  type: string;
+  amountRub: number;
+  vatRate: number;
+  vatAmount: number;
+  dueDate: number;
+  counterpartyId?: string;
+  contractId?: string;
+  description?: string;
+}
+
 interface UpdateInvoiceStatusRequest {
   invoiceId: string;
   status: string;
@@ -28,10 +45,17 @@ interface UpdateInvoiceStatusRequest {
 @Controller()
 export class InvoiceGrpcController {
   private readonly logger = new Logger(InvoiceGrpcController.name);
+  private orderClient?: OrderGrpcClient;
 
-  constructor(@Inject(InvoiceService) private readonly invoiceService: InvoiceService) {}
+  constructor(@Inject('ORDER_PACKAGE') private orderPackage: any, private readonly invoiceService: InvoiceService) {}
 
-  @GrpcMethod('OrderService', 'GetInvoice')
+  onModuleInit() {
+    if (this.orderPackage) {
+      this.orderClient = this.orderPackage.getService('OrderService');
+    }
+  }
+
+  @GrpcMethod('InvoiceService', 'GetInvoice')
   async getInvoice(data: GetInvoiceRequest) {
     const invoice = await this.invoiceService.getInvoiceById(data.invoiceId);
     if (!invoice) {
@@ -43,7 +67,7 @@ export class InvoiceGrpcController {
     return this.toResponse(invoice);
   }
 
-  @GrpcMethod('OrderService', 'GetInvoiceByOrder')
+  @GrpcMethod('InvoiceService', 'GetInvoiceByOrder')
   async getInvoiceByOrder(data: GetInvoiceByOrderRequest) {
     const invoice = await this.invoiceService.getInvoiceByOrderId(data.orderId);
     if (!invoice) {
@@ -55,7 +79,7 @@ export class InvoiceGrpcController {
     return this.toResponse(invoice);
   }
 
-  @GrpcMethod('OrderService', 'ListInvoices')
+  @GrpcMethod('InvoiceService', 'ListInvoices')
   async listInvoices(data: ListInvoicesRequest) {
     const status = data.status ? InvoiceStatus[data.status as keyof typeof InvoiceStatus] : undefined;
     const { invoices, total } = await this.invoiceService.findAll({
@@ -71,7 +95,34 @@ export class InvoiceGrpcController {
     };
   }
 
-  @GrpcMethod('OrderService', 'UpdateInvoiceStatus')
+  @GrpcMethod('InvoiceService', 'CreateInvoice')
+  async createInvoice(data: CreateInvoiceRequest) {
+    try {
+      const invoice = await this.invoiceService.createInvoice({
+        orderId: data.orderId,
+        number: data.number,
+        type: InvoiceType[data.type as keyof typeof InvoiceType] || InvoiceType.INVOICE,
+        amountRub: data.amountRub,
+        vatRate: data.vatRate,
+        vatAmount: data.vatAmount,
+        dueDate: new Date(data.dueDate),
+        counterpartyId: data.counterpartyId,
+        contractId: data.contractId,
+        description: data.description,
+      });
+      return this.toResponse(invoice);
+    } catch (e) {
+      if (e instanceof Error) {
+        throw new RpcException({
+          code: GrpcStatus.INTERNAL,
+          message: e.message,
+        });
+      }
+      throw e;
+    }
+  }
+
+  @GrpcMethod('InvoiceService', 'UpdateInvoiceStatus')
   async updateInvoiceStatus(data: UpdateInvoiceStatusRequest) {
     try {
       const status = InvoiceStatus[data.status as keyof typeof InvoiceStatus];
@@ -92,7 +143,7 @@ export class InvoiceGrpcController {
     }
   }
 
-  private toResponse(invoice: any) {
+  private toResponse(invoice: InvoiceEntity) {
     return {
       id: invoice.id,
       orderId: invoice.orderId,
@@ -106,6 +157,7 @@ export class InvoiceGrpcController {
       paidAt: invoice.paidAt?.getTime() ?? 0,
       counterpartyId: invoice.counterpartyId ?? '',
       contractId: invoice.contractId ?? '',
+      description: invoice.description ?? '',
       createdAt: invoice.createdAt?.getTime() ?? 0,
       version: invoice.version,
     };

@@ -51,7 +51,8 @@ flowchart TD
 
 | Caller | Callee | Methods |
 |--------|--------|---------|
-| api-gateway | order-service | `CreateOrder`, `GetOrder`, `GetOrderHistory`, `ListOrders`, `UpdateOrderStatus`, `CancelOrder`, `GetInvoice`, `GetInvoiceByOrder`, `ListInvoices`, `UpdateInvoiceStatus`, `GetCompanySettings`, `SetSetting`, `UpdateCompanySettings` |
+| api-gateway | invoice-service | `GetInvoice`, `GetInvoiceByOrder`, `ListInvoices`, `CreateInvoice`, `UpdateInvoiceStatus` |
+| api-gateway | order-service | `CreateOrder`, `GetOrder`, `GetOrderHistory`, `ListOrders`, `UpdateOrderStatus`, `CancelOrder`, `GetCompanySettings`, `SetSetting`, `UpdateCompanySettings` |
 | api-gateway | fleet-service | `GetAvailableVehicles`, `GetVehicle`, `GetVehicleDetails`, `UpdateVehicle`, `AssignVehicle`, `ReleaseVehicle` |
 | api-gateway | routing-service | `CalculateRoute`, `GetRoute`, `CalculateETA` |
 | api-gateway | counterparty-service | `CreateCounterparty`, `GetCounterparty`, `UpdateCounterparty`, `ListCounterparties`, `CreateContract`, `GetContract`, `UpdateContract`, `ListContracts`, `GetContractTariffs`, `CreateContractTariff` |
@@ -62,11 +63,14 @@ flowchart TD
 | dispatcher-service | order-service | `GetOrder`, `UpdateOrderStatus` |
 | order-service | routing-service | `CalculateRoute` |
 | order-service | counterparty-service | `GetCounterparty`, `GetContract`, `GetContractTariffs` |
+| invoice-service | order-service | `GetOrder`, `GetCompanySettings` |
+| invoice-service | counterparty-service | `GetCounterparty` |
 
 ### Injection Tokens
 
 | Token | Service | File |
 |-------|---------|------|
+| `INVOICE_PACKAGE` | InvoiceService | api-gateway |
 | `ORDER_PACKAGE` | OrderService | api-gateway |
 | `FLEET_PACKAGE` | FleetService | api-gateway |
 | `ROUTING_PACKAGE` | RoutingService | api-gateway |
@@ -76,6 +80,7 @@ flowchart TD
 | `FLEET_SERVICE` | FleetService | dispatcher-service |
 | `ROUTING_SERVICE` | RoutingService | dispatcher-service |
 | `ORDER_SERVICE` | OrderService | dispatcher-service |
+| `ORDER_PACKAGE` | OrderService | invoice-service |
 
 ---
 
@@ -87,6 +92,7 @@ flowchart TD
 |-------|------------|-----------|------------|
 | `order.created` | 6 | order-service | dispatcher-service, notifications |
 | `order.updated` | 6 | order-service | notifications |
+| `order.delivered` | 6 | order-service | invoice-service |
 | `order.assigned` | 6 | order-service (via dispatcher) | notifications |
 | `order.completed` | 6 | order-service | notifications |
 | `order.failed` | 6 | order-service | dispatcher-service, notifications |
@@ -96,6 +102,7 @@ flowchart TD
 | `vehicle.telemetry` | 12 | telemetry-sim | tracking-service, notifications |
 | `outbox.order` | 6 | order-service | — |
 | `outbox.dispatcher` | 6 | dispatcher-service | — |
+| `outbox.invoice` | 6 | invoice-service | — |
 | `vehicle.telemetry.dlq` | 3 | — | — |
 | `order.created.dlq` | 3 | — | — |
 

@@ -1,8 +1,8 @@
 import { JwtStrategy } from './jwt.strategy';
 import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { ApiKey } from '../entities/api-key.entity';
+import { User } from '../../users/entities/user.entity';
+import { ApiKey } from '../../users/entities/api-key.entity';
 import { UnauthorizedException } from '@nestjs/common';
 
 describe('JwtStrategy', () => {
@@ -64,7 +64,7 @@ describe('JwtStrategy', () => {
         apiKeyId: 'some-id',
       };
 
-      await expect(strategy.validate(payload as any)).rejects.toThrowError(
+      await expect(strategy.validate(payload as any)).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -83,7 +83,7 @@ describe('JwtStrategy', () => {
         type: 'access' as const,
       };
 
-      await expect(strategy.validate(payload as any)).rejects.toThrowError(
+      await expect(strategy.validate(payload as any)).rejects.toThrow(
         UnauthorizedException,
       );
     });

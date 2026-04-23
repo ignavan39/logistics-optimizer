@@ -74,7 +74,7 @@ describe('FleetService', () => {
     it('should get vehicle by id', async () => {
       const result = await service.getVehicle('vehicle-1');
 
-      expect(fleetClient.getVehicle).toHaveBeenCalledWith({ vehicle_id: 'vehicle-1' });
+      expect(fleetClient.getVehicle).toHaveBeenCalledWith({ vehicleId: 'vehicle-1' });
       expect(result).toHaveProperty('id');
     });
   });

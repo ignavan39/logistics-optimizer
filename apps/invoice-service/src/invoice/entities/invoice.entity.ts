@@ -48,7 +48,7 @@ export class InvoiceEntity {
   @Column({ name: 'vat_amount', type: 'numeric', precision: 12, scale: 2, default: 0 })
   vatAmount!: number;
 
-  @Column({ type: 'enum', enum: InvoiceStatus, default: InvoiceStatus.DRAFT })
+  @Column({ name: 'status', type: 'enum', enum: InvoiceStatus, default: InvoiceStatus.DRAFT })
   status!: InvoiceStatus;
 
   @Column({ name: 'due_date', type: 'date' })

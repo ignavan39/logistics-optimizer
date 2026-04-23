@@ -105,6 +105,7 @@ services:
       echo 'Creating topics...' &&
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order.created --partitions 6 --replication-factor 1 &&
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order.updated --partitions 6 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order.delivered --partitions 6 --replication-factor 1 &&
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order.assigned --partitions 6 --replication-factor 1 &&
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order.completed --partitions 6 --replication-factor 1 &&
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order.failed --partitions 6 --replication-factor 1 &&
@@ -114,6 +115,7 @@ services:
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic vehicle.telemetry --partitions 12 --replication-factor 1 --config retention.ms=3600000 &&
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic outbox.order --partitions 6 --replication-factor 1 &&
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic outbox.dispatcher --partitions 6 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic outbox.invoice --partitions 6 --replication-factor 1 &&
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic vehicle.telemetry.dlq --partitions 3 --replication-factor 1 &&
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order.created.dlq --partitions 3 --replication-factor 1 &&
       echo 'Topics created successfully!' &&
@@ -211,6 +213,18 @@ services:
     volumes:
       - pg-counterparty-data:/var/lib/postgresql/data
       - ./infra/postgres/init-counterparty.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  pg-invoice:
+    <<: *pg-common
+    container_name: logistics-pg-invoice
+    ports:
+      - '5440:5432'
+    environment:
+      POSTGRES_USER: ${PG_USER:-logistics}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-logistics_secret}
+      POSTGRES_DB: ${INVOICE_DB_NAME:-logistics_invoices}
+    volumes:
+      - pg-invoice-data:/var/lib/postgresql/data
 
   pgbouncer-order:
     <<: *pgbouncer-common
@@ -350,6 +364,7 @@ volumes:
   pg-dispatcher-data:
   pg-auth-data:
   pg-counterparty-data:
+  pg-invoice-data:
   prometheus-data:
   grafana-data:
 
