@@ -22,14 +22,30 @@ export interface InvoiceResponse {
   version?: number;
 }
 
+export interface ListInvoicesParams {
+  counterpartyId?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface ListInvoicesResult {
+  invoices: InvoiceResponse[];
+  total: number;
+  page: number;
+}
+
 interface OrderGrpcClient {
-  getOrder(data: { order_id: string }): Promise<any>;
+  getInvoice(data: { invoiceId: string }): Promise<InvoiceResponse>;
+  getInvoiceByOrder(data: { orderId: string }): Promise<InvoiceResponse>;
+  listInvoices(data: ListInvoicesParams): Promise<ListInvoicesResult>;
+  updateInvoiceStatus(data: { invoiceId: string; status: string; expectedVersion?: number }): Promise<InvoiceResponse>;
 }
 
 @Injectable()
 export class InvoicesService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(InvoicesService.name);
-  private orderClient?: OrderGrpcClient;
+  private client?: OrderGrpcClient;
 
   constructor(
     private configService: ConfigService,
@@ -37,7 +53,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    this.orderClient = this.grpcClient.getService<OrderGrpcClient>('OrderService');
+    this.client = this.grpcClient.getService<OrderGrpcClient>('OrderService');
     this.logger.log('InvoicesService initialized');
   }
 
@@ -45,26 +61,68 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
     this.logger.log('InvoicesService destroyed');
   }
 
-  async getInvoiceByOrder(orderId: string): Promise<InvoiceResponse | null> {
-    this.logger.log(`Getting invoice for order ${orderId}`);
-    return null;
-  }
-
   async getInvoice(id: string): Promise<InvoiceResponse | null> {
-    this.logger.log(`Getting invoice ${id}`);
-    return null;
+    try {
+      return await this.client!.getInvoice({ invoiceId: id });
+    } catch (e) {
+      this.logger.error(`Failed to get invoice ${id}: ${e}`);
+      return null;
+    }
   }
 
-  async generateInvoicePdf(invoiceId: string): Promise<Buffer | null> {
-    this.logger.log(`Generating PDF for invoice ${invoiceId}`);
-    return null;
+  async getInvoiceByOrder(orderId: string): Promise<InvoiceResponse | null> {
+    try {
+      return await this.client!.getInvoiceByOrder({ orderId });
+    } catch (e) {
+      this.logger.error(`Failed to get invoice for order ${orderId}: ${e}`);
+      return null;
+    }
+  }
+
+  async listInvoices(params: ListInvoicesParams = {}): Promise<ListInvoicesResult> {
+    try {
+      const response = await this.client!.listInvoices({
+        counterpartyId: params.counterpartyId,
+        status: params.status,
+        page: params.page ?? 1,
+        limit: params.limit ?? 20,
+      });
+      return response;
+    } catch (e) {
+      this.logger.error(`Failed to list invoices: ${e}`);
+      return { invoices: [], total: 0, page: 1 };
+    }
   }
 
   async updateInvoiceStatus(
     id: string,
     status: 'paid' | 'cancelled',
   ): Promise<InvoiceResponse | null> {
-    this.logger.log(`Updating invoice ${id} to status ${status}`);
-    return null;
+    try {
+      return await this.client!.updateInvoiceStatus({
+        invoiceId: id,
+        status: status.toUpperCase(),
+      });
+    } catch (e) {
+      this.logger.error(`Failed to update invoice ${id}: ${e}`);
+      return null;
+    }
+  }
+
+  async generateInvoicePdf(invoiceId: string): Promise<Buffer | null> {
+    try {
+      const invoice = await this.getInvoice(invoiceId);
+      if (!invoice) {
+        return null;
+      }
+
+      // For now, return null - PDF generation needs @logistics/document-templates
+      // This would generate a PDF using the invoice data
+      this.logger.log(`Would generate PDF for invoice ${invoiceId}: ${invoice.number}`);
+      return null;
+    } catch (e) {
+      this.logger.error(`Failed to generate PDF for invoice ${invoiceId}: ${e}`);
+      return null;
+    }
   }
 }

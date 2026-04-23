@@ -2,15 +2,17 @@ import {
   Controller,
   Get,
   Patch,
+  Post,
   Param,
   Body,
+  Query,
   HttpCode,
   HttpStatus,
   UseGuards,
   Res,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { InvoicesService, InvoiceResponse } from './invoices.service';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { InvoicesService, ListInvoicesParams } from './invoices.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../auth/guards/rbac.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
@@ -20,6 +22,28 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class InvoicesController {
   constructor(private readonly service: InvoicesService) {}
+
+  @Get()
+  @Permissions('invoices.read')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List invoices with pagination' })
+  @ApiQuery({ name: 'status', required: false, enum: ['draft', 'sent', 'paid', 'overdue', 'cancelled'] })
+  @ApiQuery({ name: 'counterparty_id', required: false })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  async list(
+    @Query('status') status?: string,
+    @Query('counterparty_id') counterpartyId?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.service.listInvoices({
+      status,
+      counterpartyId,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
 
   @Get(':id')
   @Permissions('invoices.read')
