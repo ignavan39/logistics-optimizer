@@ -9,3 +9,5 @@ coverage/
 tmp/
 *.tsbuildinfo
 */node_modules
+**/src/**/*.js
+**/*.js.map

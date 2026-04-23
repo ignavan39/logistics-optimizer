@@ -327,6 +327,23 @@ function calculateTotalPrice(items: CartItem[]): number {
 - Держи функции до 30 строк
 - Одна сущность — один файл
 
+## Документация
+
+Поддерживать актуальность документации в `docs/`:
+
+| Файл | Обновлять при |
+|------|--------------|
+| `docs/SERVICES.md` | Добавлении/удалении сервиса, изменении ответственности |
+| `docs/COMMUNICATION.md` | Изменении gRPC методов, добавлении Kafka событий |
+| `docs/DATABASE.md` | Изменении схемы БД (новые таблицы, колонки, FK) |
+| `docs/API.md` | Добавлении REST endpoints |
+| `docs/FEATURES.md` | Добавлении новых фич/паттернов |
+
+Проверка после изменений:
+```bash
+pnpm build && pnpm typecheck
+```
+
 ## Команды
 
 - **Lint**: `npm run lint` (или `pnpm lint`)
