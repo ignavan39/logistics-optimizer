@@ -30,6 +30,7 @@ describe('InvoicesService', () => {
 
     const mockGrpcClient = {
       getService: jest.fn().mockImplementation((name: string) => {
+        if (name === 'InvoiceService') return mockClient;
         if (name === 'OrderService') return mockClient;
         if (name === 'CounterpartyService') return mockCounterpartyClient;
         return {};
@@ -40,6 +41,7 @@ describe('InvoicesService', () => {
       providers: [
         InvoicesService,
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: 'INVOICE_PACKAGE', useValue: mockGrpcClient },
         { provide: 'ORDER_PACKAGE', useValue: mockGrpcClient },
         { provide: 'COUNTERPARTY_PACKAGE', useValue: mockGrpcClient },
       ],

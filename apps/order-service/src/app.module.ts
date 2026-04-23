@@ -8,8 +8,7 @@ import { OutboxEventEntity } from './order/entities/outbox-event.entity'
 import { OrderStatusHistoryEntity } from './order/entities/order-status-history.entity'
 import { CargoEntity } from './order/entities/cargo.entity'
 import { DocumentEntity } from './order/entities/document.entity'
-import { InvoiceEntity } from './order/entities/invoice.entity'
-import { SettingEntity } from './order/entities/setting.entity'
+import { SettingEntity } from './settings/entities/setting.entity'
 import { CounterpartyModule } from './counterparty/counterparty.module'
 import { RoutingModule } from './routing/routing.module'
 
@@ -29,7 +28,7 @@ import { RoutingModule } from './routing/routing.module'
         username: cfg.get('PG_USER', 'logistics'),
         password: cfg.get('PG_PASSWORD', 'logistics_secret'),
         database: cfg.get('ORDER_DB_NAME', 'order_db'),
-        entities: [OrderEntity, OrderTariffSnapshotEntity, OutboxEventEntity, OrderStatusHistoryEntity, CargoEntity, DocumentEntity, InvoiceEntity, SettingEntity],
+        entities: [OrderEntity, OrderTariffSnapshotEntity, OutboxEventEntity, OrderStatusHistoryEntity, CargoEntity, DocumentEntity, SettingEntity],
         migrations: [__dirname + '/migrations/*.{ts,js}'],
         migrationsRun: true,
         synchronize: true,

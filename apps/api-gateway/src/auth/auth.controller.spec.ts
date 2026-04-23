@@ -1,10 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { RolesService } from '../roles/roles.service';
+import { PermissionsService } from '../roles/roles.service';
+import { UsersService } from '../users/users.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RbacGuard } from './guards/rbac.guard';
 import { Reflector } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+
+jest.mock('bcrypt', () => ({
+  hash: jest.fn().mockResolvedValue('hashed_password'),
+  compare: jest.fn().mockResolvedValue(true),
+  genSalt: jest.fn().mockResolvedValue('salt'),
+}));
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -25,6 +34,25 @@ describe('AuthController', () => {
             changePassword: jest.fn(),
             getUserRoles: jest.fn(),
             createApiKey: jest.fn(),
+          },
+        },
+        {
+          provide: RolesService,
+          useValue: {
+            listRoles: jest.fn(),
+            getRole: jest.fn(),
+          },
+        },
+        {
+          provide: PermissionsService,
+          useValue: {
+            listPermissions: jest.fn(),
+          },
+        },
+        {
+          provide: UsersService,
+          useValue: {
+            findById: jest.fn(),
           },
         },
         JwtAuthGuard,

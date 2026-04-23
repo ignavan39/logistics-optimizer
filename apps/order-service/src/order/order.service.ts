@@ -12,7 +12,6 @@ import { OrderEntity, OrderStatus, OrderPriority } from './entities/order.entity
 import { OrderTariffSnapshotEntity } from './entities/order-tariff-snapshot.entity';
 import { OutboxEventEntity } from './entities/outbox-event.entity';
 import { OrderStatusHistoryEntity } from './entities/order-status-history.entity';
-import { InvoiceEntity, InvoiceType, InvoiceStatus } from './entities/invoice.entity';
 import { CounterpartyService } from '../counterparty/counterparty.service';
 import { RoutingService } from '../routing/routing.service';
 
@@ -153,7 +152,7 @@ export class OrderService {
       // 3. Записать в историю статус
       await manager.save(OrderStatusHistoryEntity, {
         orderId: saved.id,
-        previousStatus: null,
+        previousStatus: undefined,
         newStatus: OrderStatus.PENDING,
         reason: 'Order created',
       });
@@ -221,9 +220,32 @@ export class OrderService {
 
       const updated = await manager.save(OrderEntity, order);
 
-      // Create Invoice when order is delivered
+      // Publish order.delivered event for invoice creation
       if (dto.status === OrderStatus.DELIVERED && order.contractId) {
-        await this.createInvoiceOnDelivery(manager, order);
+        await manager.save(OutboxEventEntity, {
+          id: uuidv4(),
+          aggregateType: 'order',
+          aggregateId: updated.id,
+          eventType: 'order.delivered',
+          payload: {
+            eventId: uuidv4(),
+            source: 'order-service',
+            type: 'order.delivered',
+            aggregateId: updated.id,
+            occurredAt: new Date().toISOString(),
+            payload: {
+              orderId: updated.id,
+              contractId: order.contractId,
+              counterpartyId: order.counterpartyId,
+              tariffSnapshot: order.tariffSnapshot,
+              originLat: order.originLat,
+              originLng: order.originLng,
+              destinationLat: order.destinationLat,
+              destinationLng: order.destinationLng,
+              weightKg: order.weightKg,
+            },
+          },
+        });
       }
 
       // Write event to outbox
@@ -263,57 +285,6 @@ export class OrderService {
 
       return updated;
     });
-  }
-
-  private async createInvoiceOnDelivery(
-    manager: any,
-    order: OrderEntity,
-  ): Promise<InvoiceEntity> {
-    // Use tariff snapshot to prevent race condition
-    const snapshot = order.tariffSnapshot;
-    if (!snapshot) {
-      this.logger.warn(`No tariff snapshot for order ${order.id}, skipping invoice`);
-      return null!;
-    }
-
-    // Get distance
-    const distanceKm = await this.routingService.calculateDistance(
-      order.originLat,
-      order.originLng,
-      order.destinationLat,
-      order.destinationLng,
-    );
-
-    // Calculate price using snapshot (not current tariffs!)
-    let price = distanceKm * snapshot.pricePerKm + Number(order.weightKg || 0) * snapshot.pricePerKg;
-    if (snapshot.minPrice && price < Number(snapshot.minPrice)) {
-      price = Number(snapshot.minPrice);
-    }
-
-    // Create invoice
-    const invoiceNumber = `INV-${Date.now()}`;
-    const vatRate = 20;
-    const vatAmount = price * (vatRate / 100);
-    const totalAmount = price + vatAmount;
-
-    const invoice = manager.create(InvoiceEntity, {
-      orderId: order.id,
-      number: invoiceNumber,
-      type: InvoiceType.INVOICE,
-      amountRub: totalAmount,
-      vatRate,
-      vatAmount,
-      status: InvoiceStatus.DRAFT,
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      counterpartyId: order.counterpartyId,
-      contractId: order.contractId,
-    });
-
-    this.logger.log(
-      `Created invoice ${invoiceNumber} for order ${order.id}: ${price} RUB (${distanceKm} km, snapshot)`,
-    );
-
-    return manager.save(InvoiceEntity, invoice);
   }
 
   async cancelOrder(orderId: string, reason: string): Promise<OrderEntity> {

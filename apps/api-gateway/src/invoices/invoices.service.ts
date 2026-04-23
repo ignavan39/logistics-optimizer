@@ -1,7 +1,6 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClientGrpc } from '@nestjs/microservices';
-import { Inject } from '@nestjs/common';
 import { generateInvoice } from '@logistics/document-templates';
 
 export interface InvoiceResponse {
@@ -42,11 +41,14 @@ export interface OrderResponse {
   destinationAddress?: string;
 }
 
-interface OrderGrpcClient {
+interface InvoiceGrpcClient {
   getInvoice(data: { invoiceId: string }): Promise<InvoiceResponse>;
   getInvoiceByOrder(data: { orderId: string }): Promise<InvoiceResponse>;
   listInvoices(data: ListInvoicesParams): Promise<ListInvoicesResult>;
   updateInvoiceStatus(data: { invoiceId: string; status: string; expectedVersion?: number }): Promise<InvoiceResponse>;
+}
+
+interface OrderGrpcClient {
   getOrder(data: { orderId: string }): Promise<OrderResponse>;
   getCompanySettings(): Promise<{ companyName: string; companyInn: string; companyKpp: string; companyAddress: string; companyPhone: string; companyEmail: string; defaultPaymentTermsDays: number; defaultVatRate: number }>;
 }
@@ -58,17 +60,20 @@ interface CounterpartyGrpcClient {
 @Injectable()
 export class InvoicesService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(InvoicesService.name);
-  private client?: OrderGrpcClient;
+  private invoiceClient?: InvoiceGrpcClient;
+  private orderClient?: OrderGrpcClient;
   private counterpartyClient?: CounterpartyGrpcClient;
 
   constructor(
     private configService: ConfigService,
-    @Inject('ORDER_PACKAGE') private grpcClient: ClientGrpc,
+    @Inject('INVOICE_PACKAGE') private invoiceGrpc: ClientGrpc,
+    @Inject('ORDER_PACKAGE') private orderGrpc: ClientGrpc,
     @Inject('COUNTERPARTY_PACKAGE') private counterpartyGrpc: ClientGrpc,
   ) {}
 
   onModuleInit() {
-    this.client = this.grpcClient.getService<OrderGrpcClient>('OrderService');
+    this.invoiceClient = this.invoiceGrpc.getService<InvoiceGrpcClient>('InvoiceService');
+    this.orderClient = this.orderGrpc.getService<OrderGrpcClient>('OrderService');
     try {
       this.counterpartyClient = this.counterpartyGrpc.getService<CounterpartyGrpcClient>('CounterpartyService');
     } catch (e) {
@@ -83,7 +88,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
 
   async getInvoice(id: string): Promise<InvoiceResponse | null> {
     try {
-      return await this.client!.getInvoice({ invoiceId: id });
+      return await this.invoiceClient!.getInvoice({ invoiceId: id });
     } catch (e) {
       this.logger.error(`Failed to get invoice ${id}: ${e}`);
       return null;
@@ -92,7 +97,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
 
   async getInvoiceByOrder(orderId: string): Promise<InvoiceResponse | null> {
     try {
-      return await this.client!.getInvoiceByOrder({ orderId });
+      return await this.invoiceClient!.getInvoiceByOrder({ orderId });
     } catch (e) {
       this.logger.error(`Failed to get invoice for order ${orderId}: ${e}`);
       return null;
@@ -101,7 +106,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
 
   async listInvoices(params: ListInvoicesParams = {}): Promise<ListInvoicesResult> {
     try {
-      const response = await this.client!.listInvoices({
+      const response = await this.invoiceClient!.listInvoices({
         counterpartyId: params.counterpartyId,
         status: params.status,
         page: params.page ?? 1,
@@ -119,7 +124,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
     status: 'paid' | 'cancelled',
   ): Promise<InvoiceResponse | null> {
     try {
-      return await this.client!.updateInvoiceStatus({
+      return await this.invoiceClient!.updateInvoiceStatus({
         invoiceId: id,
         status: status.toUpperCase(),
       });
@@ -136,7 +141,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
         return null;
       }
 
-      const order = await this.client!.getOrder({ orderId: invoice.orderId });
+      const order = await this.orderClient!.getOrder({ orderId: invoice.orderId });
       if (!order) {
         return null;
       }
@@ -161,7 +166,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
         defaultVatRate: 20,
       };
       try {
-        companySettings = await this.client!.getCompanySettings();
+        companySettings = await this.orderClient!.getCompanySettings();
       } catch (e) {
         this.logger.warn(`Failed to get company settings: ${e}`);
       }
