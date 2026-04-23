@@ -12,7 +12,7 @@ describe('FleetService E2E', () => {
     const grpcPackage = grpc.loadPackageDefinition(packageDefinition) as any
     const FleetService = grpcPackage.fleet.FleetService
 
-    client = new FleetService('localhost:50052', grpc.credentials.createInsecure())
+    client = new FleetService('localhost:50053', grpc.credentials.createInsecure())
   })
 
   afterAll(() => {
