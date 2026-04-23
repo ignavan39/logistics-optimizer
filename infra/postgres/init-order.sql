@@ -127,3 +127,23 @@ CREATE TABLE IF NOT EXISTS order_tariff_snapshots (
 
 CREATE INDEX IF NOT EXISTS idx_order_tariffs_order ON order_tariff_snapshots(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_tariffs_calc ON order_tariff_snapshots(calculated_at);
+
+-- Settings table (v5)
+CREATE TABLE IF NOT EXISTS settings (
+    key VARCHAR(100) PRIMARY KEY,
+    value TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Insert default company settings
+INSERT INTO settings (key, value) VALUES
+    ('company_name', 'ООО "Логистическая Компания"'),
+    ('company_inn', '7712345678'),
+    ('company_kpp', '771201001'),
+    ('company_address', 'г. Москва, ул. Примерная, д. 1'),
+    ('company_phone', '+7 (495) 123-45-67'),
+    ('company_email', 'info@example.ru'),
+    ('default_payment_terms_days', '30'),
+    ('default_vat_rate', '20')
+ON CONFLICT (key) DO NOTHING;

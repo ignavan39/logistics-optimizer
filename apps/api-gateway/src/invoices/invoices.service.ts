@@ -48,6 +48,7 @@ interface OrderGrpcClient {
   listInvoices(data: ListInvoicesParams): Promise<ListInvoicesResult>;
   updateInvoiceStatus(data: { invoiceId: string; status: string; expectedVersion?: number }): Promise<InvoiceResponse>;
   getOrder(data: { orderId: string }): Promise<OrderResponse>;
+  getCompanySettings(): Promise<{ companyName: string; companyInn: string; companyKpp: string; companyAddress: string; companyPhone: string; companyEmail: string; defaultPaymentTermsDays: number; defaultVatRate: number }>;
 }
 
 interface CounterpartyGrpcClient {
@@ -149,16 +150,32 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
         }
       }
 
+      let companySettings = {
+        companyName: 'ООО "Логистическая Компания"',
+        companyInn: '7712345678',
+        companyKpp: '771201001',
+        companyAddress: 'г. Москва, ул. Примерная, д. 1',
+        companyPhone: '+7 (495) 123-45-67',
+        companyEmail: 'info@example.ru',
+        defaultPaymentTermsDays: 30,
+        defaultVatRate: 20,
+      };
+      try {
+        companySettings = await this.client!.getCompanySettings();
+      } catch (e) {
+        this.logger.warn(`Failed to get company settings: ${e}`);
+      }
+
       const invoiceData = {
         number: invoice.number,
         date: invoice.createdAt ? new Date(invoice.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         seller: {
-          name: 'Logistics Company',
-          inn: '1234567890',
-          kpp: '123456789',
-          address: 'Moscow, Russia',
-          phone: '+7 495 123-45-67',
+          name: companySettings.companyName,
+          inn: companySettings.companyInn,
+          kpp: companySettings.companyKpp,
+          address: companySettings.companyAddress,
+          phone: companySettings.companyPhone,
         },
         buyer: buyer ? {
           name: buyer.name,
@@ -181,7 +198,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
         vatRate: invoice.vatRate,
         vatAmount: invoice.vatAmount,
         total: invoice.amountRub,
-        paymentTerms: '30 дней',
+        paymentTerms: `${companySettings.defaultPaymentTermsDays} дней`,
       };
 
       const pdf = await generateInvoice(invoiceData);

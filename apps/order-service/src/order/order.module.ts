@@ -8,6 +8,7 @@ import { OutboxEventEntity } from './entities/outbox-event.entity';
 import { OrderStatusHistoryEntity } from './entities/order-status-history.entity';
 import { CargoEntity } from './entities/cargo.entity';
 import { DocumentEntity } from './entities/document.entity';
+import { SettingEntity } from './entities/setting.entity';
 import { InvoiceEntity } from './entities/invoice.entity';
 import { OrderService } from './order.service';
 import { OrderGrpcController } from './order.grpc.controller';
@@ -16,13 +17,15 @@ import { OutboxProcessor } from './outbox/outbox.processor';
 import { CounterpartyModule } from '../counterparty/counterparty.module';
 import { RoutingModule } from '../routing/routing.module';
 import { InvoiceModule } from './invoice.module';
+import { SettingsModule } from './settings.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OrderEntity, OrderTariffSnapshotEntity, OutboxEventEntity, OrderStatusHistoryEntity, CargoEntity, DocumentEntity, InvoiceEntity]),
+    TypeOrmModule.forFeature([OrderEntity, OrderTariffSnapshotEntity, OutboxEventEntity, OrderStatusHistoryEntity, CargoEntity, DocumentEntity, InvoiceEntity, SettingEntity]),
     CounterpartyModule,
     RoutingModule,
     InvoiceModule,
+    SettingsModule,
 
     // Kafka client for OutboxProcessor to publish events
     ClientsModule.registerAsync([
