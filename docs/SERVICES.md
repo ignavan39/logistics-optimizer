@@ -8,7 +8,6 @@
 
 ### Responsibilities
 - Order lifecycle management (CRUD, state machine)
-- Invoice generation with PDF
 - Company settings management
 - Transactional Outbox for event publishing
 
@@ -16,7 +15,6 @@
 - `Order` — Core order entity with status machine
 - `Cargo` — Cargo items attached to orders
 - `Document` — Documents (waybills, contracts)
-- `Invoice` — Invoices with VAT calculation
 - `SettingEntity` — Key-value company settings
 - `OrderTariffSnapshot` — Historical tariff at order time
 - `OutboxEvent` — Event outbox for Kafka
@@ -27,7 +25,6 @@
 service OrderService {
   CreateOrder, GetOrder, GetOrderHistory, ListOrders
   UpdateOrderStatus, CancelOrder
-  GetInvoice, GetInvoiceByOrder, ListInvoices, UpdateInvoiceStatus
   GetCompanySettings, SetSetting, UpdateCompanySettings
 }
 ```
@@ -35,19 +32,55 @@ service OrderService {
 ### Kafka Topics Published
 - `order.created` — New order created
 - `order.updated` — Order status changed
+- `order.delivered` — Order delivered (triggers invoice creation)
 
 ### Key Features
 - Transactional Outbox pattern for reliable event delivery
-- Optimistic locking on orders and invoices
+- Optimistic locking on orders
 - Tariff snapshots to preserve pricing at order time
 - Company settings for invoice PDF generation
-- Invoice PDF generation with seller/buyer info
+
+---
+
+## invoice-service
+
+**Port:** gRPC 50052, HTTP 3012  
+**Database:** logistics_invoices (PostgreSQL)  
+**Package:** `invoice`
+
+### Responsibilities
+- Invoice lifecycle management (CRUD)
+- Invoice creation from order.delivered events
+- Invoice status tracking (draft, sent, paid, overdue, cancelled)
+
+### Main Entities
+- `Invoice` — Invoice with VAT calculation
+
+### gRPC Methods
+```protobuf
+service InvoiceService {
+  GetInvoice, GetInvoiceByOrder, ListInvoices
+  CreateInvoice, UpdateInvoiceStatus
+}
+```
+
+### Kafka Topics Consumed
+- `order.delivered` — Triggers invoice creation
+
+### Dependencies
+- `OrderService` — Get order details for invoice
+- `CounterpartyService` — Get buyer information
+
+### Key Features
+- Optimistic locking on invoices
+- VAT calculation and tracking
+- Payment tracking (due date, paid date)
 
 ---
 
 ## fleet-service
 
-**Port:** gRPC 50052, HTTP 3012  
+**Port:** gRPC 50053, HTTP 3013  
 **Database:** pg-fleet (PostgreSQL + PostGIS)  
 **Package:** `fleet`
 
@@ -79,7 +112,7 @@ service FleetService {
 
 ## routing-service
 
-**Port:** gRPC 50053, HTTP 3013  
+**Port:** gRPC 50054, HTTP 3014  
 **Database:** pg-routing (PostgreSQL + PostGIS)  
 **Package:** `routing`
 
@@ -108,7 +141,7 @@ service RoutingService {
 
 ## tracking-service
 
-**Port:** gRPC 50054  
+**Port:** gRPC 50055  
 **Database:** pg-tracking (PostgreSQL + PostGIS)  
 **Package:** `tracking`
 
@@ -139,7 +172,7 @@ service TrackingService {
 
 ## dispatcher-service
 
-**Port:** gRPC 50055  
+**Port:** gRPC 50056  
 **Database:** pg-dispatcher (PostgreSQL)  
 **Package:** `dispatcher`
 
@@ -189,7 +222,7 @@ sequenceDiagram
 
 ## counterparty-service
 
-**Port:** gRPC 50056, HTTP 3016  
+**Port:** gRPC 50057, HTTP 3016  
 **Database:** pg-counterparty (PostgreSQL)  
 **Package:** `counterparty`
 
@@ -245,7 +278,8 @@ service CounterpartyService {
 ### gRPC Clients
 | Service | Token | Methods Used |
 |---------|-------|---------------|
-| OrderService | `ORDER_PACKAGE` | Orders, invoices, settings |
+| InvoiceService | `INVOICE_PACKAGE` | Invoices |
+| OrderService | `ORDER_PACKAGE` | Orders, settings |
 | CounterpartyService | `COUNTERPARTY_PACKAGE` | Counterparties, contracts |
 | FleetService | `FLEET_PACKAGE` | Vehicles |
 | RoutingService | `ROUTING_PACKAGE` | Routes |
