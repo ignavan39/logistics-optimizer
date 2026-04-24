@@ -10,9 +10,9 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Inject,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UsersService } from '../users/users.service';
 import { RolesService } from '../roles/roles.service';
@@ -34,7 +34,7 @@ export class AdminController {
   constructor(
     private usersService: UsersService,
     private rolesService: RolesService,
-    @InjectRepository(AuditLog)
+    @Inject(AuditLog)
     private auditLogRepository: Repository<AuditLog>,
   ) {}
 

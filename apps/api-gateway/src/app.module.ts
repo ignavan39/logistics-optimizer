@@ -1,9 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { DataSource } from 'typeorm';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
-import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { OrdersModule } from './orders/orders.module';
 import { FleetModule } from './fleet/fleet.module';
@@ -27,6 +26,46 @@ import { UserRole } from './roles/entities/user-role.entity';
 import { RolePermission } from './roles/entities/role-permission.entity';
 import { AuditLog } from './auth/entities/audit-log.entity';
 
+const AUTH_ENTITIES = [User, Role, Permission, UserRole, RolePermission, Session, ApiKey, RefreshToken, AuditLog];
+
+@Global()
+@Module({
+  imports: [ConfigModule],
+  providers: [
+    {
+      provide: 'AUTH_DATA_SOURCE',
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        const dataSource = new DataSource({
+          type: 'postgres',
+          host: configService.get('AUTH_DB_HOST', 'pg-auth'),
+          port: +configService.get('PG_PORT_BASE', 5432),
+          username: configService.get('PG_USER', 'logistics'),
+          password: configService.get('PG_PASSWORD', 'logistics_secret'),
+          database: configService.get('AUTH_DB_NAME', 'auth_db'),
+          entities: AUTH_ENTITIES,
+          synchronize: configService.get('NODE_ENV') === 'development',
+          namingStrategy: new SnakeNamingStrategy(),
+          logging: configService.get('NODE_ENV') === 'development',
+          extra: {
+            max: 10,
+            connectionTimeoutMillis: 5000,
+          },
+        });
+        await dataSource.initialize();
+        return dataSource;
+      },
+    },
+    {
+      provide: AuditLog,
+      useFactory: (dataSource: DataSource) => dataSource.getRepository(AuditLog),
+      inject: ['AUTH_DATA_SOURCE'],
+    },
+  ],
+  exports: ['AUTH_DATA_SOURCE', AuditLog],
+})
+export class DatabaseModule {}
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -44,44 +83,14 @@ import { AuditLog } from './auth/entities/audit-log.entity';
         ],
       }),
     }),
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (cfg: ConfigService) => ({
-        type: 'postgres',
-        host: cfg.get('AUTH_DB_HOST', 'pg-auth'),
-        port: cfg.get<number>('PG_PORT_BASE', 5432),
-        username: cfg.get('PG_USER', 'logistics'),
-        password: cfg.get('PG_PASSWORD', 'logistics_secret'),
-        database: cfg.get('AUTH_DB_NAME', 'auth_db'),
-        entities: [User, Role, Permission, UserRole, RolePermission, Session, ApiKey, RefreshToken, AuditLog],
-        synchronize: false,
-        namingStrategy: new SnakeNamingStrategy(),
-        logging: cfg.get('NODE_ENV') === 'development',
-        extra: {
-          max: 10,
-          connectionTimeoutMillis: 5000,
-        },
-      }),
-    }),
+    DatabaseModule,
     AuthModule,
     UsersModule,
     RolesModule,
     AdminModule,
-    OrdersModule,
-    FleetModule,
-    RoutingModule,
-    TrackingModule,
-    DispatcherModule,
-    NotificationsModule,
-    CounterpartyModule,
     InvoicesModule,
     SettingsModule,
   ],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
-  ],
+  providers: [],
 })
 export class AppModule {}

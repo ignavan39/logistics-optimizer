@@ -1,0 +1,286 @@
+networks:
+  logistics-net:
+    external: true
+
+services:
+
+  pg-test-order:
+    image: postgis/postgis:16-3.4
+    container_name: logistics-pg-test-order
+    restart: no
+    environment:
+      POSTGRES_USER: logistics
+      POSTGRES_PASSWORD: logistics_secret
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: order_db_test
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U logistics']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - logistics-net
+    volumes:
+      - pg-test-order-data:/var/lib/postgresql/data
+      - ../infra/postgres/init-order.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  pg-test-fleet:
+    image: postgis/postgis:16-3.4
+    container_name: logistics-pg-test-fleet
+    restart: no
+    environment:
+      POSTGRES_USER: logistics
+      POSTGRES_PASSWORD: logistics_secret
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: fleet_db_test
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U logistics']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - logistics-net
+    volumes:
+      - pg-test-fleet-data:/var/lib/postgresql/data
+      - ../infra/postgres/init-fleet.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  pg-test-routing:
+    image: postgis/postgis:16-3.4
+    container_name: logistics-pg-test-routing
+    restart: no
+    environment:
+      POSTGRES_USER: logistics
+      POSTGRES_PASSWORD: logistics_secret
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: routing_db_test
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U logistics']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - logistics-net
+    volumes:
+      - pg-test-routing-data:/var/lib/postgresql/data
+      - ../infra/postgres/init-routing.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  pg-test-tracking:
+    image: postgis/postgis:16-3.4
+    container_name: logistics-pg-test-tracking
+    restart: no
+    environment:
+      POSTGRES_USER: logistics
+      POSTGRES_PASSWORD: logistics_secret
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: tracking_db_test
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U logistics']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - logistics-net
+    volumes:
+      - pg-test-tracking-data:/var/lib/postgresql/data
+      - ../infra/postgres/init-tracking.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  pg-test-dispatcher:
+    image: postgis/postgis:16-3.4
+    container_name: logistics-pg-test-dispatcher
+    restart: no
+    environment:
+      POSTGRES_USER: logistics
+      POSTGRES_PASSWORD: logistics_secret
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: dispatcher_db_test
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U logistics']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - logistics-net
+    volumes:
+      - pg-test-dispatcher-data:/var/lib/postgresql/data
+
+  pg-test-counterparty:
+    image: postgis/postgis:16-3.4
+    container_name: logistics-pg-test-counterparty
+    restart: no
+    environment:
+      POSTGRES_USER: logistics
+      POSTGRES_PASSWORD: logistics_secret
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: counterparty_db_test
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U logistics']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - logistics-net
+    volumes:
+      - pg-test-counterparty-data:/var/lib/postgresql/data
+      - ../infra/postgres/init-counterparty.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  pg-test-invoice:
+    image: postgis/postgis:16-3.4
+    container_name: logistics-pg-test-invoice
+    restart: no
+    environment:
+      POSTGRES_USER: logistics
+      POSTGRES_PASSWORD: logistics_secret
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: logistics_invoices_test
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U logistics']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - logistics-net
+    volumes:
+      - pg-test-invoice-data:/var/lib/postgresql/data
+      - ../infra/postgres/init-invoice.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  pgbouncer-test-order:
+    image: edoburu/pgbouncer:1.18.0
+    container_name: logistics-pgbouncer-test-order
+    restart: no
+    environment:
+      DB_USER: logistics
+      DB_PASSWORD: logistics_secret
+      DB_HOST: pg-test-order
+      DB_NAME: order_db_test
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 50
+      DEFAULT_POOL_SIZE: 10
+    ports:
+      - '6433:5432'
+    networks:
+      - logistics-net
+    depends_on:
+      - pg-test-order
+
+  pgbouncer-test-fleet:
+    image: edoburu/pgbouncer:1.18.0
+    container_name: logistics-pgbouncer-test-fleet
+    restart: no
+    environment:
+      DB_USER: logistics
+      DB_PASSWORD: logistics_secret
+      DB_HOST: pg-test-fleet
+      DB_NAME: fleet_db_test
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 50
+      DEFAULT_POOL_SIZE: 10
+    ports:
+      - '6434:5432'
+    networks:
+      - logistics-net
+    depends_on:
+      - pg-test-fleet
+
+  pgbouncer-test-routing:
+    image: edoburu/pgbouncer:1.18.0
+    container_name: logistics-pgbouncer-test-routing
+    restart: no
+    environment:
+      DB_USER: logistics
+      DB_PASSWORD: logistics_secret
+      DB_HOST: pg-test-routing
+      DB_NAME: routing_db_test
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 50
+      DEFAULT_POOL_SIZE: 10
+    ports:
+      - '6435:5432'
+    networks:
+      - logistics-net
+    depends_on:
+      - pg-test-routing
+
+  pgbouncer-test-tracking:
+    image: edoburu/pgbouncer:1.18.0
+    container_name: logistics-pgbouncer-test-tracking
+    restart: no
+    environment:
+      DB_USER: logistics
+      DB_PASSWORD: logistics_secret
+      DB_HOST: pg-test-tracking
+      DB_NAME: tracking_db_test
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 50
+      DEFAULT_POOL_SIZE: 10
+    ports:
+      - '6436:5432'
+    networks:
+      - logistics-net
+    depends_on:
+      - pg-test-tracking
+
+  pgbouncer-test-dispatcher:
+    image: edoburu/pgbouncer:1.18.0
+    container_name: logistics-pgbouncer-test-dispatcher
+    restart: no
+    environment:
+      DB_USER: logistics
+      DB_PASSWORD: logistics_secret
+      DB_HOST: pg-test-dispatcher
+      DB_NAME: dispatcher_db_test
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 50
+      DEFAULT_POOL_SIZE: 10
+    ports:
+      - '6437:5432'
+    networks:
+      - logistics-net
+    depends_on:
+      - pg-test-dispatcher
+
+  pgbouncer-test-counterparty:
+    image: edoburu/pgbouncer:1.18.0
+    container_name: logistics-pgbouncer-test-counterparty
+    restart: no
+    environment:
+      DB_USER: logistics
+      DB_PASSWORD: logistics_secret
+      DB_HOST: pg-test-counterparty
+      DB_NAME: counterparty_db_test
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 50
+      DEFAULT_POOL_SIZE: 10
+    ports:
+      - '6439:5432'
+    networks:
+      - logistics-net
+    depends_on:
+      - pg-test-counterparty
+
+  pgbouncer-test-invoice:
+    image: edoburu/pgbouncer:1.18.0
+    container_name: logistics-pgbouncer-test-invoice
+    restart: no
+    environment:
+      DB_USER: logistics
+      DB_PASSWORD: logistics_secret
+      DB_HOST: pg-test-invoice
+      DB_NAME: logistics_invoices_test
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 50
+      DEFAULT_POOL_SIZE: 10
+    ports:
+      - '6440:5432'
+    networks:
+      - logistics-net
+    depends_on:
+      - pg-test-invoice
+
+volumes:
+  pg-test-order-data:
+  pg-test-fleet-data:
+  pg-test-routing-data:
+  pg-test-tracking-data:
+  pg-test-dispatcher-data:
+  pg-test-counterparty-data:
+  pg-test-invoice-data:

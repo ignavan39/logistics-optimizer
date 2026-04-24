@@ -1,6 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,9 +14,7 @@ export class TokenService {
   private readonly REFRESH_TOKEN_EXPIRY_DAYS = 7;
 
   constructor(
-    @InjectRepository(User)
     private userRepository: Repository<User>,
-    @InjectRepository(RefreshToken)
     private refreshTokenRepository: Repository<RefreshToken>,
     private jwtService: JwtService,
     private dataSource: DataSource,

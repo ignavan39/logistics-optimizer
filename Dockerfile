@@ -11,12 +11,17 @@ WORKDIR /workspace
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY libs/proto/package.json ./libs/proto/package.json
+COPY libs/document-templates/package.json ./libs/document-templates/package.json
+COPY libs/kafka-utils/package.json ./libs/kafka-utils/package.json
 COPY apps apps
 COPY libs libs
 COPY tsconfig.base.json ./
 
 RUN corepack enable && corepack prepare pnpm@latest --activate && \
     pnpm install --frozen-lockfile
+
+WORKDIR /workspace/libs/document-templates
+RUN pnpm build
 
 WORKDIR /workspace/apps/${SERVICE}
 RUN pnpm build
@@ -39,6 +44,7 @@ RUN pnpm config set public-hoist-pattern '*' && \
     npm rebuild
 
 COPY --from=builder /workspace/libs/proto/src ./libs/proto/src
+COPY --from=builder /workspace/libs/document-templates/dist ./libs/document-templates/dist
 COPY --from=builder /workspace/apps/${SERVICE}/dist ./dist
 
 ENV NODE_ENV=production
@@ -46,4 +52,4 @@ USER node
 
 EXPOSE 9464
 
-CMD ["node", "dist/main"]
+CMD ["node", "dist/apps/api-gateway/src/main.js"]

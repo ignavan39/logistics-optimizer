@@ -327,22 +327,7 @@ function calculateTotalPrice(items: CartItem[]): number {
 - Держи функции до 30 строк
 - Одна сущность — один файл
 
-## Документация
 
-Поддерживать актуальность документации в `docs/`:
-
-| Файл | Обновлять при |
-|------|--------------|
-| `docs/SERVICES.md` | Добавлении/удалении сервиса, изменении ответственности |
-| `docs/COMMUNICATION.md` | Изменении gRPC методов, добавлении Kafka событий |
-| `docs/DATABASE.md` | Изменении схемы БД (новые таблицы, колонки, FK) |
-| `docs/API.md` | Добавлении REST endpoints |
-| `docs/FEATURES.md` | Добавлении новых фич/паттернов |
-
-Проверка после изменений:
-```bash
-pnpm build && pnpm typecheck
-```
 
 ## Команды
 
@@ -350,3 +335,118 @@ pnpm build && pnpm typecheck
 - **Typecheck**: `npm run typecheck` (или `pnpm typecheck`)
 - **Test**: `npm run test` (или `pnpm test`)
 - **Build**: `npm run build` (или `pnpm build`)
+
+---
+
+# 📝 Архитектурные Заметки (Important!)
+
+## 1. ConfigService vs process.env
+
+### ✅ ConfigService (рекомендуется)
+- Работает в Docker
+- Тестируемо (через `inject: [ConfigService]`)
+- Типизировано
+- Централизованная конфигурация
+
+```typescript
+// ✅ Правильно
+TypeOrmModule.forRootAsync({
+  inject: [ConfigService],
+  useFactory: (cfg: ConfigService) => ({
+    host: cfg.get('DB_HOST', 'pg-host'),
+  }),
+}),
+```
+
+### ❌ process.env (избегать)
+- Не работает в Docker
+- Не тестируемо
+- Легко ошибиться с названиями
+
+```typescript
+// ❌ Неправильно
+host: process.env.DB_HOST || 'pg-host',
+```
+
+## 2. Docker для production, локально только для debug
+
+- **Все сервисы должны работать в Docker**
+- Локальный запуск — только для отладки
+- Всегда проверять `docker compose up` перед push
+
+## 3. Единая структура для всех сервисов
+
+### TypeORM: использовать DataSource напрямую
+
+**Проблема**: `@nestjs/typeorm` конфликтует в Docker при pnpm hoisting
+- Симптом: `Nest can't resolve dependencies of the TypeOrmCoreModule (TypeOrmModuleOptions, ?)`
+- Причина: `@nestjs/typeorm@10.0.2` ожидает `@nestjs/core@10.3.2`, pnpm hoisting создаёт конфликт версий
+
+**Решение**: использовать `typeorm.DataSource` напрямую
+
+```typescript
+// app.module.ts
+import { DataSource } from 'typeorm';
+
+const dataSourceFactory = {
+  provide: 'DATA_SOURCE',
+  useFactory: async (configService: ConfigService) => {
+    const dataSource = new DataSource({
+      type: 'postgres',
+      host: configService.get('DB_HOST', 'pg-host'),
+      // ... остальная конфигурация
+      entities: [MyEntity],
+      synchronize: configService.get('NODE_ENV') === 'development',
+    });
+    return dataSource.initialize();
+  },
+  inject: [ConfigService],
+};
+
+// invoice.service.ts
+@Injectable()
+export class InvoiceService {
+  constructor(@Inject('DATA_SOURCE') dataSource: DataSource) {
+    this.invoiceRepo = dataSource.getRepository(InvoiceEntity);
+  }
+}
+```
+
+### synchronize: false в production
+
+```typescript
+synchronize: configService.get('NODE_ENV') === 'development',
+// В Docker (production) = false, в local development = true
+```
+
+## 4. History: April 2026 TypeORM Docker Bug
+
+### Симптомы
+- Все сервисы с TypeORM падают в Docker: `Nest can't resolve dependencies of the TypeOrmCoreModule`
+- Локально работает нормально
+- dispatcher-service работает (использует synchronize: false)
+
+### Исследование
+- `npm ls @nestjs/typeorm` показывает `invalid: "10.3.2" from @nestjs/typeorm`
+- Пакет ожидает старую версию @nestjs/core, а мы используем 10.4.22
+- pnpm hoisting создаёт конфликт symlink между версиями
+
+### Решение
+- Использовать `typeorm.DataSource` напрямую вместо `@nestjs/typeorm`
+- Избегать `@nestjs/typeorm` wrapper в production
+
+## 5. Что делать при проблемах с TypeORM в Docker
+
+1. **Проверить работающие сервисы**: docker ps
+2. **Проверить npm ls**: `docker run --rm <image> npm ls @nestjs/typeorm @nestjs/core`
+3. **Сравнить структуру**: `docker run --rm <image> ls node_modules/.pnpm/`
+4. **Попробовать решение**: использовать DataSource напрямую
+
+
+## 6. Когда ты находишь  новый паттерн или ошибку 
+то ты добавляшь это в соотвествующий файл в катологе ./agents/backend 
+если возникают вопросы куда лучше добавить то сообщаешь пользователю и задаешь уточняющие вопросы
+твоя цель  эволюционировать вместе с проектом.
+
+## 7. когда пользователь предлагает паттерны и улучшения
+ты обязан написать их в этот файл и проверять что они правильны

@@ -14,7 +14,11 @@
     "skipLibCheck": true,
     "strictNullChecks": false,
     "noImplicitAny": false,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "paths": {
+      "@logistics/document-templates": ["../../libs/document-templates/src/index.ts"],
+      "@logistics/document-templates/*": ["../../libs/document-templates/src/*"]
+    }
   },
   "exclude": [
     "node_modules",

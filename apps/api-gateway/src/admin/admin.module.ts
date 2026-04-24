@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuditLog } from '../auth/entities/audit-log.entity';
 import { AdminController } from './admin.controller';
 import { UsersModule } from '../users/users.module';
 import { RolesModule } from '../roles/roles.module';
@@ -9,7 +7,6 @@ import { RbacGuard } from '../auth/guards/rbac.guard';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AuditLog]),
     UsersModule,
     RolesModule,
   ],
