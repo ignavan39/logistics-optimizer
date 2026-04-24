@@ -1,106 +1,76 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { apiFetchWithAuth as apiFetch } from '@/lib/auth'
-import { Package, Plus, Loader2 } from 'lucide-react'
-
-interface Order {
-  id: string
-  customer_id: string
-  origin: { address: string; lat: number; lng: number }
-  destination: { address: string; lat: number; lng: number }
-  status: number
-  priority: number
-  weight_kg: number
-  volume_m3: number
-  created_at_unix: number
-}
-
-interface OrdersResponse {
-  orders: Order[]
-  total: number
-  page: number
-}
-
-const STATUS_MAP: Record<number, { label: string; color: string }> = {
-  0: { label: 'Создан', color: 'text-accent-lavender' },
-  1: { label: 'В обработке', color: 'text-accent-sky' },
-  2: { label: 'Назначен', color: 'text-accent-mint' },
-  3: { label: 'Забран', color: 'text-status-warning' },
-  4: { label: 'В пути', color: 'text-status-warning' },
-  5: { label: 'Доставлен', color: 'text-status-success' },
-  6: { label: 'Ошибка', color: 'text-status-error' },
-  7: { label: 'Отменен', color: 'text-status-error' },
-}
+import { apiGet } from '@/lib/api'
+import { Button, PageLoader } from '@/components/ui'
+import { OrderCard } from '@/features/orders'
+import { Order, ORDER_STATUS_LABELS } from '@/types'
+import { Package } from 'lucide-react'
+import { Badge, Modal } from '@/components/ui'
 
 export function OrdersPage() {
-  const { data, isLoading, error } = useQuery<OrdersResponse>({
-    queryKey: ['orders'],
-    queryFn: () => apiFetch('/orders'),
+  const [page, setPage] = useState(1)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  const { data, isLoading, error } = useQuery<{ orders: Order[]; total: number }>({
+    queryKey: ['orders', page],
+    queryFn: () => apiGet<{ orders: Order[]; total: number }>('/orders', { page, limit: 20 }),
+    retry: 1,
   })
+
+  if (isLoading) return <PageLoader />
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12 text-text-muted">
+          <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+          <p>Сервис недоступен</p>
+        </div>
+      </div>
+    )
+  }
+
+  const order = data?.orders.find(o => o.id === selectedId)
 
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-text-primary">Заказы</h1>
-        <button className="flex items-center gap-2 px-4 py-2 bg-accent-lavender text-background rounded-lg font-medium hover:opacity-90 transition-opacity">
-          <Plus className="w-4 h-4" />
-          Создать заказ
-        </button>
       </div>
 
-      {isLoading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 text-accent-lavender animate-spin" />
+      {!data?.orders.length ? (
+        <div className="text-center py-12 text-text-muted">
+          <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+          <p>Нет заказов</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {data.orders.map(orderItem => (
+            <OrderCard key={orderItem.id} order={orderItem} onClick={() => setSelectedId(orderItem.id)} />
+          ))}
         </div>
       )}
 
-      {error && (
-        <div className="p-4 bg-status-error/10 border border-status-error rounded-lg text-status-error">
-          Ошибка загрузки заказов
+      {data && data.total > 20 && (
+        <div className="flex items-center justify-between mt-4">
+          <div className="text-sm text-text-muted">Страница {page}</div>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Назад</Button>
+            <Button variant="secondary" size="sm" disabled={page * 20 >= data.total} onClick={() => setPage(p => p + 1)}>Вперёд</Button>
+          </div>
         </div>
       )}
 
-      {data && (
-        <div className="bg-surface rounded-xl border border-border overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left p-4 text-text-secondary font-medium">ID</th>
-                <th className="text-left p-4 text-text-secondary font-medium">Откуда</th>
-                <th className="text-left p-4 text-text-secondary font-medium">Куда</th>
-                <th className="text-left p-4 text-text-secondary font-medium">Статус</th>
-                <th className="text-left p-4 text-text-secondary font-medium">Вес</th>
-                <th className="text-left p-4 text-text-secondary font-medium">Создан</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.orders.map((order) => (
-                <tr key={order.id} className="border-b border-border hover:bg-surface-hover transition-colors">
-                  <td className="p-4 text-text-primary font-mono text-sm">{order.id.slice(0, 8)}</td>
-                  <td className="p-4 text-text-primary">{order.origin?.address || '—'}</td>
-                  <td className="p-4 text-text-primary">{order.destination?.address || '—'}</td>
-                  <td className="p-4">
-                    <span className={STATUS_MAP[order.status]?.color}>
-                      {STATUS_MAP[order.status]?.label || 'Неизвестно'}
-                    </span>
-                  </td>
-                  <td className="p-4 text-text-secondary">{order.weight_kg} кг</td>
-                  <td className="p-4 text-text-secondary">
-                    {order.created_at_unix ? new Date(order.created_at_unix * 1000).toLocaleDateString('ru') : '—'}
-                  </td>
-                </tr>
-              ))}
-              {data.orders.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="p-8 text-center text-text-muted">
-                    <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>Нет заказов</p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Modal isOpen={!!selectedId} onClose={() => setSelectedId(null)} title={`Заказ ${selectedId?.slice(0, 8)}`}>
+        {order && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Badge label={ORDER_STATUS_LABELS[order.status]} />
+            </div>
+            <p className="text-text-secondary">{order.origin?.address} → {order.destination?.address}</p>
+            <p className="text-text-muted">{order.weightKg} кг, {order.volumeM3} м³</p>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
