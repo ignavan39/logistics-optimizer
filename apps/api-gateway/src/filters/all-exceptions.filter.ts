@@ -14,12 +14,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let message = 'Internal server error'
     let errors: any = null
 
-    if (exception instanceof HttpException) {
-      status = exception.getStatus()
-      const exceptionResponse = exception.getResponse()
+    if (this.isHttpException(exception)) {
+      status = (exception as HttpException).getStatus()
+      const exceptionResponse = (exception as HttpException).getResponse()
       message = typeof exceptionResponse === 'string' 
         ? exceptionResponse 
-        : (exceptionResponse as any).message || exception.message
+        : (exceptionResponse as any).message || (exception as Error).message
       errors = typeof exceptionResponse === 'object' ? exceptionResponse : null
     } 
     else if (exception instanceof RpcException) {
@@ -61,5 +61,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       16: HttpStatus.UNAUTHORIZED,
     }
     return map[grpcCode] ?? HttpStatus.INTERNAL_SERVER_ERROR
+  }
+
+  private isHttpException(exception: unknown): boolean {
+    return exception instanceof HttpException || 
+      (typeof exception === 'object' && exception !== null && 'getStatus' in exception && typeof (exception as any).getStatus === 'function')
   }
 }

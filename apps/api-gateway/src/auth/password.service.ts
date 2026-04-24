@@ -1,5 +1,4 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from '../users/entities/user.entity';
@@ -10,9 +9,7 @@ export class PasswordService {
   private readonly SALT_ROUNDS = 12;
 
   constructor(
-    @InjectRepository(User)
     private userRepository: Repository<User>,
-    @InjectRepository(Session)
     private sessionRepository: Repository<Session>,
   ) {}
 

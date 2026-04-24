@@ -1,5 +1,4 @@
 import { Injectable, ConflictException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User, UserStatus } from './entities/user.entity';
@@ -13,11 +12,8 @@ export class UsersService {
   private readonly SALT_ROUNDS = 12;
 
   constructor(
-    @InjectRepository(User)
     private userRepository: Repository<User>,
-    @InjectRepository(Session)
     private sessionRepository: Repository<Session>,
-    @InjectRepository(RefreshToken)
     private refreshTokenRepository: Repository<RefreshToken>,
     private dataSource: DataSource,
   ) {}

@@ -3,7 +3,6 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import { Session } from '../users/entities/session.entity';
@@ -21,9 +20,7 @@ export class AuthService {
   private readonly SESSION_EXPIRY_DAYS = 7;
 
   constructor(
-    @InjectRepository(User)
     private userRepository: Repository<User>,
-    @InjectRepository(Session)
     private sessionRepository: Repository<Session>,
     private usersService: UsersService,
     private tokenService: TokenService,

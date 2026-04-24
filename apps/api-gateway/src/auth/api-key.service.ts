@@ -1,5 +1,4 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
@@ -13,9 +12,7 @@ export class ApiKeyService {
   private readonly SALT_ROUNDS = 12;
 
   constructor(
-    @InjectRepository(ApiKey)
     private apiKeyRepository: Repository<ApiKey>,
-    @InjectRepository(User)
     private userRepository: Repository<User>,
   ) {}
 

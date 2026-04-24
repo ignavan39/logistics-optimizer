@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
@@ -14,11 +13,8 @@ import {
 @Injectable()
 export class RolesService {
   constructor(
-    @InjectRepository(Role)
     private roleRepository: Repository<Role>,
-    @InjectRepository(Permission)
     private permissionRepository: Repository<Permission>,
-    @InjectRepository(UserRole)
     private userRoleRepository: Repository<UserRole>,
   ) {}
 
@@ -148,7 +144,6 @@ export class RolesService {
 @Injectable()
 export class PermissionsService {
   constructor(
-    @InjectRepository(Permission)
     private permissionRepository: Repository<Permission>,
   ) {}
 
