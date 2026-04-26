@@ -11,4 +11,4 @@ tmp/
 */node_modules
 **/src/**/*.js
 **/*.js.map
-/graphify-out/cache
+/graphify-out
