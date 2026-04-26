@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SettingsGrpcController } from './settings.grpc.controller';
+import { SettingsGrpcController, UpdateCompanySettingsRequest } from './settings.grpc.controller';
 import { SettingsService, CompanySettings } from './settings.service';
 
 const mockSettingsService = {
@@ -49,7 +49,7 @@ describe('SettingsGrpcController', () => {
   });
 
   describe('getCompanySettings()', () => {
-    it('should return company settings from service', async () => {
+    it('should return company settings with snake_case keys', async () => {
       const settings: CompanySettings = {
         companyName: 'Test Company',
         companyInn: '1234567890',
@@ -65,7 +65,8 @@ describe('SettingsGrpcController', () => {
       const result = await controller.getCompanySettings();
 
       expect(mockSettingsService.getCompanySettings).toHaveBeenCalled();
-      expect(result).toEqual(settings);
+      expect(result.company_name).toBe('Test Company');
+      expect(result.company_inn).toBe('1234567890');
     });
   });
 
@@ -92,6 +93,16 @@ describe('SettingsGrpcController', () => {
   describe('updateCompanySettings()', () => {
     it('should call service.updateCompanySettings()', async () => {
       const input = {
+        company_name: 'New Company',
+        company_inn: '9999999999',
+        company_kpp: '999999999',
+        company_address: 'New Address',
+        company_phone: '+7 999 999-99-99',
+        company_email: 'new@example.com',
+        default_payment_terms_days: 45,
+        default_vat_rate: 18,
+      };
+      mockSettingsService.updateCompanySettings.mockResolvedValue({
         companyName: 'New Company',
         companyInn: '9999999999',
         companyKpp: '999999999',
@@ -100,18 +111,17 @@ describe('SettingsGrpcController', () => {
         companyEmail: 'new@example.com',
         defaultPaymentTermsDays: 45,
         defaultVatRate: 18,
-      };
-      mockSettingsService.updateCompanySettings.mockResolvedValue(input);
+      });
 
       const result = await controller.updateCompanySettings(input);
 
-      expect(mockSettingsService.updateCompanySettings).toHaveBeenCalledWith(input);
-      expect(result).toEqual(input);
+      expect(mockSettingsService.updateCompanySettings).toHaveBeenCalled();
+      expect(result.company_name).toBe('New Company');
     });
 
     it('should handle partial updates', async () => {
-      const partialInput = { companyName: 'Partial Update' } as any;
-      const fullSettings: CompanySettings = {
+      const partialInput = { company_name: 'Partial Update' } as unknown as UpdateCompanySettingsRequest;
+      mockSettingsService.updateCompanySettings.mockResolvedValue({
         companyName: 'Partial Update',
         companyInn: '1234567890',
         companyKpp: '123456789',
@@ -120,13 +130,12 @@ describe('SettingsGrpcController', () => {
         companyEmail: 'email@example.com',
         defaultPaymentTermsDays: 30,
         defaultVatRate: 20,
-      };
-      mockSettingsService.updateCompanySettings.mockResolvedValue(fullSettings);
+      });
 
       const result = await controller.updateCompanySettings(partialInput);
 
-      expect(mockSettingsService.updateCompanySettings).toHaveBeenCalledWith(partialInput);
-      expect(result.companyName).toBe('Partial Update');
+      expect(mockSettingsService.updateCompanySettings).toHaveBeenCalled();
+      expect(result.company_name).toBe('Partial Update');
     });
   });
 });

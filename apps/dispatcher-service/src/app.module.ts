@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport, ClientGrpc } from '@nestjs/microservices';
 import { DispatchSagaService } from './dispatch-saga.service';
+import { DispatcherGrpcController } from './dispatcher.grpc.controller';
 import { OrderEventsConsumer } from './order-events.consumer';
 
 @Module({
@@ -67,6 +68,6 @@ import { OrderEventsConsumer } from './order-events.consumer';
       },
     ]),
   ],
-  providers: [DispatchSagaService, OrderEventsConsumer],
+  providers: [DispatchSagaService, DispatcherGrpcController, OrderEventsConsumer],
 })
 export class AppModule {}

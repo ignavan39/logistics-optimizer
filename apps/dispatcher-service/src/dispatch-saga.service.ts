@@ -286,4 +286,33 @@ private async execute(saga: DispatchSaga): Promise<void> {
   getSaga(sagaId: string): DispatchSaga | undefined {
     return this.sagas.get(sagaId);
   }
+
+  async listSagas(options: { status?: string; limit?: number; offset?: number } = {}): Promise<{ sagas: any[]; total: number }> {
+    const { status, limit = 50, offset = 0 } = options;
+    
+    let query = 'SELECT * FROM dispatch_sagas';
+    const params: any[] = [];
+    const conditions: string[] = [];
+    
+    if (status) {
+      conditions.push('status = $1');
+      params.push(status.toUpperCase());
+    }
+    
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+    
+    query += ' ORDER BY created_at DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+    params.push(limit, offset);
+    
+    const sagas = await this.ds.query(query, params);
+    
+    const countQuery = 'SELECT COUNT(*) as count FROM dispatch_sagas' + 
+      (conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : '');
+    const countResult = await this.ds.query(countQuery, status ? [status.toUpperCase()] : []);
+    const total = parseInt(countResult[0]?.count || '0', 10);
+    
+    return { sagas, total };
+  }
 }

@@ -27,6 +27,12 @@ export class CounterpartyService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CounterpartyService.name);
   private client!: CounterpartyGrpcClient;
 
+  private readonly typeMap: Record<string, number> = {
+    'CARRIER': 1,
+    'WAREHOUSE': 2,
+    'INDIVIDUAL': 3,
+  };
+
   constructor(
     private configService: ConfigService,
     @Inject('COUNTERPARTY_PACKAGE') private grpcClient: ClientGrpc,
@@ -42,7 +48,10 @@ export class CounterpartyService implements OnModuleInit, OnModuleDestroy {
   }
 
   async createCounterparty(data: any): Promise<CounterpartyResponse> {
-    return this.client.createCounterparty(data);
+    const typeValue = this.typeMap[data.type] || data.type;
+    const transformed = { ...data, type: typeValue };
+    this.logger.debug(`createCounterparty input: ${JSON.stringify(transformed)}`);
+    return this.client.createCounterparty(transformed);
   }
 
   async getCounterparty(id: string): Promise<CounterpartyResponse | null> {
@@ -59,6 +68,7 @@ export class CounterpartyService implements OnModuleInit, OnModuleDestroy {
   }
 
   async listCounterparties(data: any = {}): Promise<CounterpartyResponse[]> {
+    this.logger.debug(`listCounterparties input: ${JSON.stringify(data)}`);
     const response = await this.client.listCounterparties(data);
     return response.items || [];
   }

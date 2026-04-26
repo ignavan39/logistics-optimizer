@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource, In } from 'typeorm';
 import { SettingEntity, SettingKey } from './entities/setting.entity';
 
 export interface CompanySettings {
@@ -19,27 +19,31 @@ export class SettingsService {
   private readonly logger = new Logger(SettingsService.name);
 
   constructor(
-    @InjectRepository(SettingEntity)
-    private readonly settingsRepo: Repository<SettingEntity>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
 
+  private get repo() {
+    return this.dataSource.getRepository(SettingEntity);
+  }
+
   async get(key: string): Promise<string | null> {
-    const setting = await this.settingsRepo.findOne({ where: { key } });
+    const setting = await this.repo.findOne({ where: { key } });
     return setting?.value ?? null;
   }
 
   async set(key: string, value: string): Promise<SettingEntity> {
-    let setting = await this.settingsRepo.findOne({ where: { key } });
+    let setting = await this.repo.findOne({ where: { key } });
     if (setting) {
       setting.value = value;
     } else {
-      setting = this.settingsRepo.create({ key, value });
+      setting = this.repo.create({ key, value });
     }
-    return this.settingsRepo.save(setting);
+    return this.repo.save(setting);
   }
 
   async getAll(keys: string[]): Promise<Record<string, string>> {
-    const settings = await this.settingsRepo.find({ where: { key: In(keys) } });
+    const settings = await this.repo.find({ where: { key: In(keys) } });
     const result: Record<string, string> = {};
     for (const s of settings) {
       result[s.key] = s.value;
@@ -114,9 +118,9 @@ export class SettingsService {
     ];
 
     for (const { key, value } of defaults) {
-      const existing = await this.settingsRepo.findOne({ where: { key } });
+      const existing = await this.repo.findOne({ where: { key } });
       if (!existing) {
-        await this.settingsRepo.save(this.settingsRepo.create({ key, value }));
+        await this.repo.save(this.repo.create({ key, value }));
         this.logger.log(`Seeded setting: ${key}`);
       }
     }

@@ -4,16 +4,13 @@ import { OrderService, CreateOrderDto, UpdateOrderStatusDto } from './order.serv
 import { OrderEntity, OrderStatus, OrderPriority } from './entities/order.entity';
 import { OutboxEventEntity } from './entities/outbox-event.entity';
 import { OrderStatusHistoryEntity } from './entities/order-status-history.entity';
-import { getRepositoryToken, getDataSourceToken } from '@nestjs/typeorm';
+import { getDataSourceToken } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CounterpartyService } from '../counterparty/counterparty.service';
 import { RoutingService } from '../routing/routing.service';
 
 describe('OrderService', () => {
   let service: OrderService;
-  let orderRepo: Repository<OrderEntity>;
-  let outboxRepo: Repository<OutboxEventEntity>;
-  let historyRepo: Repository<OrderStatusHistoryEntity>;
   let dataSource: DataSource;
 
   const mockOrderRepo = {
@@ -30,6 +27,12 @@ describe('OrderService', () => {
   };
 
   const mockDataSource = {
+    getRepository: jest.fn((entity) => {
+      if (entity === OrderEntity) return mockOrderRepo;
+      if (entity === OutboxEventEntity) return mockOutboxRepo;
+      if (entity === OrderStatusHistoryEntity) return mockHistoryRepo;
+      return mockOrderRepo;
+    }),
     transaction: jest.fn((cb) => {
       const manager = {
         create: jest.fn((entity, data) => data),
@@ -52,9 +55,6 @@ describe('OrderService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrderService,
-        { provide: getRepositoryToken(OrderEntity), useValue: mockOrderRepo },
-        { provide: getRepositoryToken(OutboxEventEntity), useValue: mockOutboxRepo },
-        { provide: getRepositoryToken(OrderStatusHistoryEntity), useValue: mockHistoryRepo },
         { provide: getDataSourceToken(), useValue: mockDataSource },
         { provide: CounterpartyService, useValue: mockCounterpartyService },
         { provide: RoutingService, useValue: mockRoutingService },
@@ -62,8 +62,6 @@ describe('OrderService', () => {
     }).compile();
 
     service = module.get<OrderService>(OrderService);
-    orderRepo = module.get<Repository<OrderEntity>>(getRepositoryToken(OrderEntity));
-    outboxRepo = module.get<Repository<OutboxEventEntity>>(getRepositoryToken(OutboxEventEntity));
     dataSource = module.get<DataSource>(getDataSourceToken());
   });
 
