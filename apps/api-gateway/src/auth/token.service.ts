@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Repository, DataSource } from 'typeorm';
 import * as crypto from 'crypto';
+import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../users/entities/user.entity';
 import { RefreshToken } from '../users/entities/refresh-token.entity';
@@ -142,10 +143,10 @@ export class TokenService {
   }
 
   hashToken(token: string): Promise<string> {
-    return require('bcrypt').hash(token, this.SALT_ROUNDS);
+    return bcrypt.hash(token, this.SALT_ROUNDS);
   }
 
   compareToken(token: string, hash: string): Promise<boolean> {
-    return require('bcrypt').compare(token, hash);
+    return bcrypt.compare(token, hash);
   }
 }

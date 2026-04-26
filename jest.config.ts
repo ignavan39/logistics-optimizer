@@ -13,6 +13,7 @@ const config: Config = {
     '^@logistics/kafka-utils(.*)$': '<rootDir>/libs/kafka-utils/src$1',
   },
   testMatch: ['**/tests/**/*.spec.ts', '**/test/**/*.spec.ts', '**/src/**/*.spec.ts'],
+  passWithNoTests: true,
 }
 
 export default config
