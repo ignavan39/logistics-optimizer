@@ -6,7 +6,8 @@
     "build": {
       "executor": "nx:run-script",
       "options": {
-        "script": "build"
+        "script": "build",
+        "cwd": "libs/document-templates"
       }
     }
   }
