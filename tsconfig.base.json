@@ -22,7 +22,8 @@
     "forceConsistentCasingInFileNames": true,
     "paths": {
       "@logistics/proto": ["libs/proto/src/index.ts"],
-      "@logistics/kafka-utils": ["libs/kafka-utils/src/index.ts"],
+      "@logistics/kafka-utils": ["libs/kafka-utils/dist/index.js"],
+      "@logistics/kafka-utils/*": ["libs/kafka-utils/dist/*"],
       "@logistics/document-templates": ["libs/document-templates/dist/index.js"],
       "@logistics/document-templates/*": ["libs/document-templates/dist/*"]
     }

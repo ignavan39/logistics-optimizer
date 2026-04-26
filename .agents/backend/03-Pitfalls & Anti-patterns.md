@@ -40,3 +40,16 @@
 - **Почему**: waitForReady() может вернуть true, но методы возвращают Internal Error
 - **Причина**: DB schema неполная
 - **Делай**: тестируй реальные методы, не только readiness
+
+## ❌ Не создавай seed данных в apps/*/src/
+- **Почему**: runtime создание users — bad practice, небезопасно, требует запуска приложения
+- **Делай**: используй SQL scripts в `infra/postgres/seeds/`
+- **Структура**: `infra/postgres/seeds/01-admin.sql`, `infra/postgres/seeds/02-roles.sql` и т.д.
+- **Запуск**: `psql -U logistics -d auth_db -f infra/postgres/seeds/01-admin.sql`
+
+## ❌ Не используй `any` в TypeScript коде
+- **Причина**: теряется типизация, сложно рефакторить, нет autocomplete, легко ошибиться
+- **Делай**: всегда определяй типы — через interface, type, generic, либо explicit `unknown` с проверкой
+- **Исключения**:
+  - Тесты (`*.spec.ts`) — можно для mock данных
+  - external APIs которые не типизированы — оборачивай в try/catch и определяй тип

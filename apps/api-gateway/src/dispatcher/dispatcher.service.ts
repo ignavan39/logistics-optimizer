@@ -8,6 +8,7 @@ interface DispatcherGrpcClient {
   dispatchOrder(data: DispatchOrderDto): Promise<any>
   getDispatchState(data: GetDispatchStateDto): Promise<any>
   cancelDispatch(data: CancelDispatchDto): Promise<any>
+  listDispatches(data: { status?: string; limit?: number; offset?: number }): Promise<any>
 }
 
 @Injectable()
@@ -38,5 +39,10 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       saga_id: dto.saga_id,
       reason: dto.reason,
     })
+  }
+
+  async listDispatches(options: { status?: string }) {
+    const result = await this.dispatcherClient.listDispatches(options)
+    return { sagas: result.sagas || [] }
   }
 }

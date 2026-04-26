@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common'
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
+import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common'
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { DispatcherService } from './dispatcher.service'
 import { DispatchOrderDto, CancelDispatchDto } from './dto/dispatcher.dto'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
@@ -10,6 +10,16 @@ import { Permissions } from '../auth/decorators/permissions.decorator'
 @Controller('dispatch')
 export class DispatcherController {
   constructor(private dispatcherService: DispatcherService) {}
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('dispatch.read')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List dispatches' })
+  @ApiQuery({ name: 'status', required: false, schema: { type: 'string' } })
+  async listDispatches(@Query('status') status?: string) {
+    return this.dispatcherService.listDispatches({ status })
+  }
 
   @Post()
   @UseGuards(JwtAuthGuard, RbacGuard)
