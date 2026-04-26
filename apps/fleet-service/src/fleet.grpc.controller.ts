@@ -19,7 +19,7 @@ interface GetAvailableVehiclesResponse {
     capacity_m3: number
     status: string
     version: number
-    current_location: { lat: number; lng: number }
+    current_location?: { lat: number; lng: number } | null
     last_update: number
   }>
 }
@@ -37,7 +37,7 @@ interface GetVehicleResponse {
     capacity_m3: number
     status: string
     version: number
-  }
+  } | null
 }
 
 interface GetVehicleDetailsResponse {
@@ -49,14 +49,14 @@ interface GetVehicleDetailsResponse {
     status: string
     current_lat: number
     current_lng: number
-    current_driver_id: string
-    current_order_id: string
+    current_driver_id?: string | null
+    current_order_id?: string | null
     last_update: number
     version: number
     created_at: number
     driver: { id: string; email: string; first_name: string; last_name: string; phone: string } | null
     order: { id: string; status: string; priority: string; pickup_address: string; delivery_address: string; created_at: Date } | null
-  }
+  } | null
 }
 
 interface AssignVehicleRequest {
@@ -124,7 +124,7 @@ export class FleetGrpcController {
         version: v.version,
         current_location: v.currentLat && v.currentLng
           ? { lat: v.currentLat, lng: v.currentLng }
-          : undefined,
+          : null,
         last_update: v.lastUpdate.getTime(),
       })),
     }
@@ -132,7 +132,7 @@ export class FleetGrpcController {
 
   @GrpcMethod('FleetService', 'GetVehicle')
   async getVehicle(request: GetVehicleRequest): Promise<GetVehicleResponse> {
-    const vehicleId = request.vehicleId || request.vehicle_id
+    const vehicleId = request.vehicleId || request.vehicle_id || ''
     const vehicle = await this.fleetService.getVehicle(vehicleId)
     if (!vehicle) {
       throw new RpcException({
@@ -156,7 +156,7 @@ export class FleetGrpcController {
   async getVehicleDetails(
     request: GetVehicleRequest,
   ): Promise<GetVehicleDetailsResponse> {
-    const vehicleId = request.vehicleId || request.vehicle_id
+    const vehicleId = request.vehicleId || request.vehicle_id || ''
     const result = await this.fleetService.getVehicleDetails(vehicleId)
     if (!result.vehicle) {
       throw new RpcException({
@@ -279,8 +279,9 @@ export class FleetGrpcController {
           } : null,
         }
       }
-    } catch (e: any) {
-      return { success: false, message: e.message, vehicle: null }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Unknown error'
+      return { success: false, message, vehicle: null }
     }
   }
 }

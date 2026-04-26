@@ -112,6 +112,6 @@ export class CounterpartyService {
 
   async getAsyncIterator(data: FindAllCounterpartyData): Promise<AsyncIterable<CounterpartyEntity>> {
     const items = await this.findAll(data)
-    return items[Symbol.asyncIterator]()
+    return items[Symbol.for('asyncIterator') as keyof typeof items] as unknown as Promise<AsyncIterable<CounterpartyEntity>>
   }
 }

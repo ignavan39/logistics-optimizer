@@ -64,7 +64,7 @@ describe('FleetGrpcController', () => {
       const result = await controller.getVehicle({ vehicleId: 'vehicle-1' })
 
       expect(result.vehicle).toBeDefined()
-      expect(result.vehicle.id).toBe('vehicle-1')
+      expect(result.vehicle!.id).toBe('vehicle-1')
     })
 
     it('should throw error for non-existent vehicle', async () => {
@@ -98,17 +98,17 @@ describe('FleetGrpcController', () => {
 
       const result = await controller.getVehicleDetails({ vehicleId: 'vehicle-1' })
 
-      expect(result.vehicle).toBeDefined()
-      expect(result.vehicle.current_driver_id).toBe('driver-1')
-      expect(result.vehicle.driver).toEqual({
+      expect(result.vehicle!).toBeDefined()
+      expect(result.vehicle!.current_driver_id).toBe('driver-1')
+      expect(result.vehicle!.driver).toEqual({
         id: 'driver-1',
         email: 'driver@test.com',
         first_name: 'John',
         last_name: 'Doe',
         phone: '+1234567890',
       })
-      expect(result.vehicle.order).toBeDefined()
-      expect(result.vehicle.order?.id).toBe('order-1')
+      expect(result.vehicle!.order).toBeDefined()
+      expect(result.vehicle!.order?.id).toBe('order-1')
     })
   })
 
