@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
+import { getDataSourceToken } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { SettingsService, CompanySettings } from './settings.service';
 import { SettingEntity, SettingKey } from './entities/setting.entity';
 
@@ -13,13 +14,17 @@ const mockRepo = {
 describe('SettingsService', () => {
   let service: SettingsService;
 
+  const mockDataSource = {
+    getRepository: jest.fn(() => mockRepo),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SettingsService,
-        { provide: getRepositoryToken(SettingEntity), useValue: mockRepo },
+        { provide: getDataSourceToken(), useValue: mockDataSource },
       ],
     }).compile();
 
@@ -77,8 +82,8 @@ describe('SettingsService', () => {
   describe('getAll()', () => {
     it('should return only requested keys', async () => {
       mockRepo.find.mockResolvedValue([
-        { key: 'company_name', value: 'Company A' },
-        { key: 'company_inn', value: '1234567890' },
+        { key: SettingKey.COMPANY_NAME, value: 'Company A' },
+        { key: SettingKey.COMPANY_INN, value: '1234567890' },
       ]);
 
       const result = await service.getAll(['company_name', 'company_inn', 'nonexistent']);

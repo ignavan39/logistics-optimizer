@@ -3,10 +3,9 @@ import {
   Logger,
   NotFoundException,
   ConflictException,
-  Inject,
 } from '@nestjs/common';
-import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { OrderEntity, OrderStatus, OrderPriority } from './entities/order.entity';
 import { OrderTariffSnapshotEntity } from './entities/order-tariff-snapshot.entity';
@@ -43,21 +42,16 @@ export class OrderService {
   private readonly logger = new Logger(OrderService.name);
 
   constructor(
-    @InjectRepository(OrderEntity)
-    private readonly orderRepo: Repository<OrderEntity>,
-
-    @InjectRepository(OutboxEventEntity)
-    private readonly outboxRepo: Repository<OutboxEventEntity>,
-
-    @InjectRepository(OrderStatusHistoryEntity)
-    private readonly historyRepo: Repository<OrderStatusHistoryEntity>,
-
     @InjectDataSource()
     private readonly dataSource: DataSource,
 
     private readonly counterpartyService: CounterpartyService,
     private readonly routingService: RoutingService,
   ) {}
+
+  private get orderRepo() { return this.dataSource.getRepository(OrderEntity); }
+  private get outboxRepo() { return this.dataSource.getRepository(OutboxEventEntity); }
+  private get historyRepo() { return this.dataSource.getRepository(OrderStatusHistoryEntity); }
 
   /**
    * Создаёт заказ и атомарно записывает событие order.created в outbox.

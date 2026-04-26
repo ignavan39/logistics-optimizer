@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { OrderEntity } from './entities/order.entity';
@@ -18,12 +17,10 @@ import { SettingsModule } from '../settings/settings.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OrderEntity, OrderTariffSnapshotEntity, OutboxEventEntity, OrderStatusHistoryEntity, CargoEntity, DocumentEntity]),
     CounterpartyModule,
     RoutingModule,
     SettingsModule,
 
-    // Kafka client for OutboxProcessor to publish events
     ClientsModule.registerAsync([
       {
         name: 'KAFKA_CLIENT',

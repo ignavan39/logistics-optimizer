@@ -11,26 +11,26 @@ interface SetSettingRequest {
   value: string;
 }
 
-interface UpdateCompanySettingsRequest {
-  companyName: string;
-  companyInn: string;
-  companyKpp: string;
-  companyAddress: string;
-  companyPhone: string;
-  companyEmail: string;
-  defaultPaymentTermsDays: number;
-  defaultVatRate: number;
+export interface UpdateCompanySettingsRequest {
+  company_name: string;
+  company_inn: string;
+  company_kpp: string;
+  company_address: string;
+  company_phone: string;
+  company_email: string;
+  default_payment_terms_days: number;
+  default_vat_rate: number;
 }
 
 interface GetCompanySettingsResponse {
-  companyName: string;
-  companyInn: string;
-  companyKpp: string;
-  companyAddress: string;
-  companyPhone: string;
-  companyEmail: string;
-  defaultPaymentTermsDays: number;
-  defaultVatRate: number;
+  company_name: string;
+  company_inn: string;
+  company_kpp: string;
+  company_address: string;
+  company_phone: string;
+  company_email: string;
+  default_payment_terms_days: number;
+  default_vat_rate: number;
 }
 
 @Controller()
@@ -48,7 +48,16 @@ export class SettingsGrpcController {
   @GrpcMethod('OrderService', 'GetCompanySettings')
   async getCompanySettings(): Promise<GetCompanySettingsResponse> {
     const settings = await this.settingsService.getCompanySettings();
-    return settings;
+    return {
+      company_name: settings.companyName,
+      company_inn: settings.companyInn,
+      company_kpp: settings.companyKpp,
+      company_address: settings.companyAddress,
+      company_phone: settings.companyPhone,
+      company_email: settings.companyEmail,
+      default_payment_terms_days: settings.defaultPaymentTermsDays,
+      default_vat_rate: settings.defaultVatRate,
+    };
   }
 
   @GrpcMethod('OrderService', 'SetSetting')
@@ -59,7 +68,25 @@ export class SettingsGrpcController {
 
   @GrpcMethod('OrderService', 'UpdateCompanySettings')
   async updateCompanySettings(data: UpdateCompanySettingsRequest): Promise<GetCompanySettingsResponse> {
-    const settings = await this.settingsService.updateCompanySettings(data);
-    return settings;
+    const settings = await this.settingsService.updateCompanySettings({
+      companyName: data.company_name,
+      companyInn: data.company_inn,
+      companyKpp: data.company_kpp,
+      companyAddress: data.company_address,
+      companyPhone: data.company_phone,
+      companyEmail: data.company_email,
+      defaultPaymentTermsDays: data.default_payment_terms_days,
+      defaultVatRate: data.default_vat_rate,
+    });
+    return {
+      company_name: settings.companyName,
+      company_inn: settings.companyInn,
+      company_kpp: settings.companyKpp,
+      company_address: settings.companyAddress,
+      company_phone: settings.companyPhone,
+      company_email: settings.companyEmail,
+      default_payment_terms_days: settings.defaultPaymentTermsDays,
+      default_vat_rate: settings.defaultVatRate,
+    };
   }
 }

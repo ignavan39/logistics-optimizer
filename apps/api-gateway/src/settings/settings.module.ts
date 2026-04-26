@@ -11,6 +11,9 @@ import { SettingsService } from './settings.service';
         name: 'ORDER_PACKAGE',
         useFactory: (configService: ConfigService) => ({
           transport: Transport.GRPC,
+          loader: {
+            keepCase: true,
+          },
           options: {
             package: 'order',
             protoPath: '/app/libs/proto/src/order.proto',

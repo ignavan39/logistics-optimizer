@@ -12,6 +12,7 @@ service DispatcherService {
   rpc GetDispatchState (GetDispatchStateRequest) returns (DispatchStateResponse);
   rpc RetryDispatch (RetryDispatchRequest) returns (DispatchResponse);
   rpc CancelDispatch (CancelDispatchRequest) returns (DispatchResponse);
+  rpc ListDispatches (ListDispatchesRequest) returns (ListDispatchesResponse);
 }
 
 enum DispatchStatus {
@@ -66,4 +67,15 @@ message RetryDispatchRequest {
 message CancelDispatchRequest {
   string saga_id = 1;
   string reason  = 2;
+}
+
+message ListDispatchesRequest {
+  string status = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message ListDispatchesResponse {
+  repeated DispatchStateResponse sagas = 1;
+  int32 total = 2;
 }
