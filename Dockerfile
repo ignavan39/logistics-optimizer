@@ -47,9 +47,26 @@ COPY --from=builder /workspace/libs/proto/src ./libs/proto/src
 COPY --from=builder /workspace/libs/document-templates/dist ./libs/document-templates/dist
 COPY --from=builder /workspace/apps/${SERVICE}/dist ./dist
 
+ENV SERVICE=${SERVICE}
 ENV NODE_ENV=production
 USER node
 
 EXPOSE 9464
 
-CMD ["node", "dist/apps/api-gateway/src/main.js"]
+COPY --chmod=755 <<'EOF' /entrypoint.sh
+#!/bin/sh
+# Check order-service pattern (dist/main.js) first
+if [ -f "dist/main.js" ]; then
+    exec node dist/main.js "$@"
+# Check api-gateway pattern (dist/apps/<service>/src/main.js)
+elif [ -n "$SERVICE" ] && [ -f "dist/apps/${SERVICE}/src/main.js" ]; then
+    exec node "dist/apps/${SERVICE}/src/main.js" "$@"
+else
+    echo "Error: Cannot find main.js"
+    ls -la dist/ 2>/dev/null || true
+    exit 1
+fi
+EOF
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["node", "dist/main.js"]
