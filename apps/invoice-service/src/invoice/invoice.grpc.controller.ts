@@ -82,14 +82,14 @@ export class InvoiceGrpcController {
   @GrpcMethod('InvoiceService', 'ListInvoices')
   async listInvoices(data: ListInvoicesRequest) {
     const status = data.status ? InvoiceStatus[data.status as keyof typeof InvoiceStatus] : undefined;
-    const { invoices, total } = await this.invoiceService.findAll({
+    const { items, total } = await this.invoiceService.findAll({
       counterpartyId: data.counterpartyId,
       status,
       page: data.page,
       limit: data.limit,
     });
     return {
-      invoices: invoices.map(this.toResponse),
+      invoices: items.map(this.toResponse),
       total,
       page: data.page || 1,
     };
