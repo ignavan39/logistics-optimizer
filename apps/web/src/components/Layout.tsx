@@ -1,13 +1,17 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { Truck, Package, MapPin, LayoutDashboard, LogOut, Settings, User, Activity } from 'lucide-react'
+import { Truck, Package, MapPin, LayoutDashboard, LogOut, Settings, User, Activity, Navigation } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth'
 import { cn } from '@/lib/utils'
+import { NotificationsBell } from './ui/NotificationsBell'
 
 const navItems = [
+  { to: '/', icon: LayoutDashboard, label: 'Дашборд' },
   { to: '/orders', icon: Package, label: 'Заказы' },
   { to: '/dispatch', icon: Activity, label: 'Dispatch' },
   { to: '/vehicles', icon: Truck, label: 'Автопарк' },
   { to: '/tracking', icon: MapPin, label: 'Трекинг' },
+  { to: '/routes', icon: Navigation, label: 'Маршруты' },
+  { to: '/settings', icon: Settings, label: 'Настройки' },
   { to: '/admin', icon: Settings, label: 'Админка' },
 ]
 
@@ -24,9 +28,12 @@ export function Layout() {
     <div className="flex min-h-screen">
       <aside className="w-56 bg-surface border-r border-border flex flex-col">
         <div className="p-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <LayoutDashboard className="w-6 h-6 text-accent-lavender" />
-            <span className="font-semibold text-text-primary">Logistics</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <LayoutDashboard className="w-6 h-6 text-accent-lavender" />
+              <span className="font-semibold text-text-primary">Logistics</span>
+            </div>
+            <NotificationsBell />
           </div>
         </div>
         <nav className="flex-1 p-2">

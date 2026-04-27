@@ -34,7 +34,7 @@ export function ToastContainer() {
             <Icon className="w-5 h-5 flex-shrink-0" />
             <div className="flex-1 text-sm">{toast.message}</div>
             <button
-              onClick={() => removeToast(toast.id)}
+              onClick={() => { removeToast(toast.id); }}
               className="p-1 hover:bg-black/10 rounded"
             >
               <X className="w-4 h-4" />

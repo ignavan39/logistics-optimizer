@@ -1,13 +1,17 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuthStore } from '@/lib/auth'
-import { Truck, Loader2, Mail, Lock, LogIn } from 'lucide-react'
+import { apiPost } from '@/lib/api'
+import { Truck, Loader2, Mail, Lock, User, UserPlus } from 'lucide-react'
+import { type RegisterDto } from '@/types'
 
-export function LoginPage() {
+export function RegisterPage() {
   const navigate = useNavigate()
-  const login = useAuthStore((s) => s.login)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [form, setForm] = useState<RegisterDto>({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+  })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -16,10 +20,10 @@ export function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      await login(email, password)
-      navigate('/orders')
+      await apiPost('/auth/register', form)
+      navigate('/login')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка входа')
+      setError(err instanceof Error ? err.message : 'Ошибка регистрации')
     } finally {
       setLoading(false)
     }
@@ -33,7 +37,7 @@ export function LoginPage() {
             <Truck className="w-8 h-8 text-accent-lavender" />
           </div>
           <h1 className="text-2xl font-semibold text-text-primary">Logistics Optimizer</h1>
-          <p className="text-text-secondary mt-1">Вход в систему</p>
+          <p className="text-text-secondary mt-1">Регистрация</p>
         </div>
 
         <div className="bg-surface rounded-xl border border-border p-6">
@@ -45,13 +49,43 @@ export function LoginPage() {
             )}
 
             <div>
+              <label className="block text-sm text-text-secondary mb-1">Имя</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                <input
+                  type="text"
+                  value={form.firstName}
+                  onChange={(e) => { setForm({ ...form, firstName: e.target.value }); }}
+                  className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-lavender"
+                  placeholder="Иван"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-text-secondary mb-1">Фамилия</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                <input
+                  type="text"
+                  value={form.lastName}
+                  onChange={(e) => { setForm({ ...form, lastName: e.target.value }); }}
+                  className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-lavender"
+                  placeholder="Петров"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
               <label className="block text-sm text-text-secondary mb-1">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                 <input
                   type="email"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); }}
+                  value={form.email}
+                  onChange={(e) => { setForm({ ...form, email: e.target.value }); }}
                   className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-lavender"
                   placeholder="user@example.com"
                   required
@@ -65,11 +99,12 @@ export function LoginPage() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                 <input
                   type="password"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); }}
+                  value={form.password}
+                  onChange={(e) => { setForm({ ...form, password: e.target.value }); }}
                   className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-lavender"
                   placeholder="••••••••"
                   required
+                  minLength={6}
                 />
               </div>
             </div>
@@ -83,8 +118,8 @@ export function LoginPage() {
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  <LogIn className="w-4 h-4" />
-                  Войти
+                  <UserPlus className="w-4 h-4" />
+                  Зарегистрироваться
                 </>
               )}
             </button>
@@ -92,9 +127,9 @@ export function LoginPage() {
         </div>
 
         <p className="text-center text-text-muted text-sm mt-4">
-          Нет аккаунта?{' '}
-          <Link to="/register" className="text-accent-lavender hover:underline">
-            Зарегистрироваться
+          Уже есть аккаунт?{' '}
+          <Link to="/login" className="text-accent-lavender hover:underline">
+            Войти
           </Link>
         </p>
       </div>
