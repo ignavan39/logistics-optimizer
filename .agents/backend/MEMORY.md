@@ -15,6 +15,20 @@
 | gRPC `waitForReady()` = true ≠ методы работают | Тестируй реальные методы, не только readiness |
 | **PDF generation: PostgreSQL advisory lock** | Только один запрос генерирует PDF, остальные poll |
 | **MinIO для enterprise PDF storage** | S3-compatible, легко поднять локально |
+| **NestJS версии: 10.x only** | Root package.json ^11.x ломает сервисы в Docker |
+
+---
+
+## 📅 Следующая сессия
+
+### Текущие проблемы
+- ❌ counterparty-service, invoice-service: TypeOrm dependency error
+- ❌ E2E: 23 failed (gRPC connection timeouts)
+
+### План (see SESSION-TODO.md)
+1. Исправить NestJS version mismatch (root 11.x → 10.x)
+2. Пересобрать Docker images
+3. Исправить unit/e2e тесты
 
 ---
 
