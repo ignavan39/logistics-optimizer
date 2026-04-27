@@ -192,4 +192,5 @@ message ContractTariffResponse {
   int64 created_at = 12;
   int64 updated_at = 13;
   int32 version = 14;
+  int32 vat_rate = 15;  // НДС ставка, например 20 для РФ, 19 для EU
 }
