@@ -1,0 +1,15 @@
+module.exports = {
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
+  testRegex: '.*\\.spec\\.ts$',
+  transform: {
+    '^.+\\.(t|j)s$': ['ts-jest', { tsconfig: './tsconfig.json' }],
+  },
+  collectCoverageFrom: ['**/*.(t|j)s'],
+  coverageDirectory: '../coverage',
+  testEnvironment: 'node',
+  roots: ['<rootDir>/src'],
+  moduleNameMapper: {
+    '^@logistics/proto(.*)$': '<rootDir>/../../libs/proto/src$1',
+    '^@logistics/kafka-utils(.*)$': '<rootDir>/../../libs/kafka-utils/src$1',
+  },
+}
