@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { ScheduleModule } from '@nestjs/schedule'
 import { Registry } from 'prom-client'
 import { TrackingGrpcController } from './tracking/tracking.grpc.controller'
 import { TelemetryConsumer } from './tracking/telemetry.consumer'
 import { TrackingBatchWriter } from './tracking/batch/tracking-batch-writer'
 import { TrackingMetrics } from './metrics/tracking.metrics'
+import { RetentionService } from './tracking/retention.service'
 
 @Module({
   imports: [
@@ -30,12 +32,14 @@ import { TrackingMetrics } from './metrics/tracking.metrics'
         },
       }),
     }),
+    ScheduleModule.forRoot(),
   ],
   controllers: [TrackingGrpcController],
   providers: [
     TelemetryConsumer,
     TrackingBatchWriter,
     TrackingMetrics,
+    RetentionService,
     { provide: Registry, useValue: new Registry() },
   ],
 })
