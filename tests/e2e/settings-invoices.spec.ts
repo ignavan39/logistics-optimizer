@@ -225,6 +225,146 @@ describe('Invoices API E2E', () => {
     })
   })
 
+  describe('PDF Generation Full Flow (E2E)', () => {
+    let accessToken: string
+    let orderId: string
+    let invoiceId: string
+
+    beforeAll(async () => {
+      const loginResponse = await api.post('/auth/login', {
+        email: testUser.email,
+        password: testUser.password,
+      })
+      accessToken = loginResponse.data.accessToken
+    })
+
+    it('should create order and trigger invoice creation via saga', async () => {
+      // Create order
+      const orderResponse = await api.post('/orders', {
+        origin: { lat: 55.7558, lng: 37.6173, address: 'Москва, Тверская 1' },
+        destination: { lat: 59.9311, lng: 30.3609, address: 'Санкт-Петербург, Невский 10' },
+        weight_kg: 1000,
+        volume_m3: 5,
+        customer_id: testUser.email,
+      }, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+
+      expect([201, 202]).toContain(orderResponse.status)
+      if (orderResponse.status === 201 || orderResponse.status === 202) {
+        orderId = orderResponse.data.id
+
+        // Start dispatch saga to create invoice
+        const dispatchResponse = await api.post('/dispatch', {
+          order_id: orderId,
+        }, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+
+        expect([200, 201, 202]).toContain(dispatchResponse.status)
+      }
+    })
+
+    it('should wait for invoice creation and generate PDF', async () => {
+      if (!orderId) return
+
+      // Poll until invoice is created (via Kafka order.delivered event)
+      let attempts = 0
+      const maxAttempts = 30
+
+      while (attempts < maxAttempts) {
+        const invoicesResponse = await api.get('/invoices', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+
+        if (invoicesResponse.status === 200) {
+          const invoices = invoicesResponse.data.invoices || []
+          const orderInvoice = invoices.find(
+            (inv: any) => inv.order_id === orderId || inv.orderId === orderId,
+          )
+
+          if (orderInvoice) {
+            invoiceId = orderInvoice.id || orderInvoice.order_id
+            break
+          }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        attempts++
+      }
+
+      expect(invoiceId).toBeDefined()
+
+      // Generate PDF
+      if (invoiceId) {
+        const pdfResponse = await api.get(`/invoices/${invoiceId}/pdf`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          responseType: 'arraybuffer',
+        })
+
+        expect(pdfResponse.status).toBe(200)
+        expect(pdfResponse.headers['content-type']).toBe('application/pdf')
+
+        const pdfContent = Buffer.from(pdfResponse.data).toString('ascii')
+        expect(pdfContent).toContain('%PDF')
+        expect(pdfContent.length).toBeGreaterThan(100)
+      }
+    })
+
+    it('should return same PDF on repeated requests (cached)', async () => {
+      if (!invoiceId) return
+
+      const [response1, response2] = await Promise.all([
+        api.get(`/invoices/${invoiceId}/pdf`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          responseType: 'arraybuffer',
+        }),
+        api.get(`/invoices/${invoiceId}/pdf`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          responseType: 'arraybuffer',
+        }),
+      ])
+
+      expect(response1.status).toBe(200)
+      expect(response2.status).toBe(200)
+
+      const pdf1 = Buffer.from(response1.data).toString('ascii')
+      const pdf2 = Buffer.from(response2.data).toString('ascii')
+      expect(pdf1).toContain('%PDF')
+      expect(pdf2).toContain('%PDF')
+      expect(pdf1).toBe(pdf2)
+    })
+
+    it('should handle concurrent PDF requests without errors', async () => {
+      if (!invoiceId) return
+
+      const concurrentRequests = 5
+      const requests = Array.from({ length: concurrentRequests }, () =>
+        api.get(`/invoices/${invoiceId}/pdf`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          responseType: 'arraybuffer',
+        }),
+      )
+
+      const results = await Promise.all(requests)
+
+      results.forEach((response, index) => {
+        expect(response.status).toBe(200, `Request ${index + 1} failed with status ${response.status}`)
+        expect(response.headers['content-type']).toBe('application/pdf')
+
+        const pdfContent = Buffer.from(response.data).toString('ascii')
+        expect(pdfContent).toContain('%PDF')
+      })
+
+      // All responses should be identical (same PDF)
+      const firstPdf = Buffer.from(results[0].data).toString('ascii')
+      results.slice(1).forEach((response, index) => {
+        const pdf = Buffer.from(response.data).toString('ascii')
+        expect(pdf).toBe(firstPdf, `Response ${index + 2} differs from first response`)
+      })
+    })
+  })
+
   describe('Invoices Lifecycle', () => {
     let accessToken: string
     let createdInvoiceId: string

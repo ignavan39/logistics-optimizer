@@ -276,6 +276,42 @@ services:
     depends_on:
       - pg-test-invoice
 
+  minio-test:
+    image: minio/minio:latest
+    container_name: logistics-minio-test
+    restart: no
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    command: server /data --console-address ":9001"
+    networks:
+      - logistics-net
+    healthcheck:
+      test: ['CMD-SHELL', 'mc ready local || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio-test-init:
+    image: minio/mc:latest
+    container_name: logistics-minio-test-init
+    restart: no
+    entrypoint: ['/bin/sh', '-c']
+    command: >
+      sleep 3 &&
+      mc alias set local http://minio-test:9000 minio minio123 &&
+      mc mb local/invoices --ignore-existing &&
+      mc anonymous set download local/invoices &&
+      echo 'MinIO test bucket created'
+    networks:
+      - logistics-net
+    depends_on:
+      minio-test:
+        condition: service_healthy
+
 volumes:
   pg-test-order-data:
   pg-test-fleet-data:
