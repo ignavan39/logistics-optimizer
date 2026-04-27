@@ -9,4 +9,4 @@ export interface CompanySettings {
   defaultVatRate?: number
 }
 
-export interface UpdateCompanySettingsDto extends CompanySettings {}
+export type UpdateCompanySettingsDto = CompanySettings

@@ -10,7 +10,7 @@ import { firstValueFrom } from 'rxjs';
 
 interface OrderServiceClient {
   GetOrder(request: { order_id: string }): import('rxjs').Observable<any>;
-  GetCompanySettings(request: {}): import('rxjs').Observable<any>;
+  GetCompanySettings(request: Record<string, never>): import('rxjs').Observable<any>;
 }
 
 interface CounterpartyServiceClient {

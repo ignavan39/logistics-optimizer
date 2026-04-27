@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RpcException } from '@nestjs/microservices';
 import { InvoiceGrpcController } from './invoice.grpc.controller';
 import { InvoiceService } from './invoice.service';
+import { PdfService } from './pdf.service';
 import { InvoiceStatus, InvoiceType } from './entities/invoice.entity';
 
 describe('InvoiceGrpcController', () => {
@@ -16,6 +17,10 @@ describe('InvoiceGrpcController', () => {
     updateStatus: jest.fn(),
   };
 
+  const mockPdfService = {
+    getOrGeneratePdf: jest.fn().mockResolvedValue('http://minio.test/invoices/test.pdf'),
+  };
+
   const mockOrderPackage = {
     getService: jest.fn().mockReturnValue({
       GetOrder: jest.fn().mockResolvedValue({ id: 'order-1' }),
@@ -28,6 +33,7 @@ describe('InvoiceGrpcController', () => {
       providers: [
         { provide: 'ORDER_PACKAGE', useValue: mockOrderPackage },
         { provide: InvoiceService, useValue: mockService },
+        { provide: PdfService, useValue: mockPdfService },
       ],
     }).compile();
 
@@ -100,7 +106,7 @@ describe('InvoiceGrpcController', () => {
         { id: 'inv-1', orderId: 'order-1' },
         { id: 'inv-2', orderId: 'order-2' },
       ];
-      mockService.findAll.mockResolvedValue({ invoices, total: 2 });
+      mockService.findAll.mockResolvedValue({ items: invoices, total: 2 });
 
       const result = await controller.listInvoices({ page: 1, limit: 20 });
 
@@ -110,9 +116,11 @@ describe('InvoiceGrpcController', () => {
     });
 
     it('should handle status filter', async () => {
-      mockService.findAll.mockResolvedValue({ invoices: [], total: 0 });
+      mockService.findAll.mockResolvedValue({ items: [], total: 0 });
 
-      await controller.listInvoices({ status: 'PAID' });
+      const result = await controller.listInvoices({ status: 'PAID' });
+
+      expect(result.invoices).toHaveLength(0);
 
       expect(mockService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({ status: InvoiceStatus.PAID }),
