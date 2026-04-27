@@ -13,6 +13,49 @@
 
 ---
 
+## 🔧 Troubleshooting: Docker Services
+
+```
+# Quick health check
+docker compose ps
+
+# Check specific service
+docker logs <container-name> --tail 20
+
+# Rebuild single service
+docker build --build-arg SERVICE=<service-name> -t logistics-<service-name>:latest .
+docker run -d --name test-<service-name> --network <net-id> \
+  -e SERVICE_NAME=<service-name> \
+  -e DB_HOST=pg-<service-name> \
+  logistics-<service-name>:latest
+
+# Common errors:
+# - TypeOrm "cannot resolve ModuleRef": NestJS version mismatch
+# - "invalid uuid": check entity @PrimaryColumn type
+```
+
+---
+
+## 📅 Next Session Plan
+
+### Priority 1: Fix Services
+1. Check NestJS versions consistency
+   ```bash
+   grep -r '"@nestjs' package.json | head -20
+   ```
+2. Fix version mismatch (11.x root → 10.x services)
+3. Rebuild Docker images
+4. Deploy and test
+
+### Priority 2: Fix Tests
+- Run unit: `pnpm test`
+- Run e2e: `pnpm test:e2e`
+
+### Priority 3: API Test
+- Test full saga: auth → create order → assign vehicle → invoice
+
+---
+
 ## Feature Development Flow
 
 ```
