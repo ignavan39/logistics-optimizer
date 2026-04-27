@@ -1,108 +1,139 @@
-# logistics-optimizer
+# AGENTS.md — Logistics Route Optimizer
 
-> NestJS микросервисный монопроект (Nx) для оптимизации логистических маршрутов
+> NestJS микросервисный монорепо (Nx). Stack: NestJS · TypeScript · TypeORM · PostgreSQL+PostGIS · gRPC · Kafka · Docker · OpenTelemetry
 
 ---
 
-## 🎯 Главный принцип
+## 🔄 ПРОТОКОЛ: READ → THINK → DO → UPDATE
 
-**Эволюционируй вместе с проектом.** Нашёл новый паттерн или ошибку → запиши в `.agents/backend/`:
+Это не пожелание. Это обязательный порядок работы с проектом.
 
-| Что нашёл | Куда |
-|----------|------|
-| Решение после проблемы | `.agents/backend/01-ADRs.md` |
-| Межсервисный контракт | `.agents/backend/02-Contract-Checklist.md` |
-| Антипаттерн (не делать) | `.agents/backend/03-Pitfalls.md` |
-| Правильный паттерн (делать) | `.agents/backend/04-Good-Practices.md` |
-| Паттерн тестирования | `.agents/backend/05-Testing-Patterns.md` |
-| Процесс работы | `.agents/backend/06-Processes.md` |
+### 1. READ — перед любой задачей
+```
+Любая задача  →  .agents/MEMORY.md            (что уже знаем, открытые вопросы)
+Backend задача  →  .agents/backend/00-README.md  (архитектура + правила)
+Frontend задача →  .agents/frontend/00-README.md (архитектура + правила)
+>1 сервиса     →  .agents/backend/02-Contracts.md
+Пишем тесты    →  .agents/backend/05-Testing-Patterns.md
+```
 
-Не уверен куда → спроси пользователя.
+### 2. THINK — перед написанием кода
+
+**Для задачи >50 строк — обязательно:**
+1. Изложи план с декомпозицией
+2. Укажи какие сервисы/файлы затрагиваются
+3. Укажи какие контракты меняются
+4. Получи подтверждение → только потом код
+
+**Architect check — задай себе вопросы:**
+- Не нарушает ли это изоляцию БД между сервисами?
+- Нет ли HTTP между сервисами (только gRPC/Kafka)?
+- Нужен ли Outbox для гарантии доставки?
+- Нужна ли идемпотентность на консьюмере?
+- Нужен ли optimistic lock для этой сущности?
+
+### 3. DO — выполни задачу
+- Следуй `.agents/backend/04-Good-Practices.md`
+- Избегай `.agents/backend/03-Pitfalls.md`
+- Tests First: сначала тест, потом реализация
+
+### 4. UPDATE — **обязательный последний шаг**
+
+После каждой задачи ответь на эти вопросы. Каждый "да" = обновление файла до конца сессии:
+
+| Вопрос | Файл |
+|--------|------|
+| Решил нестандартную проблему? | `.agents/backend/01-ADRs.md` |
+| Наткнулся на неочевидную ловушку (>15 мин отладки)? | `.agents/backend/03-Pitfalls.md` |
+| Использовал паттерн, который стоит повторять? | `.agents/backend/04-Good-Practices.md` |
+| Изменил gRPC метод или Kafka топик? | `.agents/backend/02-Contracts.md` + `docs/COMMUNICATION.md` |
+| Изменил схему БД? | `docs/DATABASE.md` |
+| Добавил/удалил REST endpoint? | `docs/API.md` |
+| Добавил новый сервис или изменил ответственность? | `docs/SERVICES.md` |
+| Узнал что-то важное о проекте? | `.agents/MEMORY.md` |
+
+**Правило**: если не уверен нужно ли обновлять — обновляй. Лишняя запись лучше потери знания.
+
+---
+
+## Архитектура системы
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    api-gateway :3000                          │
+│           JWT · Rate Limit · Swagger · WebSocket             │
+└──┬──────┬────────┬────────┬────────┬─────────┬──────────────┘
+   │gRPC  │gRPC    │gRPC    │gRPC    │gRPC     │gRPC
+   ▼      ▼        ▼        ▼        ▼         ▼
+order  fleet   routing  tracking counterparty dispatcher
+:50051 :50052  :50053   :50054   :50056       :50055
+pg-ord pg-flt  pg-rut   pg-trk   pg-cnt       pg-dis
+                                              (Saga orch)
+       Kafka Events ──────────────────────────────▲
+       order.created / order.updated / vehicle.telemetry
+```
+
+| Сервис | gRPC порт | БД | Ключевые паттерны |
+|--------|-----------|-----|-------------------|
+| api-gateway | — (HTTP 3000) | pg-auth | JWT, RBAC, WebSocket |
+| order-service | 50051 | pg-order | Outbox, State Machine, Tariff Snapshots |
+| fleet-service | 50052 | pg-fleet+PostGIS | OptimisticLock, PostGIS proximity |
+| routing-service | 50053 | pg-routing+PostGIS | Route cache, A*/VRP |
+| tracking-service | 50054 | pg-tracking | Backpressure, Batch writes, Partitioning |
+| dispatcher-service | 50055 | pg-dispatcher | Saga, Compensation, Retry x5 |
+| counterparty-service | 50056 | pg-counterparty | OptimisticLock, Zone tariffs |
+| invoice-service | 50057 | pg-invoices | PDF gen, VAT calc |
+
+**Правила архитектуры (нарушать запрещено):**
+- Межсервисное общение: только gRPC (sync) или Kafka (async). HTTP между сервисами — запрещено
+- Каждый сервис имеет свою БД. Cross-service JOIN — запрещён
+- Внешние ключи между БД — только soft references (UUID без FK constraint)
 
 ---
 
 ## Команды
 
 ```bash
-pnpm install          # Установка зависимостей
-pnpm build           # Сборка всех сервисов
-pnpm start:dev       # Dev: все сервисы параллельно
-pnpm test:e2e        # E2E тесты (требуют infra)
-pnpm lint            # Линтинг всех
-pnpm typecheck       # Проверка типов
-docker compose up -d # Infra: Kafka, PG×8, Grafana, Jaeger
+# Инфраструктура
+docker compose up -d                          # Kafka, PG×7, Prometheus, Grafana, Jaeger
 
-# Один сервис
-pnpm --filter @logistics/order-service start:dev
+# Разработка
+pnpm install
+pnpm start:dev                                # Все сервисы параллельно
+pnpm --filter @logistics/order-service start:dev  # Один сервис
 
-# E2E тесты
-./scripts/run-tests.sh --up --health --down
-./scripts/run-tests.sh --db-only | --grpc-only | --kafka-only
+# Тесты
+pnpm test                                     # Unit тесты
+pnpm test:e2e                                 # E2E тесты (нужна infra)
+./scripts/run-tests.sh --up --health --down  # E2E полный цикл
+./scripts/run-tests.sh --grpc-only           # Только gRPC тесты
+
+# Качество кода
+pnpm lint && pnpm typecheck && pnpm build    # Pre-commit чеклист
 ```
-
----
-
-## ❌ Антипаттерны (НЕ делать)
-
-Полный список: `.agents/backend/03-Pitfalls.md`
-
-- **process.env** → `ConfigService.get()` (ломается в Docker)
-- **synchronize: true** → `synchronize: NODE_ENV === 'development'`
-- **Kafka без идемпотентности** → проверять `eventId` перед обработкой
-- **`any` в коде** → всегда типизировать
-- **Seed в apps/** → `infra/postgres/seeds/*.sql`
-- **`git checkout -- .`** → `git restore`
-- **@nestjs/typeorm в Docker** → используй `DataSource` напрямую
-
----
-
-## ✅ Правильные паттерны
-
-Шаблоны для копирования: `.agents/backend/04-Good-Practices.md`
-
-- **ConfigService** — не process.env
-- **DataSource Factory** — TypeORM без @nestjs/typeorm
-- **Transactional Outbox** — гарантированная доставка событий
-- **Idempotent Consumer** — обработка дубликатов
-- **Saga с компенсацией** — распределённые транзакции
-- **Optimistic Locking** — защита от race conditions
-
----
-
-## ADR (Architecture Decision Records)
-
-Актуальные решения: `.agents/backend/01-ADRs.md`
-
-| ID | Решение | Дата |
-|----|---------|------|
-| ADR-001 | TypeORM через DataSource | 2026-04 |
-| ADR-002 | Outbox pattern | 2026-03 |
-| ADR-003 | API versioning (/api/v1/) | 2026-02 |
-| ADR-004 | Test DB: `_test` + ports 6400+ | 2026-04 |
 
 ---
 
 ## Observability
 
-| Инструмент | URL |
-|-----------|-----|
-| Grafana | http://localhost:3001 (admin/admin) |
-| Jaeger | http://localhost:16686 |
-| Kafka UI | http://localhost:8080 |
-| Prometheus | http://localhost:9090 |
+| Инструмент | URL | Что смотреть |
+|-----------|-----|--------------|
+| Grafana | http://localhost:3001 (admin/admin) | Kafka lag, gRPC latency, PG pool |
+| Jaeger | http://localhost:16686 | Traces: OrderCreated → RouteAssigned |
+| Kafka UI | http://localhost:8080 | Topics, consumer groups, lag |
+| Prometheus | http://localhost:9090 | Raw метрики |
 
 ---
 
-## Pre-commit
+## Детальная документация
 
-```bash
-pnpm lint && pnpm typecheck && pnpm build
-```
-
----
-
-## Документация
-
-- `docs/SERVICES.md` — детальное описание сервисов
-- `docs/COMMUNICATION.md` — gRPC методы, Kafka события
-- `docs/PROJECT.md` — общая архитектура
+| Файл | Содержимое |
+|------|-----------|
+| `docs/SERVICES.md` | Детальное описание каждого сервиса |
+| `docs/COMMUNICATION.md` | Все gRPC методы и Kafka топики |
+| `docs/DATABASE.md` | Схемы всех БД |
+| `docs/API.md` | REST API reference |
+| `docs/FEATURES.md` | Ключевые паттерны с кодом |
+| `.agents/MEMORY.md` | Накопленные знания о проекте |
+| `.agents/backend/` | Правила и паттерны для backend |
+| `.agents/frontend/` | Правила и паттерны для frontend |
