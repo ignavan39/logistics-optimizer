@@ -1,6 +1,5 @@
-import { Injectable } from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
-import { type Repository } from 'typeorm'
+import { Injectable, Inject } from '@nestjs/common'
+import { DataSource, Repository } from 'typeorm'
 import { ContractEntity, ContractStatus } from '../entities/contract.entity'
 import { ContractTariffEntity } from '../entities/contract-tariff.entity'
 import { v4 as uuidv4 } from 'uuid'
@@ -56,12 +55,13 @@ interface FindTariffsData {
 
 @Injectable()
 export class ContractService {
-  constructor(
-    @InjectRepository(ContractEntity)
-    private readonly contractRepo: Repository<ContractEntity>,
-    @InjectRepository(ContractTariffEntity)
-    private readonly tariffRepo: Repository<ContractTariffEntity>,
-  ) {}
+  private readonly contractRepo: Repository<ContractEntity>
+  private readonly tariffRepo: Repository<ContractTariffEntity>
+
+  constructor(@Inject(DataSource) dataSource: DataSource) {
+    this.contractRepo = dataSource.getRepository(ContractEntity)
+    this.tariffRepo = dataSource.getRepository(ContractTariffEntity)
+  }
 
   async create(data: CreateContractData): Promise<ContractEntity> {
     const now = new Date()
