@@ -56,22 +56,15 @@ export class InvoicesController {
   @Get(':id/pdf')
   @Permissions('invoices.read')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Download invoice as PDF' })
-  async getInvoicePdf(
-    @Param('id') id: string,
-    @Res() res: any,
-  ) {
-    const pdf = await this.service.generateInvoicePdf(id);
+  @ApiOperation({ summary: 'Get invoice PDF URL' })
+  async getInvoicePdf(@Param('id') id: string) {
+    const result = await this.service.generateInvoicePdfUrl(id);
     
-    if (!pdf) {
-      return res.status(404).json({ message: 'Invoice not found or PDF not available' });
+    if (!result) {
+      return { statusCode: 404, message: 'Invoice not found or PDF not available' };
     }
 
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="invoice-${id}.pdf"`,
-    });
-    res.send(pdf);
+    return result;
   }
 
   @Patch(':id/status')

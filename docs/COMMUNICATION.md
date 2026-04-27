@@ -51,7 +51,7 @@ flowchart TD
 
 | Caller | Callee | Methods |
 |--------|--------|---------|
-| api-gateway | invoice-service | `GetInvoice`, `GetInvoiceByOrder`, `ListInvoices`, `CreateInvoice`, `UpdateInvoiceStatus` |
+| api-gateway | invoice-service | `GetInvoice`, `GetInvoiceByOrder`, `ListInvoices`, `CreateInvoice`, `UpdateInvoiceStatus`, `GetInvoicePdfUrl` |
 | api-gateway | order-service | `CreateOrder`, `GetOrder`, `GetOrderHistory`, `ListOrders`, `UpdateOrderStatus`, `CancelOrder`, `GetCompanySettings`, `SetSetting`, `UpdateCompanySettings` |
 | api-gateway | fleet-service | `GetAvailableVehicles`, `GetVehicle`, `GetVehicleDetails`, `UpdateVehicle`, `AssignVehicle`, `ReleaseVehicle` |
 | api-gateway | routing-service | `CalculateRoute`, `GetRoute`, `CalculateETA` |

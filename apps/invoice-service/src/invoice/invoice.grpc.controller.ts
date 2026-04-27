@@ -2,6 +2,7 @@ import { Controller, Logger, Inject } from '@nestjs/common';
 import { GrpcMethod, RpcException } from '@nestjs/microservices';
 import { status as GrpcStatus } from '@grpc/grpc-js';
 import { InvoiceService } from './invoice.service';
+import { PdfService } from './pdf.service';
 import { InvoiceEntity, InvoiceStatus, InvoiceType } from './entities/invoice.entity';
 
 interface OrderGrpcClient {
@@ -42,12 +43,20 @@ interface UpdateInvoiceStatusRequest {
   expectedVersion?: number;
 }
 
+interface GetInvoicePdfUrlRequest {
+  invoiceId: string;
+}
+
 @Controller()
 export class InvoiceGrpcController {
   private readonly logger = new Logger(InvoiceGrpcController.name);
   private orderClient?: OrderGrpcClient;
 
-  constructor(@Inject('ORDER_PACKAGE') private orderPackage: any, private readonly invoiceService: InvoiceService) {}
+  constructor(
+    @Inject('ORDER_PACKAGE') private orderPackage: any,
+    private readonly invoiceService: InvoiceService,
+    private readonly pdfService: PdfService,
+  ) {}
 
   onModuleInit() {
     if (this.orderPackage) {
@@ -136,6 +145,22 @@ export class InvoiceGrpcController {
       if (e instanceof Error) {
         throw new RpcException({
           code: GrpcStatus.INTERNAL,
+          message: e.message,
+        });
+      }
+      throw e;
+    }
+  }
+
+  @GrpcMethod('InvoiceService', 'GetInvoicePdfUrl')
+  async getInvoicePdfUrl(data: GetInvoicePdfUrlRequest) {
+    try {
+      const url = await this.pdfService.getOrGeneratePdf(data.invoiceId);
+      return { url };
+    } catch (e) {
+      if (e instanceof Error) {
+        throw new RpcException({
+          code: GrpcStatus.NOT_FOUND,
           message: e.message,
         });
       }

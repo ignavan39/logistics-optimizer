@@ -185,7 +185,7 @@ describe('Invoices API E2E', () => {
   })
 
   describe('GET /invoices/:id/pdf', () => {
-    it('should return PDF for existing invoice', async () => {
+    it('should return PDF URL for existing invoice', async () => {
       const listResponse = await api.get('/invoices', {
         headers: { Authorization: `Bearer ${adminToken}` },
       })
@@ -194,14 +194,12 @@ describe('Invoices API E2E', () => {
         const invoiceId = listResponse.data.invoices[0].id
         const pdfResponse = await api.get(`/invoices/${invoiceId}/pdf`, {
           headers: { Authorization: `Bearer ${adminToken}` },
-          responseType: 'arraybuffer',
         })
 
         expect(pdfResponse.status).toBe(200)
-        expect(pdfResponse.headers['content-type']).toBe('application/pdf')
-
-        const pdfContent = Buffer.from(pdfResponse.data).toString('ascii')
-        expect(pdfContent).toContain('%PDF')
+        expect(pdfResponse.data).toHaveProperty('url')
+        expect(typeof pdfResponse.data.url).toBe('string')
+        expect(pdfResponse.data.url).toContain('minio')
       } else {
         console.log('No invoices available for PDF generation test')
       }
@@ -210,16 +208,13 @@ describe('Invoices API E2E', () => {
     it('should return 404 for non-existent invoice PDF', async () => {
       const response = await api.get('/invoices/nonexistent-id/pdf', {
         headers: { Authorization: `Bearer ${adminToken}` },
-        responseType: 'arraybuffer',
       })
 
       expect([200, 403, 404, 500]).toContain(response.status)
     })
 
     it('should return 401 without authentication', async () => {
-      const response = await api.get('/invoices/some-id/pdf', {
-        responseType: 'arraybuffer',
-      })
+      const response = await api.get('/invoices/some-id/pdf')
 
       expect([401, 404, 429]).toContain(response.status)
     })
@@ -295,54 +290,42 @@ describe('Invoices API E2E', () => {
 
       expect(invoiceId).toBeDefined()
 
-      // Generate PDF
+      // Generate PDF URL
       if (invoiceId) {
         const pdfResponse = await api.get(`/invoices/${invoiceId}/pdf`, {
           headers: { Authorization: `Bearer ${accessToken}` },
-          responseType: 'arraybuffer',
         })
 
         expect(pdfResponse.status).toBe(200)
-        expect(pdfResponse.headers['content-type']).toBe('application/pdf')
-
-        const pdfContent = Buffer.from(pdfResponse.data).toString('ascii')
-        expect(pdfContent).toContain('%PDF')
-        expect(pdfContent.length).toBeGreaterThan(100)
+        expect(pdfResponse.data).toHaveProperty('url')
+        expect(pdfResponse.data.url).toContain('minio')
       }
     })
 
-    it('should return same PDF on repeated requests (cached)', async () => {
+    it('should return same URL on repeated requests (cached)', async () => {
       if (!invoiceId) return
 
       const [response1, response2] = await Promise.all([
         api.get(`/invoices/${invoiceId}/pdf`, {
           headers: { Authorization: `Bearer ${accessToken}` },
-          responseType: 'arraybuffer',
         }),
         api.get(`/invoices/${invoiceId}/pdf`, {
           headers: { Authorization: `Bearer ${accessToken}` },
-          responseType: 'arraybuffer',
         }),
       ])
 
       expect(response1.status).toBe(200)
       expect(response2.status).toBe(200)
-
-      const pdf1 = Buffer.from(response1.data).toString('ascii')
-      const pdf2 = Buffer.from(response2.data).toString('ascii')
-      expect(pdf1).toContain('%PDF')
-      expect(pdf2).toContain('%PDF')
-      expect(pdf1).toBe(pdf2)
+      expect(response1.data.url).toBe(response2.data.url)
     })
 
-    it('should handle concurrent PDF requests without errors', async () => {
+    it('should handle concurrent PDF URL requests without errors', async () => {
       if (!invoiceId) return
 
       const concurrentRequests = 5
       const requests = Array.from({ length: concurrentRequests }, () =>
         api.get(`/invoices/${invoiceId}/pdf`, {
           headers: { Authorization: `Bearer ${accessToken}` },
-          responseType: 'arraybuffer',
         }),
       )
 
@@ -350,17 +333,13 @@ describe('Invoices API E2E', () => {
 
       results.forEach((response, index) => {
         expect(response.status).toBe(200, `Request ${index + 1} failed with status ${response.status}`)
-        expect(response.headers['content-type']).toBe('application/pdf')
-
-        const pdfContent = Buffer.from(response.data).toString('ascii')
-        expect(pdfContent).toContain('%PDF')
+        expect(response.data).toHaveProperty('url')
       })
 
-      // All responses should be identical (same PDF)
-      const firstPdf = Buffer.from(results[0].data).toString('ascii')
+      // All responses should have the same URL
+      const firstUrl = results[0].data.url
       results.slice(1).forEach((response, index) => {
-        const pdf = Buffer.from(response.data).toString('ascii')
-        expect(pdf).toBe(firstPdf, `Response ${index + 2} differs from first response`)
+        expect(response.data.url).toBe(firstUrl, `Response ${index + 2} differs from first response`)
       })
     })
   })
