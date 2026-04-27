@@ -1,130 +1,134 @@
 # Contracts — Межсервисные контракты
 
-> "Проверяй контракт перед интеграцией" — всегда документируй контракт между сервисами.
+> Единственный источник правды — `libs/proto/*.proto`. Этот файл — навигационный индекс.
 
 ---
 
-## 🎯 Главный принцип
+## ⚡ Когда обновлять ЭТОТ файл
 
-Перед реализацией фичи, затрагивающей >1 сервиса:
+Обнови СРАЗУ если:
+- Добавил/изменил/удалил gRPC метод
+- Добавил/изменил Kafka топик или его payload
+- Изменил KafkaEvent schema
 
-1. **Определи контракт в `libs/proto/`**
-2. Опиши flow в `docs/COMMUNICATION.md`
-3. Добавь тест на контракт
-
----
-
-## gRPC методы
-
-### Order → Fleet
-
-| Метод | Request | Response | Описание |
-|-------|---------|----------|----------|
-| assignVehicle | AssignVehicleRequest | AssignVehicleResponse | Назначить ТС на заказ |
-| releaseVehicle | ReleaseVehicleRequest | ReleaseVehicleResponse | Освободить ТС |
-
-### Order → Routing
-
-| Метод | Request | Response | Описание |
-|-------|---------|----------|----------|
-| calculateRoute | CalculateRouteRequest | CalculateRouteResponse | Рассчитать маршрут |
-
-### Order → Counterparty
-
-| Метод | Request | Response | Описание |
-|-------|---------|----------|----------|
-| validateContract | ValidateContractRequest | ValidateContractResponse | Проверить контракт |
-
-### Dispatcher → Fleet
-
-| Метод | Request | Response | Описание |
-|-------|---------|----------|----------|
-| findAvailableVehicle | FindVehicleRequest | FindVehicleResponse | Найти свободное ТС |
-
-### Dispatcher → Routing
-
-| Метод | Request | Response | Описание |
-|-------|---------|----------|----------|
-| calculateRoute | CalculateRouteRequest | CalculateRouteResponse | Рассчитать маршрут |
+**И параллельно обнови:** `docs/COMMUNICATION.md`
 
 ---
 
-## Kafka события
+## Правила контрактов
 
-### order.* (order-service → dispatching)
-
-| Topic | Event | Payload | Описание |
-|-------|-------|---------|----------|
-| order.created | OrderCreatedEvent | { orderId, companyId, cargo, ... } | Новый заказ |
-| order.updated | OrderUpdatedEvent | { orderId, status, ... } | Статус изменён |
-| order.delivered | OrderDeliveredEvent | { orderId, ... } | Заказ доставлен |
-
-### vehicle.* (fleet-service → tracking)
-
-| Topic | Event | Payload | Описание |
-|-------|-------|---------|----------|
-| vehicle.status | VehicleStatusEvent | { vehicleId, location, status, ... } | Статус ТС |
+1. **proto-first** — контракт определяется в `libs/proto/*.proto`, не в коде
+2. **Обратная совместимость** — никогда не удаляй поля, только добавляй `optional`
+3. **Версионирование** — при breaking change создай новый message/service (v2)
+4. **Документируй поля** — каждое поле в proto должно иметь комментарий
+5. **Тестируй реальные методы** — `waitForReady()` ≠ методы работают
 
 ---
 
-## Правила проверки контракта
+## gRPC: Полная карта вызовов
 
-1. **Версионирование** — используй semver в proto
-2. **Обратная совместимость** — не удаляй поля, добавляй optional
-3. **Документация** — комментируй каждое поле в proto
-4. **Тесты** — пиши интеграционные тесты на контра
+| Caller | Callee | Методы |
+|--------|--------|--------|
+| api-gateway | order-service | CreateOrder, GetOrder, GetOrderHistory, ListOrders, UpdateOrderStatus, CancelOrder, GetCompanySettings, SetSetting, UpdateCompanySettings |
+| api-gateway | fleet-service | GetAvailableVehicles, GetVehicle, GetVehicleDetails, UpdateVehicle, AssignVehicle, ReleaseVehicle |
+| api-gateway | routing-service | CalculateRoute, GetRoute, CalculateETA |
+| api-gateway | tracking-service | GetLatestPosition, GetTrack, StreamVehiclePosition |
+| api-gateway | counterparty-service | CreateCounterparty, GetCounterparty, UpdateCounterparty, ListCounterparties, CreateContract, GetContract, UpdateContract, ListContracts, GetContractTariffs, CreateContractTariff |
+| api-gateway | dispatcher-service | DispatchOrder, GetDispatchState, CancelDispatch |
+| api-gateway | invoice-service | GetInvoice, GetInvoiceByOrder, ListInvoices, CreateInvoice, UpdateInvoiceStatus |
+| dispatcher-service | fleet-service | GetAvailableVehicles, AssignVehicle, ReleaseVehicle |
+| dispatcher-service | routing-service | CalculateRoute |
+| dispatcher-service | order-service | GetOrder, UpdateOrderStatus |
+| order-service | routing-service | CalculateRoute |
+| order-service | counterparty-service | GetCounterparty, GetContract, GetContractTariffs |
+| invoice-service | order-service | GetOrder, GetCompanySettings |
+| invoice-service | counterparty-service | GetCounterparty |
 
 ---
 
-## Как описывать новый контракт
+## Kafka: Топики и события
 
-```protobuf
-// libs/proto/order.proto
-syntax = "proto3";
+| Topic | Publisher | Consumers | Payload ключевые поля |
+|-------|-----------|-----------|----------------------|
+| `order.created` | order-service | dispatcher-service, notifications | orderId, customerId, origin, destination, priority, weightKg |
+| `order.updated` | order-service | notifications | orderId, previousStatus, newStatus, reason |
+| `order.delivered` | order-service | invoice-service | orderId |
+| `order.assigned` | order-service | notifications | orderId, vehicleId |
+| `order.completed` | order-service | notifications | orderId |
+| `order.failed` | order-service | dispatcher-service, notifications | orderId, reason |
+| `vehicle.status.changed` | fleet-service | notifications | vehicleId, previousStatus, newStatus |
+| `vehicle.telemetry` | telemetry-sim | tracking-service | vehicleId, lat, lng, speed, heading, recordedAt |
+| `vehicle.telemetry.dlq` | auto (retry exceeded) | — | оригинальный payload + error |
+| `order.created.dlq` | auto (retry exceeded) | — | оригинальный payload + error |
 
-package logistics;
+---
 
-// Описывай каждое поле
-message CreateOrderRequest {
-  string company_id = 1;  // ID компании
-  string cargo_id = 2;     // ID груза
-  RoutePoint from = 3;     // Точка отправления
-  RoutePoint to = 4;       // Точка назначения
-}
+## KafkaEvent Envelope (обязателен для всех событий)
 
-// Используй semver для версионирования
-// Добавляй новые поля как optional
-message CreateOrderResponse {
-  string order_id = 1;      // ID созданного заказа
-  string status = 2;        // initial/assigned/in_transit/delivered
+```typescript
+// libs/kafka-utils/src/types/kafka-event.ts
+interface KafkaEvent<T = unknown> {
+  eventId: string;      // UUID — используется для идемпотентности
+  source: string;       // 'order-service'
+  type: string;         // 'order.created'
+  aggregateId: string;  // ID корневого агрегата
+  occurredAt: string;   // ISO-8601
+  version: number;      // Версия схемы payload
+  payload: T;
 }
 ```
 
 ---
 
-## Flow пример: Assign Vehicle
+## Как добавить новый gRPC метод
+
+```bash
+# 1. Обнови proto файл
+vim libs/proto/order.proto
+
+# 2. Сгенерируй типы
+pnpm --filter @logistics/proto build
+
+# 3. Реализуй метод в сервисе
+# 4. Добавь клиентский вызов в зависимом сервисе
+# 5. Обнови этот файл — таблицу gRPC вызовов
+# 6. Обнови docs/COMMUNICATION.md
+# 7. Напиши интеграционный тест
+```
+
+---
+
+## Как добавить Kafka топик
+
+```typescript
+// 1. Создай топик в infra/docker-compose.yml (kafka-init service)
+// 2. Определи payload interface в libs/kafka-utils/src/events/
+// 3. Добавь publisher в сервисе через Outbox pattern
+// 4. Добавь consumer с IdempotencyGuard
+// 5. Обнови таблицу выше
+// 6. Обнови docs/COMMUNICATION.md
+```
+
+---
+
+## Dispatch Saga Flow (для справки)
 
 ```mermaid
 sequenceDiagram
-  participant Order as OrderService
-  participant Dispatcher as DispatcherService
-  participant Fleet as FleetService
-  participant Routing as RoutingService
+  participant Order as order-service
   participant Kafka
+  participant Dispatcher as dispatcher-service
+  participant Fleet as fleet-service
+  participant Routing as routing-service
 
   Order->>Kafka: order.created (Outbox)
   Kafka->>Dispatcher: Consume order.created
-  Dispatcher->>Fleet: gRPC FindAvailableVehicle
-  Fleet-->>Dispatcher: VehicleFound
+  Dispatcher->>Fleet: gRPC GetAvailableVehicles
+  Fleet-->>Dispatcher: vehicles[]
   Dispatcher->>Routing: gRPC CalculateRoute
-  Dispatcher->>Kafka: order.assigned.v1 (idempotent)
-  Order<<-Kafka: Consume order.assigned (idempotent)
+  Routing-->>Dispatcher: route
+  Dispatcher->>Fleet: gRPC AssignVehicle (optimistic lock)
+  Fleet-->>Dispatcher: assigned
+  Dispatcher->>Order: gRPC UpdateOrderStatus(ASSIGNED)
+  Order->>Kafka: order.assigned (Outbox)
 ```
-
----
-
-## Важно!
-
-1. **gRPC readiness ≠ methods work** — waitForReady() может вернуть true, но методы возвращают Internal Error из-за неполной схемы БД
-2. **Всегда тестируй реальные методы**, не только readiness
-3. **Idempotent consume** — проверяй eventId перед обработкой

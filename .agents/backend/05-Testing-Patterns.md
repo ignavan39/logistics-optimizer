@@ -1,60 +1,133 @@
 # Testing Patterns
 
-> "Как тестировать" — паттерны для написания тестов.
+> Паттерны тестирования. Копируй структуру, адаптируй содержимое.
 
 ---
 
-## Unit Tests
+## ⚡ Когда обновлять ЭТОТ файл
 
-### Service Testing
+Обнови если:
+- Нашёл новый паттерн тестирования который работает лучше
+- Обнаружил что существующий паттерн не работает в каком-то случае
+- Добавил новый тип тестов (e2e, contract, load)
+
+---
+
+## Иерархия тестов
+
+```
+Unit Tests      → Чистая логика, без I/O, мокать всё внешнее
+Integration     → Kafka/gRPC/DB через реальные порты (тестовые БД)
+E2E             → Полный HTTP сценарий через api-gateway
+Load            → k6 сценарии в infra/k6/
+```
+
+---
+
+## Unit: Service Testing
 
 ```typescript
+// order/order.service.spec.ts
 describe('OrderService', () => {
   let service: OrderService;
-  let mockRepo: ReturnType<typeof createMockRepository>;
+  let mockOrderRepo: jest.Mocked<Repository<OrderEntity>>;
+  let mockOutboxRepo: jest.Mocked<Repository<OutboxEventEntity>>;
+  let mockDataSource: jest.Mocked<DataSource>;
 
   beforeEach(async () => {
-    mockRepo = {
-      findOne: jest.fn(),
+    mockOrderRepo = {
+      findOneBy: jest.fn(),
       save: jest.fn(),
-    };
-    
-    const module = await Test.createTestingModule({
-      providers: [
-        OrderService,
-        { provide: getRepositoryToken(OrderEntity), useValue: mockRepo },
-      ],
-    }).compile();
+      createQueryBuilder: jest.fn(),
+    } as any;
 
-    service = module.get(OrderService);
+    mockOutboxRepo = { save: jest.fn() } as any;
+
+    mockDataSource = {
+      transaction: jest.fn().mockImplementation((cb) =>
+        cb({ save: jest.fn().mockImplementation((_, dto) => ({ id: 'uuid', ...dto })) })
+      ),
+    } as any;
+
+    service = new OrderService(mockOrderRepo, mockOutboxRepo, mockDataSource);
   });
 
-  it('should create order', async () => {
-    mockRepo.save.mockResolvedValue({ id: '1', status: 'pending' });
-    
-    const result = await service.create({ cargoId: 'cargo-1' });
-    
-    expect(result.status).toBe('pending');
+  describe('createOrder', () => {
+    it('should create order and outbox event in single transaction', async () => {
+      const dto = { customerId: 'c-1', origin: 'MSK', destination: 'SPB' };
+
+      const result = await service.createOrder(dto);
+
+      expect(result.status).toBe('PENDING');
+      expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw if transaction fails', async () => {
+      mockDataSource.transaction.mockRejectedValueOnce(new Error('DB error'));
+
+      await expect(service.createOrder({} as any)).rejects.toThrow('DB error');
+    });
+  });
+
+  describe('updateOrderStatus', () => {
+    it('should throw ConflictException on version mismatch', async () => {
+      mockOrderRepo.findOneBy.mockResolvedValue({ id: '1', version: 5 } as any);
+
+      await expect(
+        service.updateOrderStatus('1', 'ASSIGNED', 3) // wrong version
+      ).rejects.toThrow(ConflictException);
+    });
   });
 });
 ```
 
 ---
 
-## Integration Tests
-
-### gRPC Testing
+## Integration: gRPC Testing
 
 ```typescript
-describe('FleetService', () => {
-  it('should assign vehicle to order', async () => {
-    const client = new FleetServiceClient(grpcUrl);
-    
-    const response = await client.assignVehicle({
-      vehicleId: 'vehicle-1',
-      orderId: 'order-1',
+// tests/integration/fleet.grpc.spec.ts
+import * as grpc from '@grpc/grpc-js';
+import * as protoLoader from '@grpc/proto-loader';
+
+describe('FleetService gRPC Integration', () => {
+  let client: any;
+
+  beforeAll(async () => {
+    const def = protoLoader.loadSync(
+      join(__dirname, '../../../libs/proto/fleet.proto')
+    );
+    const pkg = grpc.loadPackageDefinition(def) as any;
+
+    client = new pkg.fleet.FleetService(
+      'localhost:50052',
+      grpc.credentials.createInsecure()
+    );
+
+    // Ждём готовности
+    await new Promise<void>((resolve, reject) => {
+      client.waitForReady(Date.now() + 10_000, (err: any) =>
+        err ? reject(err) : resolve()
+      );
     });
-    
+
+    // ⚠️ Обязательно тестируем реальный метод, не только readiness
+    const { vehicles } = await new Promise<any>((res, rej) =>
+      client.getAvailableVehicles({ origin: 'health-check' }, (e: any, r: any) =>
+        e ? rej(e) : res(r)
+      )
+    );
+    expect(Array.isArray(vehicles)).toBe(true);
+  });
+
+  it('should assign vehicle to order', async () => {
+    const response = await new Promise<any>((res, rej) =>
+      client.assignVehicle(
+        { vehicleId: 'test-vehicle-1', orderId: 'test-order-1', version: 0 },
+        (err: any, r: any) => (err ? rej(err) : res(r))
+      )
+    );
+
     expect(response.success).toBe(true);
   });
 });
@@ -62,194 +135,218 @@ describe('FleetService', () => {
 
 ---
 
-## E2E Tests
-
-### API Testing
+## Integration: Kafka Testing
 
 ```typescript
-describe('Orders API', () => {
-  const api = request('http://localhost:3000');
+// tests/integration/order-events.spec.ts
+describe('Order Kafka Events', () => {
+  let kafka: Kafka;
+  let consumer: Consumer;
+  let received: any[] = [];
 
-  it('should create order', async () => {
-    const response = await api
-      .post('/api/v1/orders')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ cargoId: 'cargo-1' });
+  beforeAll(async () => {
+    kafka = new Kafka({ brokers: ['localhost:9092'] });
+    consumer = kafka.consumer({ groupId: 'test-group-' + Date.now() });
+    await consumer.connect();
+    await consumer.subscribe({ topic: 'order.created', fromBeginning: false });
+    await consumer.run({
+      eachMessage: async ({ message }) => {
+        received.push(JSON.parse(message.value!.toString()));
+      },
+    });
+  });
 
-    expect(response.status).toBe(201);
-    expect(response.body.id).toBeDefined();
+  afterAll(async () => {
+    await consumer.disconnect();
+  });
+
+  it('should publish order.created event after createOrder', async () => {
+    received = [];
+
+    // Создаём заказ через API
+    await axios.post('http://localhost:3000/api/v1/orders', {
+      origin: 'Moscow', destination: 'SPB',
+      cargo: { weightKg: 100, volumeM3: 1 },
+    }, { headers: { Authorization: `Bearer ${testToken}` } });
+
+    // Ждём событие
+    await waitFor(() => received.length > 0, { timeout: 5000 });
+
+    expect(received[0].type).toBe('order.created');
+    expect(received[0].eventId).toBeDefined();
+    expect(received[0].payload.origin).toBe('Moscow');
   });
 });
 ```
 
 ---
 
-## Testing Rules
+## E2E: API Testing
 
-1. **AAA Pattern** — Arrange, Act, Assert
-2. **One expectation per test** — один assertion на тест
-3. **Use mocks for external** — мокай внешние зависимости
-4. **Test happy path and edges** — успешный сценарий и граничные случаи
-5. **Name describes behavior** — имя теста описывает поведение
+```typescript
+// tests/e2e/orders.e2e.spec.ts
+describe('Orders E2E', () => {
+  const api = axios.create({ baseURL: 'http://localhost:3000' });
+  let token: string;
 
+  beforeAll(async () => {
+    const { data } = await api.post('/auth/login', {
+      email: 'admin@logistics.local',
+      password: 'secret',
+    });
+    token = data.accessToken;
+  });
 
-# Testing Patterns — Good Practices
+  it('full order lifecycle: create → dispatch → assign', async () => {
+    // 1. Создаём заказ
+    const { data: order } = await api.post(
+      '/api/v1/orders',
+      { origin: 'Moscow, Tverskaya 1', destination: 'SPB, Nevsky 10',
+        cargo: { weightKg: 500, volumeM3: 2 } },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    expect(order.status).toBe('PENDING');
 
-## 1. Test Database Strategy
+    // 2. Ждём автоназначения через Saga
+    await waitFor(async () => {
+      const { data } = await api.get(`/api/v1/orders/${order.id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      expect(data.status).toBe('ASSIGNED');
+    }, { timeout: 30_000, interval: 1000 });
 
-### Test Database Setup with pgbouncer
-
-```yaml
-# tests/e2e/docker-compose.yml
-
-services:
-  pg-test-order:
-    image: postgis/postgis:16-3.4
-    environment:
-      POSTGRES_USER: logistics
-      POSTGRES_PASSWORD: logistics_secret
-      POSTGRES_HOST_AUTH_METHOD: trust
-      POSTGRES_DB: order_db_test
-    volumes:
-      - ../infra/postgres/init-order.sql:/docker-entrypoint-initdb.d/init.sql:ro
-
-  pgbouncer-test-order:
-    image: edoburu/pgbouncer:1.18.0
-    environment:
-      DB_USER: logistics
-      DB_PASSWORD: logistics_secret
-      DB_HOST: pg-test-order
-      DB_NAME: order_db_test
-      POOL_MODE: transaction
-    ports:
-      - '6433:5432'  # Different from production 5433
+    // 3. Проверяем историю статусов
+    const { data: history } = await api.get(
+      `/api/v1/orders/${order.id}/history`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    expect(history.map((h: any) => h.newStatus)).toContain('ASSIGNED');
+  });
+});
 ```
 
-### Key Points
-- Separate test databases with `_test` suffix
-- Use pgbouncer for connection pooling
-- Use different ports (6400+) to avoid conflicts with production
-- Use `POSTGRES_HOST_AUTH_METHOD: trust` for tests
-- Mount init SQL files the same as production
+---
 
-## 2. Health Check Pattern (TCP Port)
-
-```bash
-# scripts/health-check.sh
-
-check_tcp() {
-  local host=$1
-  local port=$2
-  local name=$3
-
-  if timeout "$TIMEOUT" bash -c "echo > /dev/tcp/$host/$port" 2>/dev/null; then
-    log_info "✓ $name port open"
-    return 0
-  else
-    log_error "✗ $name port closed"
-    return 1
-  fi
-}
-```
-
-### Why TCP instead of HTTP?
-- Not all services implement `/health` endpoint
-- TCP port check is more reliable
-- Works even when service returns 500
-
-## 3. DB Isolation Verification Test
+## DB Isolation Verification
 
 ```typescript
 // tests/e2e/db-isolation.spec.ts
+const TEST_DB_CONFIG = {
+  order:        { host: 'localhost', port: 6401, database: 'order_db_test' },
+  fleet:        { host: 'localhost', port: 6402, database: 'fleet_db_test' },
+  routing:      { host: 'localhost', port: 6403, database: 'routing_db_test' },
+  tracking:     { host: 'localhost', port: 6404, database: 'tracking_db_test' },
+  dispatcher:   { host: 'localhost', port: 6405, database: 'dispatcher_db_test' },
+  counterparty: { host: 'localhost', port: 6406, database: 'counterparty_db_test' },
+  invoice:      { host: 'localhost', port: 6407, database: 'invoice_db_test' },
+};
 
-const DB_CONFIG = {
-  order: { host: 'localhost', port: 6433, database: 'order_db_test' },
-  fleet: { host: 'localhost', port: 6434, database: 'fleet_db_test' },
-}
+describe('DB Isolation', () => {
+  const pools: Record<string, Pool> = {};
 
-describe('DB Isolation Integration', () => {
   beforeAll(async () => {
-    for (const [name, config] of Object.entries(DB_CONFIG)) {
-      pools[name] = new Pool(config)
-      await pools[name].query('SELECT 1')
+    for (const [name, cfg] of Object.entries(TEST_DB_CONFIG)) {
+      pools[name] = new Pool(cfg);
+      await pools[name].query('SELECT 1'); // проверяем доступность
     }
-  })
+  });
 
-  it('each service should use own database', async () => {
-    const result = await pools.order.query('SELECT current_database()')
-    expect(result.rows[0].db).toBe('order_db_test')
-  })
-})
+  afterAll(async () => {
+    for (const pool of Object.values(pools)) await pool.end();
+  });
+
+  it.each(Object.entries(TEST_DB_CONFIG))(
+    '%s should use its own database',
+    async (name, cfg) => {
+      const { rows } = await pools[name].query('SELECT current_database() AS db');
+      expect(rows[0].db).toBe(cfg.database);
+    }
+  );
+});
 ```
 
-## 4. E2E gRPC Test Pattern
+---
+
+## Test Data Management
 
 ```typescript
-// tests/e2e/order.service.spec.ts
+// tests/helpers/test-data.ts
+const TEST_PREFIX = `test-${Date.now()}`;
 
-describe('OrderService E2E', () => {
-  let client: any
+export const testOrder = (overrides = {}) => ({
+  customerId: `${TEST_PREFIX}-customer`,
+  origin: 'Moscow, Test St 1',
+  destination: 'SPB, Test Av 2',
+  cargo: { weightKg: 100, volumeM3: 1 },
+  ...overrides,
+});
 
-  beforeAll(async () => {
-    const packageDefinition = protoLoader.loadSync(PROTO_PATH)
-    const grpcPackage = grpc.loadPackageDefinition(packageDefinition) as any
-    const OrderService = grpcPackage.order.OrderService
-
-    client = new OrderService('localhost:50051', grpc.credentials.createInsecure())
-
-    await new Promise<void>((resolve, reject) => {
-      client.waitForReady(Date.now() + 10000, (err: any) => {
-        if (err) reject(err)
-        else resolve()
-      })
-    })
-  })
-
-  it('should create new order', (done) => {
-    client.createOrder({ /* request */ }, (err: any, response: any) => {
-      expect(err).toBeNull()
-      expect(response.id).toBeDefined()
-      done()
-    })
-  })
-})
+// В тестах
+afterAll(async () => {
+  // Удаляем тестовые данные по префиксу
+  await pool.query(
+    `DELETE FROM orders WHERE customer_id LIKE $1`,
+    [`${TEST_PREFIX}%`]
+  );
+});
 ```
 
-## 5. Test Configuration
+---
+
+## Jest Config для E2E
 
 ```javascript
 // tests/e2e/jest.config.js
+const rootDir = process.cwd();
 
 module.exports = {
-  moduleFileExtensions: ['js', 'json', 'ts'],
-  testRegex: '.*\\.spec\\.ts$',
-  transform: {
-    '^.+\\.(t|j)s$': ['ts-jest', { tsconfig: `${rootDir}/tests/e2e/tsconfig.json` }],
-  },
-  testEnvironment: 'node',
   rootDir,
   roots: [`${rootDir}/tests/e2e`],
-}
+  testRegex: '.*\\.spec\\.ts$',
+  transform: {
+    '^.+\\.(t|j)s$': ['ts-jest', {
+      tsconfig: `${rootDir}/tests/e2e/tsconfig.json`,
+      isolatedModules: true, // ← предотвращает .js файлы в src/
+    }],
+  },
+  testEnvironment: 'node',
+  testTimeout: 30_000, // E2E могут быть медленными
+};
 ```
 
-## 6. Test Data Management
+---
 
-- Use UUID prefixes like `test-{uuid}` for isolation
-- Clean up after tests with `afterAll()`
-- Use transaction rollback for fast cleanup
-- Each test should be independent
-
-## 7. Running Tests
+## Запуск тестов
 
 ```bash
-# Run specific tests
-npx jest --config tests/e2e/jest.config.js tests/e2e/order.service.spec.ts
+# Unit
+pnpm test
 
-# Run all e2e tests
-npx jest --config tests/e2e/jest.config.js
+# Один сервис
+pnpm --filter @logistics/order-service test
 
-# With docker-compose
-docker compose -f tests/e2e/docker-compose.yml up -d
-npx jest --config tests/e2e/jest.config.js
-docker compose -f tests/e2e/docker-compose.yml down
+# E2E (нужна infra)
+./scripts/run-tests.sh --up --health --down
+
+# По группам
+./scripts/run-tests.sh --db-only
+./scripts/run-tests.sh --grpc-only
+./scripts/run-tests.sh --kafka-only
+
+# Конкретный файл
+npx jest tests/e2e/order.service.spec.ts --config tests/e2e/jest.config.js
+
+# Нагрузочный (нужен k6)
+k6 run --env BASE_URL=http://localhost:3000 --env JWT_TOKEN=... infra/k6/load-test.js
 ```
+
+---
+
+## Правила
+
+1. **AAA** — Arrange, Act, Assert в каждом тесте
+2. **Один assertion на тест** — упавший тест даёт точную информацию
+3. **Имя описывает поведение** — `should throw ConflictException on version mismatch`
+4. **Независимость** — каждый тест работает сам по себе
+5. **Test prefix** — тестовые данные с префиксом `test-{timestamp}` для лёгкой очистки
+6. **Не мокай то что тестируешь** — если тестируешь интеграцию, нужна реальная БД
