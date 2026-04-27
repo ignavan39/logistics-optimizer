@@ -94,6 +94,9 @@ export class DatabaseModule {}
     DispatcherModule,
     InvoicesModule,
     SettingsModule,
+    RoutingModule,
+    TrackingModule,
+    NotificationsModule,
   ],
   providers: [],
 })

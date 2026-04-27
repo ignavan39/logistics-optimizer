@@ -3,6 +3,7 @@ import * as grpc from '@grpc/grpc-js'
 import * as protoLoader from '@grpc/proto-loader'
 
 const PROTO_PATH = `${__dirname}/../../libs/proto/src/fleet.proto`
+const GRPC_HOST = process.env.GRPC_FLEET_HOST || 'localhost:50053'
 
 describe('FleetService E2E', () => {
   let client: any
@@ -12,7 +13,7 @@ describe('FleetService E2E', () => {
     const grpcPackage = grpc.loadPackageDefinition(packageDefinition) as any
     const FleetService = grpcPackage.fleet.FleetService
 
-    client = new FleetService('localhost:50053', grpc.credentials.createInsecure())
+    client = new FleetService(GRPC_HOST, grpc.credentials.createInsecure())
   })
 
   afterAll(() => {

@@ -32,31 +32,43 @@ describe('gRPC Cross-Service Integration', () => {
     const trackingPkg = grpc.loadPackageDefinition(trackingProto) as any
     const dispatcherPkg = grpc.loadPackageDefinition(dispatcherProto) as any
 
-    // Создаем gRPC клиенты
-    const createClient = (Service: any, host: string) => 
-      new Service(host, grpc.credentials.createInsecure())
+    // Создаем gRPC клиенты - используем env vars для docker networking
+    const createClient = (Service: any, hostEnv: string) => {
+      const host = process.env[hostEnv] || hostEnv
+      console.log(`Creating ${hostEnv} client for ${host}`)
+      return new Service(host, grpc.credentials.createInsecure())
+    }
 
-    orderClient = createClient(orderPkg.order.OrderService, 'localhost:50051')
-    invoiceClient = createClient(invoicePkg.invoice.InvoiceService, 'localhost:50052')
-    fleetClient = createClient(fleetPkg.fleet.FleetService, 'localhost:50053')
-    routingClient = createClient(routingPkg.routing.RoutingService, 'localhost:50054')
-    trackingClient = createClient(trackingPkg.tracking.TrackingService, 'localhost:50055')
-    dispatcherClient = createClient(dispatcherPkg.dispatcher.DispatcherService, 'localhost:50056')
-    counterpartyClient = createClient(counterpartyPkg.counterparty.CounterpartyService, 'localhost:50057')
+    orderClient = createClient(orderPkg.order.OrderService, 'GRPC_ORDER_HOST')
+    invoiceClient = createClient(invoicePkg.invoice.InvoiceService, 'GRPC_INVOICE_HOST')
+    fleetClient = createClient(fleetPkg.fleet.FleetService, 'GRPC_FLEET_HOST')
+    routingClient = createClient(routingPkg.routing.RoutingService, 'GRPC_ROUTING_HOST')
+    trackingClient = createClient(trackingPkg.tracking.TrackingService, 'GRPC_TRACKING_HOST')
+    dispatcherClient = createClient(dispatcherPkg.dispatcher.DispatcherService, 'GRPC_DISPATCHER_HOST')
+    counterpartyClient = createClient(counterpartyPkg.counterparty.CounterpartyService, 'GRPC_COUNTERPARTY_HOST')
 
-    // Ждем готовности сервисов
-    const waitForReady = (client: any) => new Promise<void>((resolve, reject) => {
-      client.waitForReady(Date.now() + 10000, (err: any) => err ? reject(err) : resolve())
+    // Ждем готовности сервисов (увеличенный таймаут для docker)
+    const waitForReady = (client: any, name: string) => new Promise<void>((resolve, reject) => {
+      console.log(`Waiting for ${name}...`)
+      client.waitForReady(Date.now() + 30000, (err: any) => {
+        if (err) {
+          console.error(`Failed to connect to ${name}:`, err.message)
+          reject(err)
+        } else {
+          console.log(`${name} ready`)
+          resolve()
+        }
+      })
     })
 
     await Promise.all([
-      waitForReady(orderClient),
-      waitForReady(invoiceClient),
-      waitForReady(fleetClient),
-      waitForReady(routingClient),
-      waitForReady(trackingClient),
-      waitForReady(dispatcherClient),
-      waitForReady(counterpartyClient),
+      waitForReady(orderClient, 'order-service'),
+      waitForReady(invoiceClient, 'invoice-service'),
+      waitForReady(fleetClient, 'fleet-service'),
+      waitForReady(routingClient, 'routing-service'),
+      waitForReady(trackingClient, 'tracking-service'),
+      waitForReady(dispatcherClient, 'dispatcher-service'),
+      waitForReady(counterpartyClient, 'counterparty-service'),
     ])
   })
 

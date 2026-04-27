@@ -26,7 +26,8 @@ usage() {
   echo "  --down       Остановить docker-compose после тестов"
   echo "  --health     Проверить здоровье сервисов перед тестами"
   echo "  --db-only    Только DB isolation тесты"
-  echo "  --grpc-only  Только gRPC cross тесты"
+  echo "  --grpc-only  Только gRPC cross тесты (из docker сети)"
+  echo "  --test-container Использовать отдельный контейнер для тестов"
   echo "  --kafka-only Только Kafka тесты"
   echo "  --help       Показать эту справку"
   echo ""
@@ -34,6 +35,7 @@ usage() {
   echo "  $0 --up --health         # Запустить, проверить, тесты"
   echo "  $0 --up --health --down # Полный цикл"
   echo "  $0 --db-only           # Только DB тесты"
+  echo "  $0 --grpc-only --test-container  # gRPC через тестовый контейнер"
 }
 
 # Парсинг аргументов
@@ -43,6 +45,7 @@ DO_HEALTH=false
 DB_ONLY=false
 GRPC_ONLY=false
 KAFKA_ONLY=false
+USE_TEST_CONTAINER=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -64,6 +67,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --grpc-only)
       GRPC_ONLY=true
+      shift
+      ;;
+    --test-container)
+      USE_TEST_CONTAINER=true
       shift
       ;;
     --kafka-only)
@@ -125,7 +132,16 @@ run_db_tests() {
 run_grpc_tests() {
   log_info "Запуск gRPC cross-service тестов..."
   cd "$ROOT_DIR"
-  npx jest --config "$TEST_DIR/jest.config.js" grpc-cross.spec.ts --testTimeout=30000
+  
+  # Вариант 1: Из docker-compose.test.yml контейнера
+  if [ "$USE_TEST_CONTAINER" = true ]; then
+    docker compose -f docker-compose.test.yml run --rm e2e-test-runner --testPathPatterns=grpc --testTimeout=30000
+  else
+    # Вариант 2: Из api-gateway контейнера (старый способ)
+    docker compose -f docker-compose.yml -f docker-compose.services.yml exec api-gateway sh -c "
+      cd /app && npx jest --testPathPatterns=grpc --testTimeout=30000 --no-cache
+    " || log_error "gRPC тесты не удалось запустить"
+  fi
 }
 
 run_kafka_tests() {
@@ -137,7 +153,28 @@ run_kafka_tests() {
 run_all_tests() {
   log_info "Запуск всех E2E тестов..."
   cd "$ROOT_DIR"
-  npx jest --config "$TEST_DIR/jest.config.js" --testTimeout=30000
+  
+  if [ "$USE_TEST_CONTAINER" = true ]; then
+    docker compose -f docker-compose.test.yml run --rm e2e-test-runner
+  else
+    npx jest --config "$TEST_DIR/jest.config.js" --testTimeout=30000
+  fi
+}
+
+run_test_container() {
+  log_info "Запуск тестов через изолированный контейнер..."
+  cd "$ROOT_DIR"
+  
+  # Поднять тестовые БД если не запущены
+  docker compose -f docker-compose.yml -f tests/e2e/docker-compose.yml up -d
+  
+  # Запустить все сервисы если не запущены
+  docker compose -f docker-compose.yml -f docker-compose.services.yml up -d
+  
+  sleep 5
+  
+  # Запустить тесты из контейнера
+  docker compose -f docker-compose.test.yml run --rm e2e-test-runner
 }
 
 main() {
