@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { ScheduleModule } from '@nestjs/schedule'
 import { RoutingGrpcController } from './routing.grpc.controller'
 import { RoutingHttpController } from './routing.http.controller'
 import { RoutingService } from './routing.service'
+import { RouteCacheService } from './routing/route-cache.service'
 
 @Module({
   imports: [
@@ -28,8 +30,9 @@ import { RoutingService } from './routing.service'
         },
       }),
     }),
+    ScheduleModule.forRoot(),
   ],
   controllers: [RoutingGrpcController, RoutingHttpController],
-  providers: [RoutingService],
+  providers: [RoutingService, RouteCacheService],
 })
 export class AppModule {}
