@@ -1,19 +1,24 @@
-const { spawnSync } = require('child_process')
+const path = require('path')
 
-const { status } = spawnSync('pwd', [], { encoding: 'utf8' })
-const rootDir = process.cwd()
+const rootDir = process.env.IN_DOCKER 
+  ? '/app' 
+  : process.cwd()
 
 module.exports = {
-  moduleFileExtensions: ['js', 'json', 'ts'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'json'],
   testRegex: '.*\\.spec\\.ts$',
   transform: {
-    '^.+\\.(t|j)s$': ['ts-jest', { tsconfig: `${rootDir}/tests/e2e/tsconfig.json` }],
+    '^.+\\.(t|j)s$': ['ts-jest', { 
+      tsconfig: path.resolve(rootDir, 'tests/e2e/tsconfig.json'),
+      isolatedModules: true 
+    }],
   },
   testEnvironment: 'node',
-  rootDir,
-  roots: [`${rootDir}/tests/e2e`],
+  rootDir: rootDir,
+  roots: [path.resolve(rootDir, 'tests/e2e')],
   moduleNameMapper: {
-    '^@logistics/proto(.*)$': `${rootDir}/libs/proto/src$1`,
-    '^@logistics/kafka-utils(.*)$': `${rootDir}/libs/kafka-utils/src$1`,
+    '^@logistics/proto(.*)$': path.resolve(rootDir, 'libs/proto/src$1'),
+    '^@logistics/kafka-utils(.*)$': path.resolve(rootDir, 'libs/kafka-utils/src$1'),
   },
+  testTimeout: 30000,
 }
