@@ -369,6 +369,68 @@ docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-co
 
 ---
 
+## Рефлексия: ESLint Strict Mode (2026-04-27)
+
+### Что сделали:
+- very strict eslint: `@typescript-eslint/recommended-type-checked` + `strict-type-checked`
+- `strictNullChecks: true` во всех `apps/*/tsconfig.json`
+
+### Найденные ловушки:
+
+| Ловушка | Решение |
+|---------|---------|
+| `@typescript-eslint/use-unknown-in-catch-variables` не существует в v7 | Убрать из rules |
+| `no-misused-promises` options format отличается в v7 | Использовать `error` без options |
+| `strictNullChecks=false` в tsconfig apps | Переопределяет base → исправить все |
+| strict в base было ДО strictNullChecks → ESLint не видел | Переставить порядок |
+| gRPC Observable → any при типизации | Паттерн: typed wrapper или assertion |
+| TypeORM `query()` возвращает `any` | `const rows = await q.query(sql) as TypedRow[]` |
+| empty class в KafkaUtilsModule | `eslint-disable @typescript-eslint/no-extraneous-class` |
+
+### Паттерны:
+
+- **Logger initialization:**
+  ```typescript
+  private readonly logger = new Logger(ClassName.name);
+  ```
+- **TypeORM typed query:**
+  ```typescript
+  const rows = await queryRunner.query(sql) as TypedRow[];
+  ```
+- **Kafka PromiseSettledResult:**
+  ```typescript
+  interface PublishResult {
+    status: 'fulfilled' | 'rejected';
+    reason?: unknown;
+  }
+  ```
+- **NestJS type imports:**
+  ```typescript
+  import type { Logger } from '@nestjs/common';
+  ```
+
+### Новые/изменённые файлы:
+
+| Файл | Изменение |
+|------|-----------|
+| `.eslintrc.json` | very strict rules |
+| `tsconfig.base.json` | strictNullChecks переставлен после strict |
+| `apps/*/tsconfig.json` | strictNullChecks:true добавлен |
+
+### Оставшиеся ошибки lint (до полного исправления):
+
+| Сервис | errors | Фокус |
+|--------|--------|-------|
+| fleet-service | ~50 | gRPC Observable → any |
+| order-service | ~30 | gRPC + entity |
+| api-gateway | ~20 | gRPC client wrappers |
+| invoice-service | ~10 | minor |
+| others | ~3 | мелочи |
+
+**Всего:** 113 errors после ~30 мин работы
+
+---
+
 ## 🏗️ Архитектурные наблюдения
 
 _Вещи которые стоит улучшить в будущем, но не срочно_

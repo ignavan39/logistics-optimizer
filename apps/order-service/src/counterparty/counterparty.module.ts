@@ -11,6 +11,7 @@ export const COUNTERPARTY_PACKAGE = 'COUNTERPARTY_PACKAGE';
       {
         name: COUNTERPARTY_PACKAGE,
         inject: [ConfigService],
+        /* eslint-disable @typescript-eslint/no-unsafe-assignment */
         useFactory: (configService: ConfigService) => ({
           transport: Transport.GRPC,
           options: {
@@ -19,6 +20,7 @@ export const COUNTERPARTY_PACKAGE = 'COUNTERPARTY_PACKAGE';
             url: configService.get('GRPC_COUNTERPARTY_HOST', 'counterparty-service:50056'),
           },
         }),
+        /* eslint-enable @typescript-eslint/no-unsafe-assignment */
       },
     ]),
   ],

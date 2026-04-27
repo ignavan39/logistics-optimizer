@@ -1,8 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { getDataSourceToken } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
-import { SettingsService, CompanySettings } from './settings.service';
-import { SettingEntity, SettingKey } from './entities/setting.entity';
+import { SettingsService } from './settings.service';
+import { SettingKey } from './entities/setting.entity';
 
 const mockRepo = {
   findOne: jest.fn(),
@@ -74,6 +73,7 @@ describe('SettingsService', () => {
 
       const result = await service.set('company_name', 'Updated Company');
 
+      expect(result).toBeDefined();
       expect(existing.value).toBe('Updated Company');
       expect(mockRepo.save).toHaveBeenCalledWith(existing);
     });

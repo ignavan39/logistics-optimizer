@@ -1,10 +1,11 @@
-import { Controller, Logger, Inject } from '@nestjs/common'
-import { GrpcMethod, RpcException } from '@nestjs/microservices'
+import type { Logger } from '@nestjs/common'
+import { Logger as NestLogger, Controller } from '@nestjs/common'
+import { GrpcMethod, RpcException as RpcExceptionOrig } from '@nestjs/microservices'
 import { status as GrpcStatus } from '@grpc/grpc-js'
-import { FleetService } from './fleet.service'
+import { type FleetService } from './fleet.service'
 
 interface GetAvailableVehiclesRequest {
-  near_point: { lat: number; lng: number }
+  near_point?: { lat: number; lng: number }
   radius_km: number
   min_capacity_kg: number
   min_capacity_m3: number
@@ -19,7 +20,7 @@ interface GetAvailableVehiclesResponse {
     capacity_m3: number
     status: string
     version: number
-    current_location?: { lat: number; lng: number } | null
+    current_location: { lat: number; lng: number } | null
     last_update: number
   }>
 }
@@ -40,23 +41,42 @@ interface GetVehicleResponse {
   } | null
 }
 
+interface DriverDetails {
+  id: string
+  email: string
+  first_name: string
+  last_name: string
+  phone: string
+}
+
+interface OrderDetails {
+  id: string
+  status: string
+  priority: string
+  pickup_address: string
+  delivery_address: string
+  created_at: number
+}
+
+interface VehicleDetails {
+  id: string
+  type: string
+  capacity_kg: number
+  capacity_m3: number
+  status: string
+  current_lat: number
+  current_lng: number
+  current_driver_id: string
+  current_order_id: string
+  last_update: number
+  version: number
+  created_at: number
+  driver: DriverDetails | null
+  order: OrderDetails | null
+}
+
 interface GetVehicleDetailsResponse {
-  vehicle: {
-    id: string
-    type: string
-    capacity_kg: number
-    capacity_m3: number
-    status: string
-    current_lat: number
-    current_lng: number
-    current_driver_id?: string | null
-    current_order_id?: string | null
-    last_update: number
-    version: number
-    created_at: number
-    driver: { id: string; email: string; first_name: string; last_name: string; phone: string } | null
-    order: { id: string; status: string; priority: string; pickup_address: string; delivery_address: string; created_at: Date } | null
-  } | null
+  vehicle: VehicleDetails | null
 }
 
 interface AssignVehicleRequest {
@@ -92,14 +112,16 @@ interface UpdateVehicleRequest {
 interface UpdateVehicleResponse {
   success: boolean
   message?: string
-  vehicle: GetVehicleDetailsResponse['vehicle']
+  vehicle: VehicleDetails | null
 }
 
 @Controller()
 export class FleetGrpcController {
-  private readonly logger = new Logger(FleetGrpcController.name)
+  private readonly logger: Logger
 
-  constructor(private readonly fleetService: FleetService) {}
+  constructor(private readonly fleetService: FleetService) {
+    this.logger = new NestLogger(FleetGrpcController.name)
+  }
 
   @GrpcMethod('FleetService', 'GetAvailableVehicles')
   async getAvailableVehicles(
@@ -135,7 +157,7 @@ export class FleetGrpcController {
     const vehicleId = request.vehicleId || request.vehicle_id || ''
     const vehicle = await this.fleetService.getVehicle(vehicleId)
     if (!vehicle) {
-      throw new RpcException({
+      throw new RpcExceptionOrig({
         code: GrpcStatus.NOT_FOUND,
         message: `Vehicle ${vehicleId} not found`,
       })
@@ -159,7 +181,7 @@ export class FleetGrpcController {
     const vehicleId = request.vehicleId || request.vehicle_id || ''
     const result = await this.fleetService.getVehicleDetails(vehicleId)
     if (!result.vehicle) {
-      throw new RpcException({
+      throw new RpcExceptionOrig({
         code: GrpcStatus.NOT_FOUND,
         message: `Vehicle ${vehicleId} not found`,
       })
@@ -176,9 +198,9 @@ export class FleetGrpcController {
         current_lng: v.currentLng || 0,
         current_driver_id: v.currentDriverId || '',
         current_order_id: v.currentOrderId || '',
-        last_update: v.lastUpdate?.getTime() || 0,
-        version: (v as any).version || 0,
-        created_at: (v as any).createdAt?.getTime() || 0,
+        last_update: v.lastUpdate.getTime(),
+        version: v.version,
+        created_at: v.createdAt.getTime(),
         driver: v.driver ? {
           id: v.driver.id,
           email: v.driver.email,
@@ -192,7 +214,7 @@ export class FleetGrpcController {
           priority: v.order.priority,
           pickup_address: v.order.pickupAddress,
           delivery_address: v.order.deliveryAddress,
-          created_at: v.order.createdAt?.getTime() || 0,
+          created_at: v.order.createdAt.getTime(),
         } : null,
       },
     }
@@ -209,8 +231,9 @@ export class FleetGrpcController {
         request.order_id,
       )
       return { success: true }
-    } catch (e: any) {
-      return { success: false, message: e.message }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Unknown error'
+      return { success: false, message }
     }
   }
 
@@ -246,6 +269,9 @@ export class FleetGrpcController {
         return { success: false, message: result.message, vehicle: null }
       }
       const v = result.vehicle.vehicle
+      if (!v) {
+        return { success: false, message: 'Vehicle not found', vehicle: null }
+      }
       return {
         success: true,
         message: result.message,
@@ -259,15 +285,15 @@ export class FleetGrpcController {
           current_lng: v.currentLng || 0,
           current_driver_id: v.currentDriverId || '',
           current_order_id: v.currentOrderId || '',
-          last_update: v.lastUpdate?.getTime() || 0,
-          version: (v as any).version || 0,
-          created_at: (v as any).createdAt?.getTime() || 0,
+          last_update: v.lastUpdate.getTime(),
+          version: v.version,
+          created_at: v.createdAt.getTime(),
           driver: v.driver ? {
             id: v.driver.id,
             email: v.driver.email,
             first_name: v.driver.firstName,
             last_name: v.driver.lastName,
-            phone: v.driver.phone,
+            phone: v.driver.phone || '',
           } : null,
           order: v.order ? {
             id: v.order.id,
@@ -275,9 +301,9 @@ export class FleetGrpcController {
             priority: v.order.priority,
             pickup_address: v.order.pickupAddress,
             delivery_address: v.order.deliveryAddress,
-            created_at: v.order.createdAt?.getTime() || 0,
+            created_at: v.order.createdAt.getTime(),
           } : null,
-        }
+        },
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Unknown error'

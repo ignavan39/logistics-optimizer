@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { type Repository } from 'typeorm'
 import { CounterpartyEntity, CounterpartyType } from '../entities/counterparty.entity'
 import { v4 as uuidv4 } from 'uuid'
 

@@ -1,4 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { RpcException } from '@nestjs/microservices';
 import { InvoiceGrpcController } from './invoice.grpc.controller';
 import { InvoiceService } from './invoice.service';
@@ -7,7 +7,6 @@ import { InvoiceStatus, InvoiceType } from './entities/invoice.entity';
 
 describe('InvoiceGrpcController', () => {
   let controller: InvoiceGrpcController;
-  let service: InvoiceService;
 
   const mockService = {
     getInvoiceById: jest.fn(),
@@ -38,7 +37,6 @@ describe('InvoiceGrpcController', () => {
     }).compile();
 
     controller = module.get<InvoiceGrpcController>(InvoiceGrpcController);
-    service = module.get<InvoiceService>(InvoiceService);
   });
 
   afterEach(() => {

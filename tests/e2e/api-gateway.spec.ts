@@ -5,7 +5,7 @@ const API_URL = process.env.API_URL || 'http://localhost:3000'
 
 describe('API Gateway E2E', () => {
   let api: ReturnType<typeof axios.create>
-  let testUser = {
+  const testUser = {
     email: `e2e-${Date.now()}@test.local`,
     password: 'TestPassword123!',
   }
@@ -598,7 +598,7 @@ describe('API Gateway E2E', () => {
 
   describe('Permission-based Access (403)', () => {
     let viewerToken: string
-    let viewerUser = {
+    const viewerUser = {
       email: `viewer-${Date.now()}@test.local`,
       password: 'ViewerPass123!',
     }

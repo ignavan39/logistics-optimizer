@@ -1,12 +1,12 @@
 import {
   Injectable,
   Logger,
-  OnApplicationBootstrap,
-  OnApplicationShutdown,
+  type OnApplicationBootstrap,
+  type OnApplicationShutdown,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
-import { TrackingMetrics } from '../../metrics/tracking.metrics';
+import { type DataSource } from 'typeorm';
+import { type TrackingMetrics } from '../../metrics/tracking.metrics';
 
 export interface TelemetryRecord {
   vehicleId: string;
@@ -130,7 +130,7 @@ export class TrackingBatchWriter implements OnApplicationBootstrap, OnApplicatio
 
       // Notify backpressure listeners
       const callbacks = this.flushCallbacks.splice(0);
-      callbacks.forEach((cb) => cb());
+      callbacks.forEach((cb) => { cb(); });
     }
   }
 

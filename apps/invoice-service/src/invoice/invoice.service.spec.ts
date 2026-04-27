@@ -1,13 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { NotFoundException, ConflictException } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { InvoiceService } from './invoice.service';
 import { InvoiceEntity, InvoiceStatus, InvoiceType } from './entities/invoice.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
 describe('InvoiceService', () => {
   let service: InvoiceService;
-  let repo: Repository<InvoiceEntity>;
   let mockRepo: any;
 
   beforeEach(() => {
@@ -35,7 +34,6 @@ describe('InvoiceService', () => {
     }).compile();
 
     service = module.get<InvoiceService>(InvoiceService);
-    repo = module.get<Repository<InvoiceEntity>>(getRepositoryToken(InvoiceEntity));
   });
 
   it('should be defined', () => {

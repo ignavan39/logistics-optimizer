@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { FileText, Download, Clock } from 'lucide-react'
+import { FileText, Download, Clock, Loader2 } from 'lucide-react'
 import { Button, PageLoader, Badge, Modal } from '@/components/ui'
 import { invoicesApi } from '@/lib/api.clients'
+import { apiGet } from '@/lib/api'
 import type { InvoiceStatus, InvoiceStatusUpdate } from '@/types/invoice'
 import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS } from '@/types'
 
@@ -19,11 +20,12 @@ export function InvoicesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | ''>('')
   const [showStatus, setShowStatus] = useState<string | null>(null)
+  const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['invoices', page, statusFilter],
-    queryFn: () => invoicesApi.list({ page, limit: 20, status: statusFilter || undefined }),
+    queryFn: () => invoicesApi.list({ page, limit: 20, status: statusFilter ? String(statusFilter) : undefined }),
     retry: 1,
   })
 
@@ -36,9 +38,25 @@ export function InvoicesPage() {
     },
   })
 
-  const downloadPdfMutation = useMutation({
-    mutationFn: (id: string) => invoicesApi.downloadPdf(id),
-  })
+  const downloadPdf = async (invoiceId: string) => {
+    setDownloadingPdf(invoiceId)
+    try {
+      const pollPdf = async (): Promise<string> => {
+        const result = await apiGet<{ url: string }>(`/invoices/${invoiceId}/pdf`)
+        if (result.url) {
+          return result.url
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        return pollPdf()
+      }
+      const pdfUrl = await pollPdf()
+      window.open(pdfUrl, '_blank')
+    } catch (err) {
+      console.error('PDF download error:', err)
+    } finally {
+      setDownloadingPdf(null)
+    }
+  }
 
   const filteredData = data?.items ?? []
   const totalPages = data ? Math.ceil(data.total / 20) : 0
@@ -65,7 +83,7 @@ export function InvoicesPage() {
       <div className="mb-4">
         <select 
           value={statusFilter} 
-          onChange={e => setStatusFilter(e.target.value as InvoiceStatus | '')}
+          onChange={e => { setStatusFilter(e.target.value as InvoiceStatus | ''); }}
           className="p-2 bg-surface border border-border rounded-lg text-text-primary"
         >
           <option value="">Все статусы</option>
@@ -115,22 +133,26 @@ export function InvoicesPage() {
                   <td className="p-3">
                     <div className="flex gap-2">
                       <button 
-                        onClick={() => setSelectedId(inv.id)} 
+                        onClick={() => { setSelectedId(inv.id); }} 
                         className="p-1 hover:bg-surface rounded"
                         title="Просмотр"
                       >
                         <FileText className="w-4 h-4 text-text-muted" />
                       </button>
                       <button 
-                        onClick={() => downloadPdfMutation.mutate(inv.id)} 
+                        onClick={() => downloadPdf(inv.id)}
                         className="p-1 hover:bg-surface rounded"
                         title="Скачать PDF"
-                        disabled={downloadPdfMutation.isPending}
+                        disabled={downloadingPdf === inv.id}
                       >
-                        <Download className="w-4 h-4 text-text-muted" />
+                        {downloadingPdf === inv.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-accent-lavender" />
+                        ) : (
+                          <Download className="w-4 h-4 text-text-muted" />
+                        )}
                       </button>
                       <button 
-                        onClick={() => setShowStatus(inv.id)} 
+                        onClick={() => { setShowStatus(inv.id); }} 
                         className="p-1 hover:bg-surface rounded"
                         title="Изменить статус"
                       >
@@ -149,13 +171,13 @@ export function InvoicesPage() {
         <div className="flex items-center justify-between mt-4">
           <div className="text-sm text-text-muted">Страница {page} из {totalPages}</div>
           <div className="flex gap-2">
-            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Назад</Button>
-            <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Вперёд</Button>
+            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => { setPage(p => p - 1); }}>Назад</Button>
+            <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => { setPage(p => p + 1); }}>Вперёд</Button>
           </div>
         </div>
       )}
 
-      <Modal isOpen={!!selectedId && !!selected} onClose={() => setSelectedId(null)} title={`Счёт ${selected?.number}`} size="lg">
+      <Modal isOpen={!!selectedId && !!selected} onClose={() => { setSelectedId(null); }} title={`Счёт ${selected?.number}`} size="lg">
         {selected && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -194,30 +216,30 @@ export function InvoicesPage() {
             </div>
             <div className="flex gap-2 pt-2">
               <Button 
-                onClick={() => downloadPdfMutation.mutate(selected.id)}
-                disabled={downloadPdfMutation.isPending}
+                onClick={() => downloadPdf(selected.id)}
+                disabled={downloadingPdf === selected.id}
               >
                 <Download className="w-4 h-4 mr-2" />
-                {downloadPdfMutation.isPending ? 'Загрузка...' : 'Скачать PDF'}
+                {downloadingPdf === selected.id ? 'Загрузка...' : 'Скачать PDF'}
               </Button>
             </div>
           </div>
         )}
       </Modal>
 
-      <Modal isOpen={!!showStatus} onClose={() => setShowStatus(null)} title="Изменить статус">
+      <Modal isOpen={!!showStatus} onClose={() => { setShowStatus(null); }} title="Изменить статус">
         <div className="space-y-4">
           <p className="text-text-muted">Выберите новый статус:</p>
           <div className="flex gap-2">
             <Button 
-              onClick={() => updateStatusMutation.mutate({ id: showStatus!, status: 'paid' })}
+              onClick={() => { updateStatusMutation.mutate({ id: showStatus!, status: { status: 2 } }); }}
               disabled={updateStatusMutation.isPending}
             >
               Оплачен
             </Button>
             <Button 
               variant="secondary"
-              onClick={() => updateStatusMutation.mutate({ id: showStatus!, status: 'cancelled' })}
+              onClick={() => { updateStatusMutation.mutate({ id: showStatus!, status: { status: 4 } }); }}
               disabled={updateStatusMutation.isPending}
             >
               Отменён

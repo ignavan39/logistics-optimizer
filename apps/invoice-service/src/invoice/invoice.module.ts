@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ClientsModule, Transport, ClientKafka, ClientGrpc } from '@nestjs/microservices';
+import { ClientsModule, Transport, type ClientGrpc } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { InvoiceService } from './invoice.service';

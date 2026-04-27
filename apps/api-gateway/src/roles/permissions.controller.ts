@@ -13,7 +13,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../auth/guards/rbac.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { PermissionsService } from './roles.service';
+import { type PermissionsService } from './roles.service';
 
 @ApiTags('permissions')
 @Controller('permissions')

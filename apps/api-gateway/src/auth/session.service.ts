@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Repository, DataSource } from 'typeorm';
-import { Session } from '../users/entities/session.entity';
+import { type Repository, type DataSource } from 'typeorm';
+import { type Session } from '../users/entities/session.entity';
 
 @Injectable()
 export class SessionService {

@@ -154,10 +154,12 @@ export function CounterpartiesPage() {
     createTariffMutation.mutate({
       contractId: showTariff,
       dto: {
-        zone: formData.get('zone') as string,
+        zoneFrom: formData.get('zoneFrom') as string,
+        zoneTo: formData.get('zoneTo') as string,
         pricePerKm: Number(formData.get('pricePerKm')),
         pricePerKg: Number(formData.get('pricePerKg')),
         minPrice: Number(formData.get('minPrice')),
+        minWeight: Number(formData.get('minWeight')),
       },
     })
   }
@@ -246,7 +248,7 @@ export function CounterpartiesPage() {
           </div>
         )}
         <div className="flex justify-end">
-          <Button onClick={() => startEdit(selected)}>
+          <Button onClick={() => { startEdit(selected); }}>
             <Edit className="w-4 h-4 mr-2" />Редактировать
           </Button>
         </div>
@@ -260,7 +262,7 @@ export function CounterpartiesPage() {
     return (
       <div className="space-y-4">
         <div className="flex justify-end">
-          <Button onClick={() => setShowContract(selected.id)}>
+          <Button onClick={() => { setShowContract(selected.id); }}>
             <FilePlus className="w-4 h-4 mr-2" />Добавить контракт
           </Button>
         </div>
@@ -278,7 +280,7 @@ export function CounterpartiesPage() {
                 </div>
                 <div className="flex gap-2">
                   <Badge label={CONTRACT_STATUS_LABELS[contract.status]} color={contract.status === 'ACTIVE' ? 'success' : 'muted'} />
-                  <button onClick={() => setShowTariff(contract.id)} className="p-1 hover:bg-surface rounded" title="Тарифы">
+                  <button onClick={() => { setShowTariff(contract.id); }} className="p-1 hover:bg-surface rounded" title="Тарифы">
                     <FileText className="w-4 h-4 text-text-muted" />
                   </button>
                 </div>
@@ -294,13 +296,13 @@ export function CounterpartiesPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-text-primary">Контрагенты</h1>
-        <Button onClick={() => setShowCreate(true)}>
+        <Button onClick={() => { setShowCreate(true); }}>
           <Plus className="w-4 h-4 mr-2" />Добавить
         </Button>
       </div>
 
       <div className="mb-4">
-        <Input placeholder="Поиск..." value={search} onChange={e => setSearch(e.target.value)} className="max-w-sm" />
+        <Input placeholder="Поиск..." value={search} onChange={e => { setSearch(e.target.value); }} className="max-w-sm" />
       </div>
 
       {!data?.length ? (
@@ -351,7 +353,7 @@ export function CounterpartiesPage() {
       )}
 
       {/* Create Modal */}
-      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Новый контрагент">
+      <Modal isOpen={showCreate} onClose={() => { setShowCreate(false); }} title="Новый контрагент">
         <form onSubmit={handleCreateSubmit} className="space-y-4">
           <Input name="name" label="Название" required />
           <div>
@@ -367,7 +369,7 @@ export function CounterpartiesPage() {
           <Input name="contactEmail" label="Email" type="email" />
           <Input name="contactPhone" label="Телефон" />
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setShowCreate(false)}>Отмена</Button>
+            <Button type="button" variant="secondary" onClick={() => { setShowCreate(false); }}>Отмена</Button>
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending ? 'Создание...' : 'Создать'}
             </Button>
@@ -376,17 +378,17 @@ export function CounterpartiesPage() {
       </Modal>
 
       {/* Details/Contracts Modal */}
-      <Modal isOpen={!!selectedId && !!selected} onClose={() => setSelectedId(null)} title={selected?.name} size="lg">
+      <Modal isOpen={!!selectedId && !!selected} onClose={() => { setSelectedId(null); }} title={selected?.name} size="lg">
         <div className="space-y-4">
           <div className="flex gap-4 mb-4 border-b border-border">
             <button
-              onClick={() => setActiveTab('details')}
+              onClick={() => { setActiveTab('details'); }}
               className={`pb-2 px-1 ${activeTab === 'details' ? 'border-b-2 border-accent-lavender text-primary' : 'text-text-muted'}`}
             >
               Реквизиты
             </button>
             <button
-              onClick={() => setActiveTab('contracts')}
+              onClick={() => { setActiveTab('contracts'); }}
               className={`pb-2 px-1 ${activeTab === 'contracts' ? 'border-b-2 border-accent-lavender text-primary' : 'text-text-muted'}`}
             >
               Контракты
@@ -398,7 +400,7 @@ export function CounterpartiesPage() {
       </Modal>
 
       {/* Create Contract Modal */}
-      <Modal isOpen={!!showContract} onClose={() => setShowContract(null)} title="Новый контракт">
+      <Modal isOpen={!!showContract} onClose={() => { setShowContract(null); }} title="Новый контракт">
         <form onSubmit={handleContractSubmit} className="space-y-4">
           <Input name="number" label="Номер" required />
           <Input name="validFrom" label="Действует с" type="date" />
@@ -406,7 +408,7 @@ export function CounterpartiesPage() {
           <Input name="totalLimitRub" label="Лимит (₽)" type="number" />
           <Input name="paymentTermsDays" label="Срок оплаты (дней)" type="number" />
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setShowContract(null)}>Отмена</Button>
+            <Button type="button" variant="secondary" onClick={() => { setShowContract(null); }}>Отмена</Button>
             <Button type="submit" disabled={createContractMutation.isPending}>
               {createContractMutation.isPending ? 'Создание...' : 'Создать'}
             </Button>
@@ -415,10 +417,10 @@ export function CounterpartiesPage() {
       </Modal>
 
       {/* Tariffs Modal */}
-      <Modal isOpen={!!showTariff} onClose={() => setShowTariff(null)} title="Тарифы контракта" size="lg">
+      <Modal isOpen={!!showTariff} onClose={() => { setShowTariff(null); }} title="Тарифы контракта" size="lg">
         <div className="space-y-4">
           <div className="flex justify-end">
-            <Button onClick={() => setShowTariff(showTariff)}>
+            <Button onClick={() => { setShowTariff(showTariff); }}>
               <FilePlus className="w-4 h-4 mr-2" />Добавить тариф
             </Button>
           </div>
@@ -439,14 +441,14 @@ export function CounterpartiesPage() {
       </Modal>
 
       {/* Create Tariff Modal */}
-      <Modal isOpen={showTariff === 'create-tariff'} onClose={() => setShowTariff(null)} title="Новый тариф">
+      <Modal isOpen={showTariff === 'create-tariff'} onClose={() => { setShowTariff(null); }} title="Новый тариф">
         <form onSubmit={handleTariffSubmit} className="space-y-4">
           <Input name="zone" label="Зона" required />
           <Input name="pricePerKm" label="Цена за км" type="number" required />
           <Input name="pricePerKg" label="Цена за кг" type="number" required />
           <Input name="minPrice" label="Мин. сумма" type="number" required />
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setShowTariff(null)}>Отмена</Button>
+            <Button type="button" variant="secondary" onClick={() => { setShowTariff(null); }}>Отмена</Button>
             <Button type="submit" disabled={createTariffMutation.isPending}>
               {createTariffMutation.isPending ? 'Создание...' : 'Создать'}
             </Button>

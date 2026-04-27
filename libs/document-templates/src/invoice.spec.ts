@@ -1,4 +1,4 @@
-import { generateInvoice, InvoiceData } from './index';
+import { generateInvoice, type InvoiceData } from './index';
 
 describe('generateInvoice', () => {
   const validInvoiceData: InvoiceData = {

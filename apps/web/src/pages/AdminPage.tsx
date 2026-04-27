@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetchWithAuth as apiFetch } from '@/lib/auth'
-import { Users, Shield, Key, Plus, Loader2, Trash2, X, Mail, Lock, User } from 'lucide-react'
+import { Users, Shield, Key, Plus, Loader2, Trash2, X, Mail, Lock, User, FileText } from 'lucide-react'
+import { type AuditLogsResponse } from '@/types'
 
 interface User {
   userId: string
@@ -26,7 +27,7 @@ interface Permission {
   resource?: string
 }
 
-type Tab = 'users' | 'roles' | 'permissions'
+type Tab = 'users' | 'roles' | 'permissions' | 'audit'
 
 interface UserFormData {
   email: string
@@ -68,7 +69,7 @@ function UserModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-surface rounded-xl border border-border w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-surface rounded-xl border border-border w-full max-w-md p-6" onClick={(e) => { e.stopPropagation(); }}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-text-primary">
             {user ? 'Редактировать пользователя' : 'Добавить пользователя'}
@@ -92,7 +93,7 @@ function UserModal({
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => { setFormData({ ...formData, email: e.target.value }); }}
                 className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-lavender"
                 placeholder="user@example.com"
                 required
@@ -109,7 +110,7 @@ function UserModal({
                 <input
                   type="password"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) => { setFormData({ ...formData, password: e.target.value }); }}
                   className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-lavender"
                   placeholder="••••••••"
                   required={!user}
@@ -127,7 +128,7 @@ function UserModal({
                 <input
                   type="text"
                   value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  onChange={(e) => { setFormData({ ...formData, firstName: e.target.value }); }}
                   className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-lavender"
                   placeholder="Иван"
                   required
@@ -139,7 +140,7 @@ function UserModal({
               <input
                 type="text"
                 value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                onChange={(e) => { setFormData({ ...formData, lastName: e.target.value }); }}
                 className="w-full px-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-lavender"
                 placeholder="Петров"
                 required
@@ -184,7 +185,7 @@ function UsersTab() {
     mutationFn: (userId: string) =>
       apiFetch(`/auth/admin/users/${userId}`, { method: 'DELETE' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
-    onError: (err) => console.error('Delete error:', err),
+    onError: (err) => { console.error('Delete error:', err); },
   })
 
   const createMutation = useMutation({
@@ -222,7 +223,7 @@ function UsersTab() {
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-accent-lavender" />
 
-  const users = data?.users?.map(u => ({
+  const users = data?.users.map(u => ({
     userId: u.id,
     email: u.email,
     type: u.is_active ? 'active' : 'inactive',
@@ -234,7 +235,7 @@ function UsersTab() {
     <div>
       <div className="flex justify-end mb-4">
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={() => { setModalOpen(true); }}
           className="flex items-center gap-2 px-3 py-2 bg-accent-lavender text-background rounded-lg text-sm font-medium hover:opacity-90"
         >
           <Plus className="w-4 h-4" />
@@ -263,11 +264,11 @@ function UsersTab() {
               </tr>
             </thead>
             <tbody>
-              {users.filter(u => u?.userId).map((user) => (
+              {users.filter(u => u.userId).map((user) => (
                 <tr
                   key={user.userId}
                   className="border-b border-border hover:bg-surface-hover cursor-pointer"
-                  onClick={() => handleRowClick(user)}
+                  onClick={() => { handleRowClick(user); }}
                 >
                   <td className="p-4 text-text-primary">{user.email}</td>
                   <td className="p-4 text-text-secondary">{user.type || '-'}</td>
@@ -287,8 +288,8 @@ function UsersTab() {
                           {p}
                         </span>
                       ))}
-                      {(user.permissions?.length || 0) > 3 && (
-                        <span className="text-text-muted text-xs">+{(user.permissions?.length || 0) - 3}</span>
+                      {(user.permissions.length || 0) > 3 && (
+                        <span className="text-text-muted text-xs">+{(user.permissions.length || 0) - 3}</span>
                       )}
                     </div>
                   </td>
@@ -341,7 +342,7 @@ function RolesTab() {
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {roles.map((role) => {
-          const rolePerms = role.rolePermissions?.map(rp => rp.permission?.name).filter(Boolean) || []
+          const rolePerms = role.rolePermissions?.map(rp => rp.permission.name).filter(Boolean) || []
           return (
             <div key={role.id} className="bg-surface rounded-xl border border-border p-4">
               <div className="flex items-center justify-between mb-3">
@@ -402,6 +403,130 @@ function PermissionsTab() {
   )
 }
 
+function AuditTab() {
+  const [page, setPage] = useState(1)
+  const [filters, setFilters] = useState({
+    userId: '',
+    action: '',
+    resource: '',
+    from: '',
+    to: '',
+  })
+
+  const { data, isLoading } = useQuery<AuditLogsResponse>({
+    queryKey: ['audit-logs', page, filters],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      params.append('limit', '20')
+      params.append('offset', String((page - 1) * 20))
+      if (filters.userId) params.append('userId', filters.userId)
+      if (filters.action) params.append('action', filters.action)
+      if (filters.resource) params.append('resource', filters.resource)
+      if (filters.from) params.append('from', filters.from)
+      if (filters.to) params.append('to', filters.to)
+      return apiFetch(`/admin/audit-logs?${params.toString()}`)
+    },
+  })
+
+  const logs = data?.logs || []
+  const totalPages = data ? Math.ceil(data.total / 20) : 0
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-5 gap-4">
+        <input
+          type="text"
+          placeholder="User ID"
+          value={filters.userId}
+          onChange={(e) => setFilters({ ...filters, userId: e.target.value })}
+          className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-text-muted"
+        />
+        <input
+          type="text"
+          placeholder="Действие"
+          value={filters.action}
+          onChange={(e) => setFilters({ ...filters, action: e.target.value })}
+          className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-text-muted"
+        />
+        <input
+          type="text"
+          placeholder="Ресурс"
+          value={filters.resource}
+          onChange={(e) => setFilters({ ...filters, resource: e.target.value })}
+          className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-text-muted"
+        />
+        <input
+          type="date"
+          value={filters.from}
+          onChange={(e) => setFilters({ ...filters, from: e.target.value })}
+          className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary"
+        />
+        <input
+          type="date"
+          value={filters.to}
+          onChange={(e) => setFilters({ ...filters, to: e.target.value })}
+          className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary"
+        />
+      </div>
+
+      {isLoading ? (
+        <Loader2 className="w-6 h-6 animate-spin text-accent-lavender" />
+      ) : logs.length === 0 ? (
+        <div className="text-text-secondary text-center py-8">Нет записей</div>
+      ) : (
+        <div className="bg-surface rounded-xl border border-border overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left p-3 text-text-secondary font-medium text-sm">Время</th>
+                <th className="text-left p-3 text-text-secondary font-medium text-sm">Пользователь</th>
+                <th className="text-left p-3 text-text-secondary font-medium text-sm">Действие</th>
+                <th className="text-left p-3 text-text-secondary font-medium text-sm">Ресурс</th>
+                <th className="text-left p-3 text-text-secondary font-medium text-sm">ID ресурса</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log) => (
+                <tr key={log.id} className="border-b border-border hover:bg-surface-hover">
+                  <td className="p-3 text-text-primary text-sm">
+                    {new Date(log.createdAt).toLocaleString('ru-RU')}
+                  </td>
+                  <td className="p-3 text-text-secondary text-sm">{log.userId?.slice(0, 8) || '-'}</td>
+                  <td className="p-3 text-text-primary text-sm">{log.action}</td>
+                  <td className="p-3 text-text-secondary text-sm">{log.resource}</td>
+                  <td className="p-3 text-text-muted text-sm font-mono">{log.resourceId?.slice(0, 8) || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-text-muted">Страница {page} из {totalPages}</div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(p => p - 1)}
+              disabled={page <= 1}
+              className="px-3 py-1 border border-border rounded text-sm disabled:opacity-50"
+            >
+              Назад
+            </button>
+            <button
+              onClick={() => setPage(p => p + 1)}
+              disabled={page >= totalPages}
+              className="px-3 py-1 border border-border rounded text-sm disabled:opacity-50"
+            >
+              Вперёд
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function AdminPage() {
   const [tab, setTab] = useState<Tab>('users')
 
@@ -409,6 +534,7 @@ export function AdminPage() {
     { id: 'users' as Tab, label: 'Пользователи', icon: Users },
     { id: 'roles' as Tab, label: 'Роли', icon: Shield },
     { id: 'permissions' as Tab, label: 'Права', icon: Key },
+    { id: 'audit' as Tab, label: 'Аудит', icon: FileText },
   ]
 
   return (
@@ -419,7 +545,7 @@ export function AdminPage() {
 {tabs.map(({ id, label, icon: Icon }, i) => (
                 <button
                   key={id || i}
-            onClick={() => setTab(id)}
+            onClick={() => { setTab(id); }}
             className={`flex items-center gap-2 px-4 py-2 -mb-px border-b-2 transition-colors ${
               tab === id
                 ? 'border-accent-lavender text-accent-lavender'
@@ -435,6 +561,7 @@ export function AdminPage() {
       {tab === 'users' && <UsersTab />}
       {tab === 'roles' && <RolesTab />}
       {tab === 'permissions' && <PermissionsTab />}
+      {tab === 'audit' && <AuditTab />}
     </div>
   )
 }

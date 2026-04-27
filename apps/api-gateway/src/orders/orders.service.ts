@@ -1,13 +1,13 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import { ClientGrpc, ClientsModule, Transport, MicroserviceOptions } from '@nestjs/microservices'
+import { Injectable, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common'
+import { type ConfigService } from '@nestjs/config'
+import { type ClientGrpc } from '@nestjs/microservices'
 import { Inject } from '@nestjs/common'
 import {
-  CreateOrderDto,
-  GetOrderDto,
-  ListOrdersDto,
-  UpdateOrderStatusDto,
-  CancelOrderDto,
+  type CreateOrderDto,
+  type GetOrderDto,
+  type ListOrdersDto,
+  type UpdateOrderStatusDto,
+  type CancelOrderDto,
 } from './dto/orders.dto'
 
 interface OrderGrpcClient {

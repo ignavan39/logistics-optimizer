@@ -1,8 +1,8 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { DataSource } from 'typeorm';
+import { Injectable, Logger, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common';
+import { type ConfigService } from '@nestjs/config';
+import { type DataSource } from 'typeorm';
 import Redis from 'ioredis';
-import { Route } from '../routing.service';
+import { type Route } from '../routing.service';
 
 interface CacheEntry {
   routeData: Route;
@@ -44,7 +44,7 @@ export class RouteCacheService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.redis?.quit();
+    await this.redis.quit();
   }
 
   private normalizeKey(originLat: number, originLng: number, destLat: number, destLng: number, vehicleId?: string): string {

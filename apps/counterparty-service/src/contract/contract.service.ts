@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { type Repository } from 'typeorm'
 import { ContractEntity, ContractStatus } from '../entities/contract.entity'
 import { ContractTariffEntity } from '../entities/contract-tariff.entity'
 import { v4 as uuidv4 } from 'uuid'

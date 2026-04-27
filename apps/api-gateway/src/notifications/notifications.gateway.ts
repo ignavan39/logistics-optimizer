@@ -1,17 +1,17 @@
 import {
   WebSocketGateway,
   WebSocketServer,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-  OnGatewayInit,
+  type OnGatewayConnection,
+  type OnGatewayDisconnect,
+  type OnGatewayInit,
   SubscribeMessage,
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
+import { type Server, type Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+import { type JwtService } from '@nestjs/jwt';
+import { type ConfigService } from '@nestjs/config';
 
 export interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -42,7 +42,7 @@ export class NotificationsGateway
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {
-    this.allowedOrigins = (configService.get('CORS_ORIGIN', '*') as string)
+    this.allowedOrigins = (configService.get('CORS_ORIGIN', '*'))
       .split(',')
       .map((o) => o.trim());
   }
@@ -53,7 +53,7 @@ export class NotificationsGateway
   }
 
   async handleConnection(client: AuthenticatedSocket): Promise<void> {
-    const origin = client.handshake.headers?.origin;
+    const origin = client.handshake.headers.origin;
     if (this.allowedOrigins[0] !== '*' && origin && !this.allowedOrigins.includes(origin)) {
       this.logger.warn(`Client ${client.id} — invalid origin: ${origin}`);
       client.disconnect();
@@ -62,8 +62,8 @@ export class NotificationsGateway
 
     try {
       const token =
-        client.handshake.auth?.token ||
-        client.handshake.headers?.authorization?.split(' ')[1];
+        client.handshake.auth.token ||
+        client.handshake.headers.authorization.split(' ')[1];
 
       if (!token) {
         this.logger.warn(`Client ${client.id} — no token`);

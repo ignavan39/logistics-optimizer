@@ -3,8 +3,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../auth/guards/rbac.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { SettingsService } from './settings.service';
-import { CompanySettings, UpdateCompanySettingsDto } from './settings.dto';
+import { type SettingsService } from './settings.service';
+import { type CompanySettings, type UpdateCompanySettingsDto } from './settings.dto';
 
 @ApiTags('settings')
 @Controller('settings')

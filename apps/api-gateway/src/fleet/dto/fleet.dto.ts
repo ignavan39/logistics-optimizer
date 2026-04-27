@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsEnum, Min, Max, IsInt } from 'class-validator'
+import { IsString, IsNumber, IsOptional, Min, Max, IsInt } from 'class-validator'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class GeoPointDto {

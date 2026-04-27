@@ -1,12 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { DispatchSagaService, SagaStatus } from './dispatch-saga.service';
-import { ClientGrpc } from '@nestjs/microservices';
-import { DataSource } from 'typeorm';
+import { type ClientGrpc } from '@nestjs/microservices';
 import { getDataSourceToken } from '@nestjs/typeorm';
 
 describe('DispatchSagaService', () => {
   let service: DispatchSagaService;
-  let dataSource: DataSource;
 
   const mockDataSource = {
     query: jest.fn().mockResolvedValue([]),
@@ -80,7 +78,6 @@ describe('DispatchSagaService', () => {
     }).compile();
 
     service = module.get<DispatchSagaService>(DispatchSagaService);
-    dataSource = module.get<DataSource>(getDataSourceToken());
   });
 
   it('should be defined', () => {
@@ -116,7 +113,7 @@ describe('DispatchSagaService', () => {
       const retrieved = service.getSaga(created.sagaId);
 
       expect(retrieved).toBeDefined();
-      expect(retrieved?.orderId).toBe('order-4');
+      expect(retrieved.orderId).toBe('order-4');
     });
 
     it('should return undefined for non-existent saga', () => {

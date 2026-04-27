@@ -1,12 +1,12 @@
 import { describe, beforeAll, afterAll, it, expect } from '@jest/globals'
-import axios, { AxiosInstance } from 'axios'
+import axios, { type AxiosInstance } from 'axios'
 
 const API_URL = process.env.API_URL || 'http://localhost:3000'
 
 describe('Kafka Events E2E', () => {
   let api: AxiosInstance
   let accessToken: string
-  let testUser = {
+  const testUser = {
     email: `kafka-e2e-${Date.now()}@test.local`,
     password: 'TestPassword123!',
   }

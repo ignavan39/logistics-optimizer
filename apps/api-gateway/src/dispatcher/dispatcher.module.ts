@@ -3,8 +3,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices'
 import { ConfigService } from '@nestjs/config'
 import { DispatcherController } from './dispatcher.controller'
 import { DispatcherService } from './dispatcher.service'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { join } from 'path'
 
 @Module({
   imports: [

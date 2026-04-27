@@ -1,5 +1,5 @@
 import { Card } from '@/components/ui'
-import { Order } from '@/types'
+import { type Order } from '@/types'
 import { Package } from 'lucide-react'
 import { OrderStatusBadge } from './OrderStatusBadge'
 
@@ -26,7 +26,7 @@ export function OrderCard({ order, onClick }: { order: Order; onClick: () => voi
         <OrderStatusBadge status={order.status} />
       </div>
       <div className="text-sm text-text-secondary">
-        <p>{order.origin?.address || '—'} → {order.destination?.address || '—'}</p>
+        <p>{order.origin.address || '—'} → {order.destination.address || '—'}</p>
       </div>
       <div className="flex gap-4 mt-2 text-sm text-text-muted">
         <span>{order.weightKg} кг</span>

@@ -1,6 +1,6 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SettingsGrpcController, UpdateCompanySettingsRequest } from './settings.grpc.controller';
-import { SettingsService, CompanySettings } from './settings.service';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { SettingsGrpcController, type UpdateCompanySettingsRequest } from './settings.grpc.controller';
+import { SettingsService, type CompanySettings } from './settings.service';
 
 const mockSettingsService = {
   get: jest.fn(),

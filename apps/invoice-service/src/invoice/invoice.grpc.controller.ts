@@ -1,9 +1,9 @@
 import { Controller, Logger, Inject } from '@nestjs/common';
 import { GrpcMethod, RpcException } from '@nestjs/microservices';
 import { status as GrpcStatus } from '@grpc/grpc-js';
-import { InvoiceService } from './invoice.service';
-import { PdfService } from './pdf.service';
-import { InvoiceEntity, InvoiceStatus, InvoiceType } from './entities/invoice.entity';
+import { type InvoiceService } from './invoice.service';
+import { type PdfService } from './pdf.service';
+import { type InvoiceEntity, InvoiceStatus, InvoiceType } from './entities/invoice.entity';
 
 interface OrderGrpcClient {
   GetOrder(data: { orderId: string }): Promise<any>;
@@ -178,12 +178,12 @@ export class InvoiceGrpcController {
       vatRate: Number(invoice.vatRate),
       vatAmount: Number(invoice.vatAmount) * 100,
       status: invoice.status,
-      dueDate: invoice.dueDate?.getTime() ?? 0,
-      paidAt: invoice.paidAt?.getTime() ?? 0,
+      dueDate: invoice.dueDate.getTime() ?? 0,
+      paidAt: invoice.paidAt.getTime() ?? 0,
       counterpartyId: invoice.counterpartyId ?? '',
       contractId: invoice.contractId ?? '',
       description: invoice.description ?? '',
-      createdAt: invoice.createdAt?.getTime() ?? 0,
+      createdAt: invoice.createdAt.getTime() ?? 0,
       version: invoice.version,
     };
   }

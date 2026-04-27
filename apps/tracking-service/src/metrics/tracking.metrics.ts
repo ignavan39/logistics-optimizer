@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { Counter, Gauge, Histogram, Registry } from 'prom-client';
+import { Counter, Gauge, Histogram, type Registry } from 'prom-client';
 
 @Injectable()
 export class TrackingMetrics {
-  readonly messagesReceived: Counter<string>;
-  readonly telemetryInserted: Counter<string>;
-  readonly batchFlushErrors: Counter<string>;
-  readonly telemetryLag: Histogram<string>;
-  readonly batchFlushDuration: Histogram<string>;
-  readonly batchFlushSize: Histogram<string>;
-  readonly batchQueueSize: Gauge<string>;
-  readonly activeStreamSubscribers: Gauge<string>;
+  readonly messagesReceived: Counter;
+  readonly telemetryInserted: Counter;
+  readonly batchFlushErrors: Counter;
+  readonly telemetryLag: Histogram;
+  readonly batchFlushDuration: Histogram;
+  readonly batchFlushSize: Histogram;
+  readonly batchQueueSize: Gauge;
+  readonly activeStreamSubscribers: Gauge;
 
   constructor(private readonly registry: Registry) {
     this.messagesReceived = new Counter({

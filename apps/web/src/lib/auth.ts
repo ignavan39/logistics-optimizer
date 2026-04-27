@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { apiFetch } from './utils'
+import { initSocket, disconnectSocket } from './socket'
 
 interface User {
   userId: string
@@ -39,6 +40,7 @@ export const useAuthStore = create<AuthState>()(
           user: res.user,
           isAuthenticated: true,
         })
+        initSocket()
       },
 
       logout: async () => {
@@ -53,6 +55,7 @@ export const useAuthStore = create<AuthState>()(
             // Ignore logout errors - intentional for auth cleanup
           }
         }
+        disconnectSocket()
         set({
           user: null,
           token: null,

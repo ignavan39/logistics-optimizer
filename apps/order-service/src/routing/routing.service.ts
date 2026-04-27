@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ClientGrpc } from '@nestjs/microservices';
+import { type ConfigService } from '@nestjs/config';
+import { type ClientGrpc } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
 
 interface RouteResponse {
@@ -43,7 +43,7 @@ export class RoutingService {
       });
       return route.distanceKm;
     } catch (e) {
-      this.logger.error(`Failed to calculate route: ${e}`);
+      this.logger.error(`Failed to calculate route: ${String(e)}`);
       return 0;
     }
   }

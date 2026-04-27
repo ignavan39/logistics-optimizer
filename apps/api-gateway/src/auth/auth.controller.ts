@@ -5,37 +5,31 @@ import {
   Body,
   UseGuards,
   Req,
-  Param,
+  Query,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
+import type { Request } from 'express';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { AuthService } from './auth.service';
-import { RolesService, PermissionsService } from '../roles/roles.service';
-import { UsersService } from '../users/users.service';
+import { type AuthService } from './auth.service';
+import { type UsersService } from '../users/users.service';
 import {
-  RegisterDto,
-  LoginDto,
-  RefreshTokenDto,
-  ChangePasswordDto,
-  CreateApiKeyDto,
-  CreateUserDto,
+  type RegisterDto,
+  type LoginDto,
+  type RefreshTokenDto,
+  type ChangePasswordDto,
+  type CreateApiKeyDto,
+  type CreateUserDto,
 } from './dto/user-auth.dto';
 import { JwtAuthGuard, CurrentUser } from './guards/jwt-auth.guard';
-import { RbacGuard } from './guards/rbac.guard';
-import { Permissions } from './decorators/permissions.decorator';
 import { Public } from './decorators/public.decorator';
-import { RequestUser } from './strategies/jwt.strategy';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(
     private authService: AuthService,
-    private rolesService: RolesService,
-    private permissionsService: PermissionsService,
     private usersService: UsersService,
   ) {}
 
@@ -53,8 +47,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
   @Throttle({ default: { ttl: 60000, limit: 1000 } })
-  async login(@Body() dto: LoginDto, @Req() req: any) {
-    const ipAddress = req.ip || req.connection?.remoteAddress;
+  async login(@Body() dto: LoginDto, @Req() req: Request) {
+    const ipAddress = req.ip || req.socket?.remoteAddress;
     const userAgent = req.get('User-Agent');
     return this.authService.login(dto, ipAddress, userAgent);
   }
@@ -78,121 +72,77 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout and invalidate session' })
-  async logout(@CurrentUser() user: RequestUser) {
-    await this.authService.logout(user.userId, user.sessionId);
+  async logout(@CurrentUser() user: { userId: string }, @Req() req: Request) {
+    const sessionId = req.headers['x-session-id'] as string | undefined;
+    return this.authService.logout(user.userId, sessionId);
   }
 
   @Post('change-password')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Change user password' })
+  @ApiOperation({ summary: 'Change password' })
   async changePassword(
-    @CurrentUser() user: RequestUser,
     @Body() dto: ChangePasswordDto,
+    @CurrentUser() user: { userId: string },
   ) {
-    return this.authService.changePassword(
-      user.userId,
-      dto.currentPassword,
-      dto.newPassword,
-    );
+    return this.authService.changePassword(user.userId, dto);
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user info' })
-  async getMe(@CurrentUser() user: RequestUser) {
-    return {
-      userId: user.userId,
-      email: user.email,
-      type: user.type,
-      permissions: user.permissions,
-    };
+  async getMe(@CurrentUser() user: { userId: string }) {
+    return this.usersService.getUserById(user.userId);
   }
 
-  @Post('refresh-permissions')
+  @Get('me/sessions')
   @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Refresh user permissions from DB without re-login' })
-  async refreshPermissions(@CurrentUser() user: RequestUser) {
-    const permissions = await this.authService.getUserPermissions(user.userId);
-    return {
-      userId: user.userId,
-      permissions,
-    };
-  }
-
-  @Get('my-roles')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current user roles' })
-  async getMyRoles(@CurrentUser() user: RequestUser) {
-    return this.usersService.getUserRoles(user.userId);
-  }
-
-  @Get('permissions')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all available permissions' })
-  async getAllPermissions() {
-    return this.permissionsService.listPermissions();
-  }
-
-  @Get('all-roles')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'List all system roles' })
-  async listAllRoles() {
-    return await this.rolesService.listRoles();
+  @ApiOperation({ summary: 'Get active sessions' })
+  async getMySessions(@CurrentUser() user: { userId: string }) {
+    return this.authService.getUserSessions(user.userId);
   }
 
   @Post('api-keys')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create new API key' })
+  @ApiOperation({ summary: 'Create API key' })
   async createApiKey(
-    @CurrentUser() user: RequestUser,
     @Body() dto: CreateApiKeyDto,
+    @CurrentUser() user: { userId: string },
   ) {
     return this.authService.createApiKey(user.userId, dto);
   }
 
-  @Get('admin/users')
+  @Get('api-keys')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all users (admin only)' })
-  async findUsers(
-    @CurrentUser() user: RequestUser,
-  ) {
-    return this.usersService.findUsers();
+  @ApiOperation({ summary: 'List API keys' })
+  async listApiKeys(@CurrentUser() user: { userId: string }) {
+    return this.authService.listApiKeys(user.userId);
   }
 
-  @Post('admin/users')
+  @Post('users')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create new user (admin only)' })
+  @ApiOperation({ summary: 'Create user (admin)' })
   async createUser(
-    @CurrentUser() user: RequestUser,
     @Body() dto: CreateUserDto,
+    @CurrentUser() user: { userId: string },
   ) {
-    return this.authService.createUser(dto);
+    return this.usersService.createUser(dto, user.userId);
   }
 
-  @Get('user-roles/:userId')
+  @Get('users')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get user roles by user ID' })
-  async getUserRoles(
-    @CurrentUser() user: RequestUser,
-    @Param('userId') userId?: string,
+  @ApiOperation({ summary: 'List users' })
+  async listUsers(
+    @CurrentUser() _user: { userId: string },
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    const targetUserId = userId || user.userId;
-    return this.authService.getUserRoles(targetUserId);
+    return this.usersService.listUsers({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
+    });
   }
 }

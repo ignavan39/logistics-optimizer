@@ -1,8 +1,7 @@
 import './tracing';
 
 import { NestFactory } from '@nestjs/core';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { join } from 'path';
+import { type MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
@@ -70,7 +69,7 @@ async function bootstrap(): Promise<void> {
   logger.log(`Metrics on http://0.0.0.0:${httpPort}/metrics`);
 }
 
-bootstrap().catch((err) => {
+bootstrap().catch((err: unknown) => {
   logger.error('Fatal bootstrap error', err);
   process.exit(1);
 });

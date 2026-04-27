@@ -1,5 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ClientGrpc, ClientsModule, Transport, MicroserviceOptions } from '@nestjs/microservices';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { OrdersService } from './orders.service';
 
