@@ -34,3 +34,20 @@ CREATE TABLE IF NOT EXISTS route_waypoints (
 );
 
 CREATE INDEX idx_route_waypoints_route ON route_waypoints(route_id);
+
+-- Route cache table (Redis + PostgreSQL for routes)
+CREATE TABLE IF NOT EXISTS route_cache (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    route_key VARCHAR(100) NOT NULL UNIQUE,
+    origin_lat DECIMAL(10,6) NOT NULL,
+    origin_lng DECIMAL(10,6) NOT NULL,
+    dest_lat DECIMAL(10,6) NOT NULL,
+    dest_lng DECIMAL(10,6) NOT NULL,
+    route_data JSONB NOT NULL,
+    vehicle_id UUID,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_route_cache_key ON route_cache(route_key);
+CREATE INDEX idx_route_cache_expiry ON route_cache(created_at);
+CREATE INDEX idx_route_cache_coords ON route_cache(origin_lat, origin_lng, dest_lat, dest_lng);

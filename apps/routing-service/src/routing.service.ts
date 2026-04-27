@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common'
 import { v4 as uuidv4 } from 'uuid'
+import { RouteCacheService } from './routing/route-cache.service'
 
 export interface Route {
   id: string
@@ -18,14 +19,25 @@ export class RoutingService {
   private readonly logger = new Logger(RoutingService.name)
   private readonly routes = new Map<string, Route>()
 
-  calculateRoute(
+  constructor(
+    @Inject(forwardRef(() => RouteCacheService))
+    private readonly routeCache: RouteCacheService,
+  ) {}
+
+  async calculateRoute(
     originLat: number,
     originLng: number,
     destLat: number,
     destLng: number,
     waypoints?: { lat: number; lng: number }[],
     vehicleId?: string,
-  ): Route {
+  ): Promise<Route> {
+    const cached = await this.routeCache.getRoute(originLat, originLng, destLat, destLng, vehicleId)
+    if (cached) {
+      this.logger.debug(`Cache hit for ${originLat},${originLng} -> ${destLat},${destLng}`)
+      return cached
+    }
+
     const routeId = uuidv4()
     const distance = this.calculateDistance(originLat, originLng, destLat, destLng)
     const duration = Math.round(distance / 15)
@@ -42,6 +54,9 @@ export class RoutingService {
     }
 
     this.routes.set(routeId, route)
+
+    await this.routeCache.setRoute(route, originLat, originLng, destLat, destLng, vehicleId)
+
     return route
   }
 
