@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ClientsModule, Transport, type ClientGrpc } from '@nestjs/microservices';
+import { ClientsModule, Transport, type ClientGrpc, type ClientKafka } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { InvoiceService } from './invoice.service';
@@ -48,7 +48,7 @@ import { S3StorageService } from './s3-storage.service';
           options: {
             package: 'counterparty',
             protoPath: '/app/libs/proto/src/counterparty.proto',
-            url: configService.get('GRPC_COUNTERPARTY_HOST', 'counterparty-service:50057'),
+            url: configService.get('GRPC_COUNTERPARTY_HOST', 'counterparty-service:50056'),
           },
         }),
       },
@@ -57,22 +57,9 @@ import { S3StorageService } from './s3-storage.service';
   controllers: [InvoiceGrpcController, PdfController],
   providers: [
     InvoiceService,
-    InvoiceEventHandler,
-    S3StorageService,
     {
-      provide: DataSource,
-      useFactory: async (configService: ConfigService) => {
-        const dataSource = new DataSource({
-          type: 'postgres',
-          host: configService.get('DB_HOST', 'pg-invoice'),
-          port: configService.get<number>('DB_PORT', 5432),
-          database: configService.get('DB_NAME', 'logistics_invoices'),
-          username: configService.get('DB_USER', 'logistics'),
-          password: configService.get('DB_PASS', 'logistics_secret'),
-        });
-        await dataSource.initialize();
-        return dataSource;
-      },
+      provide: S3StorageService,
+      useFactory: (configService: ConfigService) => new S3StorageService(configService),
       inject: [ConfigService],
     },
     {
@@ -86,6 +73,16 @@ import { S3StorageService } from './s3-storage.service';
       ) =>
         new PdfService(dataSource, s3Storage, configService, orderGrpc, counterpartyGrpc),
       inject: [DataSource, S3StorageService, ConfigService, 'ORDER_PACKAGE', 'COUNTERPARTY_PACKAGE'],
+    },
+    {
+      provide: InvoiceEventHandler,
+      useFactory: (
+        dataSource: DataSource,
+        invoiceService: InvoiceService,
+        kafka: ClientKafka,
+        counterpartyGrpc: ClientGrpc,
+      ) => new InvoiceEventHandler(kafka, counterpartyGrpc, invoiceService, dataSource),
+      inject: [DataSource, InvoiceService, 'KAFKA_CLIENT', 'COUNTERPARTY_PACKAGE'],
     },
   ],
   exports: [InvoiceService, PdfService],

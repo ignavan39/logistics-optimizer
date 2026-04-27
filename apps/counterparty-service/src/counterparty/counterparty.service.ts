@@ -1,6 +1,5 @@
-import { Injectable } from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
-import { type Repository } from 'typeorm'
+import { Injectable, Inject } from '@nestjs/common'
+import { DataSource, Repository } from 'typeorm'
 import { CounterpartyEntity, CounterpartyType } from '../entities/counterparty.entity'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -31,10 +30,11 @@ interface FindAllCounterpartyData {
 
 @Injectable()
 export class CounterpartyService {
-  constructor(
-    @InjectRepository(CounterpartyEntity)
-    private readonly repo: Repository<CounterpartyEntity>,
-  ) {}
+  private readonly repo: Repository<CounterpartyEntity>
+
+  constructor(@Inject(DataSource) dataSource: DataSource) {
+    this.repo = dataSource.getRepository(CounterpartyEntity)
+  }
 
   async create(data: CreateCounterpartyData): Promise<CounterpartyEntity> {
     const entity = this.repo.create({
@@ -108,10 +108,5 @@ export class CounterpartyService {
     })
 
     return this.repo.save(existing)
-  }
-
-  async getAsyncIterator(data: FindAllCounterpartyData): Promise<AsyncIterable<CounterpartyEntity>> {
-    const items = await this.findAll(data)
-    return items[Symbol.for('asyncIterator') as keyof typeof items] as unknown as Promise<AsyncIterable<CounterpartyEntity>>
   }
 }

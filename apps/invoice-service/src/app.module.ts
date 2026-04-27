@@ -15,7 +15,7 @@ import { InvoiceModule } from './invoice/invoice.module';
   providers: [
     {
       provide: DataSource,
-      useFactory: async (configService: ConfigService) => {
+      useFactory: (configService: ConfigService) => {
         const ds = new DataSource({
           type: 'postgres',
           host: configService.get('INVOICE_DB_HOST', 'pg-invoice'),
@@ -25,8 +25,8 @@ import { InvoiceModule } from './invoice/invoice.module';
           database: configService.get('INVOICE_DB_NAME', 'logistics_invoices'),
           synchronize: configService.get('NODE_ENV') === 'development',
           logging: configService.get('NODE_ENV') === 'development',
-        });
-        return ds.initialize();
+        })
+        return ds
       },
       inject: [ConfigService],
     },
