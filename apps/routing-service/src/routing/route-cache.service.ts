@@ -56,11 +56,15 @@ export class RouteCacheService implements OnModuleInit, OnModuleDestroy {
     const key = this.normalizeKey(originLat, originLng, destLat, destLng, vehicleId);
 
     if (this.redis) {
-      const cached = await this.redis.get(this.CACHE_PREFIX + key);
-      if (cached) {
-        const entry: CacheEntry = JSON.parse(cached);
-        this.logger.debug(`Redis cache hit: ${key}`);
-        return entry.routeData;
+      try {
+        const cached = await this.redis.get(this.CACHE_PREFIX + key);
+        if (cached) {
+          const entry: CacheEntry = JSON.parse(cached);
+          this.logger.debug(`Redis cache hit: ${key}`);
+          return entry.routeData;
+        }
+      } catch (e) {
+        this.logger.warn(`Redis get failed: ${e}`);
       }
     }
 
@@ -106,7 +110,11 @@ export class RouteCacheService implements OnModuleInit, OnModuleDestroy {
     };
 
     if (this.redis) {
-      await this.redis.setex(this.CACHE_PREFIX + key, this.CACHE_TTL, JSON.stringify(entry));
+      try {
+        await this.redis.setex(this.CACHE_PREFIX + key, this.CACHE_TTL, JSON.stringify(entry));
+      } catch (e) {
+        this.logger.warn(`Redis set failed: ${e}`);
+      }
     }
 
     try {
