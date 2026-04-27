@@ -25,3 +25,22 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Docs & docs
+docs/
+.agents/
+graphify-out/
+
+# Git
+.git/
+.gitignore
+
+# README (only root one needed)
+README.md
+AGENTS.md
+COMMUNICATION.md
+DATABASE.md
+SERVICES.md
+API.md
+FEATURES.md
+**/*.md
