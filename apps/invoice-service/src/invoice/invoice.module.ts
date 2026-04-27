@@ -1,18 +1,12 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport, ClientKafka, ClientGrpc } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
-import { DataSource } from 'typeorm';
-import { KafkaUtilsModule } from '@logistics/kafka-utils';
-import { InvoiceEntity } from './entities/invoice.entity';
 import { InvoiceService } from './invoice.service';
 import { InvoiceGrpcController } from './invoice.grpc.controller';
 import { InvoiceEventHandler } from './invoice-event-handler';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([InvoiceEntity]),
-    KafkaUtilsModule,
     ClientsModule.registerAsync([
       {
         name: 'ORDER_PACKAGE',
