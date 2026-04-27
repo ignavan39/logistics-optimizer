@@ -355,7 +355,7 @@ services:
     networks:
       - logistics-net
 
-minio:
+  minio:
     image: minio/minio:latest
     container_name: logistics-minio
     restart: unless-stopped
