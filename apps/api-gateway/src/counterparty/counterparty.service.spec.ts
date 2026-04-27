@@ -1,6 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { ClientGrpc } from '@nestjs/microservices';
 import { CounterpartyService } from './counterparty.service';
 
 const mockClient = {

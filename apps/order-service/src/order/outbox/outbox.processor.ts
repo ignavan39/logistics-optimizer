@@ -1,13 +1,13 @@
 import {
   Injectable,
   Logger,
-  OnApplicationBootstrap,
-  OnApplicationShutdown,
+  type OnApplicationBootstrap,
+  type OnApplicationShutdown,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { type DataSource } from 'typeorm';
 import { Inject } from '@nestjs/common';
-import { ClientKafka } from '@nestjs/microservices';
+import { type ClientKafka } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 
 const POLL_INTERVAL_MS = 1_000;
@@ -40,7 +40,7 @@ export class OutboxProcessor implements OnApplicationBootstrap, OnApplicationShu
 
   private scheduleNext(): void {
     if (this.isShuttingDown) return;
-    this.timer = setTimeout(() => this.poll(), POLL_INTERVAL_MS);
+    void setTimeout(() => { void this.poll(); }, POLL_INTERVAL_MS);
   }
 
   private async poll(): Promise<void> {
@@ -63,9 +63,8 @@ export class OutboxProcessor implements OnApplicationBootstrap, OnApplicationShu
     await qr.startTransaction();
 
     try {
-      // SELECT FOR UPDATE SKIP LOCKED — safe for concurrent replicas
-      const rows: Array<{ id: string; event_type: string; payload: unknown }> =
-        await qr.query(
+      type OutboxRow = { id: string; event_type: string; payload: unknown };
+      const rows: OutboxRow[] = await qr.query<OutboxRow>(
           `SELECT id, event_type, payload FROM outbox_events
            WHERE processed_at IS NULL AND retry_count < $1
            ORDER BY created_at ASC
@@ -81,27 +80,27 @@ export class OutboxProcessor implements OnApplicationBootstrap, OnApplicationShu
 
       this.logger.debug(`Outbox: publishing ${rows.length} events`);
 
-      const results = await Promise.allSettled(
-        rows.map((row) =>
-          lastValueFrom(
-            this.kafka.emit(row.event_type, {
-              key: (row.payload as { aggregateId?: string })?.aggregateId ?? row.id,
-              value: JSON.stringify(row.payload),
-            }),
-          ),
+      const publishPromises = rows.map((row: OutboxRow) =>
+        lastValueFrom(
+          this.kafka.emit(String(row.event_type), {
+            key: (row.payload as { aggregateId?: string }).aggregateId ?? row.id,
+            value: JSON.stringify(row.payload),
+          }),
         ),
       );
+      const results = await Promise.allSettled(publishPromises);
 
       const successIds: string[] = [];
-      const failures: { id: string; error: string }[] = [];
+      const failures: Array<{ id: string; error: string }> = [];
 
-      results.forEach((r, i) => {
+      for (let i = 0; i < results.length; i++) {
+        const r = results[i];
         if (r.status === 'fulfilled') {
           successIds.push(rows[i].id);
         } else {
           failures.push({ id: rows[i].id, error: String(r.reason) });
         }
-      });
+      }
 
       if (successIds.length) {
         await qr.query(

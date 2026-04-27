@@ -1,16 +1,14 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ClientGrpc } from '@nestjs/microservices';
+import { Injectable, type OnModuleInit, type OnModuleDestroy, Logger } from '@nestjs/common';
+import { type ConfigService } from '@nestjs/config';
+import { type ClientGrpc } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
-import { Metadata } from '@grpc/grpc-js';
+import { type Metadata } from '@grpc/grpc-js';
 import {
-  GetCounterpartyDto,
-  GetContractTariffsDto,
-  ValidateContractDto,
-  CounterpartyResponse,
-  ContractTariffResponse,
-  ContractResponse,
-  ValidateContractResponse,
+  type GetContractTariffsDto,
+  type CounterpartyResponse,
+  type ContractTariffResponse,
+  type ContractResponse,
+  type ValidateContractResponse,
 } from './dto/counterparty.dto';
 
 interface CounterpartyGrpcClient {
@@ -42,7 +40,7 @@ export class CounterpartyService implements OnModuleInit, OnModuleDestroy {
     try {
       return await this.client.getCounterparty({ id });
     } catch (e) {
-      this.logger.error(`Failed to get counterparty ${id}: ${e}`);
+      this.logger.error(`Failed to get counterparty ${id}: ${String(e)}`);
       return null;
     }
   }
@@ -50,9 +48,9 @@ export class CounterpartyService implements OnModuleInit, OnModuleDestroy {
   async getContractTariffs(contractId: string, zone?: string): Promise<ContractTariffResponse[]> {
     try {
       const response = await this.client.getContractTariffs({ contractId, zone });
-      return response.items || [];
+      return response.items;
     } catch (e) {
-      this.logger.error(`Failed to get tariffs for contract ${contractId}: ${e}`);
+      this.logger.error(`Failed to get tariffs for contract ${contractId}: ${String(e)}`);
       return [];
     }
   }
@@ -60,15 +58,10 @@ export class CounterpartyService implements OnModuleInit, OnModuleDestroy {
   async validateContract(contractId: string): Promise<ValidateContractResponse> {
     try {
       const contract = await this.client.getContract({ id: contractId });
-      
-      if (!contract) {
-        return { valid: false, error: 'Contract not found' };
-      }
-
       const now = Date.now();
       const validTo = contract.validTo;
 
-      if (validTo && now > validTo) {
+      if (now > validTo) {
         return { valid: false, contract, error: 'Contract expired' };
       }
 
@@ -78,7 +71,7 @@ export class CounterpartyService implements OnModuleInit, OnModuleDestroy {
 
       return { valid: true, contract };
     } catch (e) {
-      this.logger.error(`Failed to validate contract ${contractId}: ${e}`);
+      this.logger.error(`Failed to validate contract ${contractId}: ${String(e)}`);
       return { valid: false, error: String(e) };
     }
   }

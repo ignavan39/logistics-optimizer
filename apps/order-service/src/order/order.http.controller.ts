@@ -1,5 +1,21 @@
-import { Controller, Get, Post, Body, Param, Query, Patch, Delete, HttpCode, HttpStatus, NotFoundException } from '@nestjs/common';
-import { OrderService } from './order.service';
+import { Controller, Get, Post, Body, Param, Query, Patch, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import { type OrderService, type CreateOrderDto, type UpdateOrderStatusDto } from './order.service';
+import { type OrderEntity } from './entities/order.entity';
+
+interface OrderResponseDto {
+  orderId: string;
+  customerId: string;
+  status: string;
+  priority: string;
+  origin: { lat: number; lng: number; address?: string };
+  destination: { lat: number; lng: number; address?: string };
+  weightKg: number;
+  volumeM3: number;
+  notes?: string;
+  slaDeadline?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 @Controller('orders')
 export class OrderHttpController {
@@ -7,27 +23,14 @@ export class OrderHttpController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createOrder(@Body() dto: any) {
-    const order = await this.orderService.createOrder({
-      customerId: dto.customerId,
-      originLat: dto.originLat,
-      originLng: dto.originLng,
-      originAddress: dto.originAddress,
-      destinationLat: dto.destinationLat,
-      destinationLng: dto.destinationLng,
-      destinationAddress: dto.destinationAddress,
-      weightKg: dto.weightKg,
-      volumeM3: dto.volumeM3,
-      notes: dto.notes,
-      slaDeadline: dto.slaDeadline ? new Date(dto.slaDeadline) : undefined,
-    });
+  async createOrder(@Body() dto: CreateOrderDto) {
+    const order = await this.orderService.createOrder(dto);
     return this.toResponse(order);
   }
 
   @Get(':id')
   async getOrder(@Param('id') id: string) {
     const order = await this.orderService.getOrder(id);
-    if (!order) throw new NotFoundException(`Order ${id} not found`);
     return this.toResponse(order);
   }
 
@@ -45,24 +48,18 @@ export class OrderHttpController {
     @Query('page') page = '1',
     @Query('limit') limit = '20',
   ) {
-    const result = await this.orderService.listOrders(
-      customerId,
-      status as any,
-      parseInt(page, 10),
-      parseInt(limit, 10),
-    );
-    return { orders: result.orders.map(this.toResponse), total: result.total, page: parseInt(page, 10), limit: parseInt(limit, 10) };
+    const result = await this.orderService.listOrders(customerId, undefined, parseInt(page, 10), parseInt(limit, 10));
+    return { orders: result.orders.map((o: OrderEntity) => this.toResponse(o)), total: result.total, page: parseInt(page, 10), limit: parseInt(limit, 10) };
   }
 
   @Patch(':id/status')
-  async updateOrderStatus(@Param('id') id: string, @Body() dto: any) {
+  async updateOrderStatus(@Param('id') id: string, @Body() dto: UpdateOrderStatusDto) {
     const order = await this.orderService.updateOrderStatus({
       orderId: id,
       status: dto.status,
       reason: dto.reason,
       updatedBy: dto.updatedBy,
     });
-    if (!order) throw new NotFoundException(`Order ${id} not found`);
     return this.toResponse(order);
   }
 
@@ -72,7 +69,7 @@ export class OrderHttpController {
     return this.orderService.cancelOrder(id, reason || 'cancelled');
   }
 
-  private toResponse(order: any) {
+  private toResponse(order: OrderEntity): OrderResponseDto {
     return {
       orderId: order.id,
       customerId: order.customerId,
@@ -83,9 +80,9 @@ export class OrderHttpController {
       weightKg: order.weightKg,
       volumeM3: order.volumeM3,
       notes: order.notes,
-      slaDeadline: order.slaDeadline?.toISOString(),
-      createdAt: order.createdAt?.toISOString(),
-      updatedAt: order.updatedAt?.toISOString(),
+      slaDeadline: order.slaDeadline ? order.slaDeadline.toISOString() : undefined,
+      createdAt: order.createdAt.toISOString(),
+      updatedAt: order.updatedAt.toISOString(),
     };
   }
 }

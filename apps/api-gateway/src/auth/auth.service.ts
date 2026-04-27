@@ -3,16 +3,16 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Repository, DataSource } from 'typeorm';
-import { User } from '../users/entities/user.entity';
-import { Session } from '../users/entities/session.entity';
-import { LoginDto, CreateApiKeyDto, CreateUserDto } from './dto/user-auth.dto';
-import { RegisterDto } from '../users/dto/user.dto';
-import { UsersService } from '../users/users.service';
-import { TokenService } from './token.service';
-import { SessionService } from './session.service';
-import { PasswordService } from './password.service';
-import { ApiKeyService } from './api-key.service';
+import { type Repository, type DataSource } from 'typeorm';
+import { type User } from '../users/entities/user.entity';
+import { type Session } from '../users/entities/session.entity';
+import { type LoginDto, type CreateApiKeyDto, type CreateUserDto } from './dto/user-auth.dto';
+import { type RegisterDto } from '../users/dto/user.dto';
+import { type UsersService } from '../users/users.service';
+import { type TokenService } from './token.service';
+import { type SessionService } from './session.service';
+import { type PasswordService } from './password.service';
+import { type ApiKeyService } from './api-key.service';
 
 @Injectable()
 export class AuthService {
@@ -33,7 +33,7 @@ export class AuthService {
   async register(dto: RegisterDto) {
     const user = await this.usersService.register(dto);
     const fullUser = await this.userRepository.findOne({ where: { id: user.userId } });
-    return this.tokenService.generateTokens(fullUser!);
+    return this.tokenService.generateTokens(fullUser);
   }
 
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {

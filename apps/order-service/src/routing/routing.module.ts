@@ -11,6 +11,7 @@ export const ROUTING_PACKAGE = 'ROUTING_PACKAGE';
       {
         name: ROUTING_PACKAGE,
         inject: [ConfigService],
+        /* eslint-disable @typescript-eslint/no-unsafe-assignment */
         useFactory: (configService: ConfigService) => ({
           transport: Transport.GRPC,
           options: {
@@ -19,6 +20,7 @@ export const ROUTING_PACKAGE = 'ROUTING_PACKAGE';
             url: configService.get('GRPC_ROUTING_HOST', 'routing-service:50053'),
           },
         }),
+        /* eslint-enable @typescript-eslint/no-unsafe-assignment */
       },
     ]),
   ],

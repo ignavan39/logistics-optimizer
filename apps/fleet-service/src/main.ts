@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core'
-import { MicroserviceOptions, Transport } from '@nestjs/microservices'
-import { join } from 'path'
+import type { MicroserviceOptions } from '@nestjs/microservices'
+import { Transport } from '@nestjs/microservices'
 import { Logger } from '@nestjs/common'
 import { AppModule } from './app.module'
 
@@ -27,7 +27,7 @@ async function bootstrap(): Promise<void> {
   logger.log(`gRPC on :${process.env['GRPC_FLEET_PORT'] ?? 50052}`)
 }
 
-bootstrap().catch((err) => {
-  logger.error('Fatal error', err)
+bootstrap().catch((err: unknown) => {
+  logger.error('Fatal error', err instanceof Error ? err.message : String(err))
   process.exit(1)
 })

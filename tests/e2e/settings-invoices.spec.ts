@@ -1,5 +1,5 @@
 import { describe, beforeAll, afterAll, it, expect, beforeEach } from '@jest/globals'
-import axios, { AxiosInstance } from 'axios'
+import axios, { type AxiosInstance } from 'axios'
 
 const API_URL = process.env.API_URL || 'http://localhost:3000'
 
@@ -7,7 +7,7 @@ describe('Settings API E2E', () => {
   let api: AxiosInstance
   let adminToken: string
   let userToken: string
-  let testUser = {
+  const testUser = {
     email: `settings-e2e-${Date.now()}@test.local`,
     password: 'TestPassword123!',
   }
@@ -114,7 +114,7 @@ describe('Settings API E2E', () => {
 describe('Invoices API E2E', () => {
   let api: AxiosInstance
   let adminToken: string
-  let testUser = {
+  const testUser = {
     email: `invoices-e2e-${Date.now()}@test.local`,
     password: 'TestPassword123!',
   }

@@ -1,12 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
-import { OrderEntity } from './entities/order.entity';
-import { OrderTariffSnapshotEntity } from './entities/order-tariff-snapshot.entity';
-import { OutboxEventEntity } from './entities/outbox-event.entity';
-import { OrderStatusHistoryEntity } from './entities/order-status-history.entity';
-import { CargoEntity } from './entities/cargo.entity';
-import { DocumentEntity } from './entities/document.entity';
 import { OrderService } from './order.service';
 import { OrderGrpcController } from './order.grpc.controller';
 import { OrderHttpController } from './order.http.controller';

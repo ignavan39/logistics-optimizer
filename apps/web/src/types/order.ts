@@ -48,3 +48,30 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, 'lavender' | 'sky' | 'mint
   3: 'success',
   4: 'error',
 }
+
+export type OrderPriority = 'normal' | 'urgent'
+
+export interface CreateOrderCargo {
+  name: string
+  quantity: number
+  weightKg: number
+  volumeM3: number
+  valueRub: number
+}
+
+export interface CreateOrderDto {
+  origin: OrderLocation
+  destination: OrderLocation
+  priority: OrderPriority
+  cargo: CreateOrderCargo
+  customerId?: string
+}
+
+export interface UpdateOrderStatusDto {
+  status: OrderStatus
+  reason?: string
+}
+
+export interface CancelOrderDto {
+  reason?: string
+}

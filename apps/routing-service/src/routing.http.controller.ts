@@ -1,5 +1,5 @@
-import { Controller, Post, Body, Param, Get, HttpCode, HttpStatus } from '@nestjs/common';
-import { RoutingService } from './routing.service';
+import { Controller, Post, Body, Param, Get } from '@nestjs/common';
+import { type RoutingService } from './routing.service';
 
 @Controller('routing')
 export class RoutingHttpController {

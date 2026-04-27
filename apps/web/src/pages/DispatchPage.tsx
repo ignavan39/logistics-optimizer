@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiGet } from '@/lib/api'
 import { PageLoader, Modal, Badge } from '@/components/ui'
-import { DispatchSaga, SAGA_STATUS_LABELS, SAGA_STATUS_COLORS } from '@/types'
+import { type DispatchSaga, SAGA_STATUS_LABELS, SAGA_STATUS_COLORS } from '@/types'
 import { Activity } from 'lucide-react'
 
 export function DispatchPage() {
@@ -43,7 +43,7 @@ export function DispatchPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {data.sagas.map(s => (
-            <div key={s.id} className="bg-surface rounded-xl border border-border p-4 hover:bg-surface-hover cursor-pointer" onClick={() => setSelectedId(s.id)}>
+            <div key={s.id} className="bg-surface rounded-xl border border-border p-4 hover:bg-surface-hover cursor-pointer" onClick={() => { setSelectedId(s.id); }}>
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-medium text-text-primary">{s.id.slice(0, 8)}</p>
@@ -57,12 +57,12 @@ export function DispatchPage() {
         </div>
       )}
 
-      <Modal isOpen={!!selectedId} onClose={() => setSelectedId(null)} title={`Dispatch ${selectedId?.slice(0, 8)}`}>
+      <Modal isOpen={!!selectedId} onClose={() => { setSelectedId(null); }} title={`Dispatch ${selectedId?.slice(0, 8)}`}>
         {saga && (
           <div className="space-y-3">
             <p className="text-text-secondary">Заказ: {saga.orderId}</p>
             <p className="text-text-muted">Статус: {SAGA_STATUS_LABELS[saga.status]}</p>
-            {saga.steps?.length > 0 && (
+            {saga.steps.length > 0 && (
               <div className="space-y-2 mt-4">
                 {saga.steps.map(step => (
                   <div key={step.name} className="flex items-center gap-2">

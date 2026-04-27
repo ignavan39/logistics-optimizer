@@ -1,6 +1,6 @@
 import { Controller, Logger } from '@nestjs/common';
-import { EventPattern, Payload, Ctx, KafkaContext } from '@nestjs/microservices';
-import { NotificationsGateway } from './notifications.gateway';
+import { EventPattern, Payload } from '@nestjs/microservices';
+import { type NotificationsGateway } from './notifications.gateway';
 
 interface OrderEventPayload {
   eventId: string;
@@ -94,7 +94,6 @@ export class NotificationsConsumer {
   @EventPattern('vehicle.telemetry')
   async handleVehicleTelemetry(
     @Payload() payload: VehicleTelemetryPayload,
-    @Ctx() ctx: KafkaContext,
   ): Promise<void> {
     if (!payload.destination) return;
 

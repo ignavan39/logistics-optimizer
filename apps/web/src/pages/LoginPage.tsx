@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/lib/auth'
 import { Truck, Loader2, Mail, Lock, LogIn } from 'lucide-react'
 
@@ -51,7 +51,7 @@ export function LoginPage() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); }}
                   className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-lavender"
                   placeholder="user@example.com"
                   required
@@ -66,7 +66,7 @@ export function LoginPage() {
                 <input
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); }}
                   className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-lavender"
                   placeholder="••••••••"
                   required
@@ -92,7 +92,10 @@ export function LoginPage() {
         </div>
 
         <p className="text-center text-text-muted text-sm mt-4">
-          Требуется аккаунт. Обратитесь к администратору.
+          Нет аккаунта?{' '}
+          <Link to="/register" className="text-accent-lavender hover:underline">
+            Зарегистрироваться
+          </Link>
         </p>
       </div>
     </div>

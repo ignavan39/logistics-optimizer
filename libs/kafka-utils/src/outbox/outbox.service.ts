@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger as NestLogger, type Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, EntityManager } from 'typeorm';
+import type { DataSource, EntityManager } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { KafkaEvent } from '../interfaces/kafka-event.interface';
+import type { KafkaEvent } from '../interfaces/kafka-event.interface';
 
 /**
  * OutboxService — записывает события в outbox таблицу в рамках транзакции.
@@ -15,12 +15,14 @@ import { KafkaEvent } from '../interfaces/kafka-event.interface';
  */
 @Injectable()
 export class OutboxService {
-  private readonly logger = new Logger(OutboxService.name);
+  private readonly logger: Logger;
 
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
-  ) {}
+  ) {
+    this.logger = new NestLogger(OutboxService.name);
+  }
 
   /**
    * Сохраняет событие в outbox в рамках существующей транзакции.

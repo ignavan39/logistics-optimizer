@@ -1,9 +1,9 @@
-import { Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
-import { ClientKafka, Transport, ClientGrpc } from '@nestjs/microservices';
+import { Injectable, Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
+import { type ClientKafka, type ClientGrpc } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
-import { DataSource } from 'typeorm';
-import { InvoiceService } from './invoice.service';
+import { type DataSource } from 'typeorm';
+import { type InvoiceService } from './invoice.service';
 import { InvoiceType } from './entities/invoice.entity';
 
 interface TariffItem {

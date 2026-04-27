@@ -1,9 +1,8 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ClientGrpc, RpcException } from '@nestjs/microservices';
-import { Inject } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { CompanySettings, SettingResponse, UpdateCompanySettingsDto } from './settings.dto';
+import { Injectable, Logger, type OnModuleInit, type OnModuleDestroy, Inject } from '@nestjs/common';
+import { type ConfigService } from '@nestjs/config';
+import { type ClientGrpc } from '@nestjs/microservices';
+import { type Observable } from 'rxjs';
+import { type CompanySettings, type SettingResponse, type UpdateCompanySettingsDto } from './settings.dto';
 
 interface OrderGrpcClient {
   getCompanySettings(options?: unknown): Observable<unknown>;
@@ -69,7 +68,7 @@ export class SettingsService implements OnModuleInit, OnModuleDestroy {
     try {
       return new Promise<SettingResponse>((resolve, reject) => {
         this.client.setSetting({ key, value }).subscribe({
-          next: (data) => resolve(data),
+          next: (data) => { resolve(data); },
           error: (err) => {
             this.logger.error(`Failed to set setting ${key}: ${err}`);
             reject(err);
@@ -87,7 +86,7 @@ export class SettingsService implements OnModuleInit, OnModuleDestroy {
       const result = this.client.updateCompanySettings(settings);
       return new Promise<CompanySettings>((resolve, reject) => {
         result.subscribe({
-          next: (data) => resolve(mapResponseToCompanySettings(data)),
+          next: (data) => { resolve(mapResponseToCompanySettings(data)); },
           error: (err) => {
             this.logger.error(`Failed to update company settings: ${err}`);
             reject(err);

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsEnum, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsObject } from 'class-validator';
 
 export enum CounterpartyType {
   CARRIER = 'carrier',
@@ -32,11 +32,11 @@ export class CreateCounterpartyDto {
 
   @IsObject()
   @IsOptional()
-  address?: any;
+  address?: Record<string, unknown>;
 
   @IsObject()
   @IsOptional()
-  contacts?: any[];
+  contacts?: Record<string, unknown>[];
 
   @IsString()
   @IsOptional()
@@ -68,8 +68,8 @@ export interface CounterpartyResponse {
   inn: string;
   kpp?: string;
   ogrn?: string;
-  address?: any;
-  contacts?: any[];
+  address?: Record<string, unknown>;
+  contacts?: Record<string, unknown>[];
   phone?: string;
   email?: string;
   createdAt?: number;

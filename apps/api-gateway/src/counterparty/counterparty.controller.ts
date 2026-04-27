@@ -9,11 +9,11 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { CounterpartyService } from './counterparty.service';
+import { type CounterpartyService } from './counterparty.service';
 import {
-  CreateCounterpartyDto,
-  CreateContractDto,
-  CreateContractTariffDto,
+  type CreateCounterpartyDto,
+  type CreateContractDto,
+  type CreateContractTariffDto,
 } from './dto/counterparty.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../auth/guards/rbac.guard';

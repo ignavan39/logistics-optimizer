@@ -1,7 +1,7 @@
 import { Controller, Logger } from '@nestjs/common';
 import { GrpcMethod, RpcException } from '@nestjs/microservices';
 import { status as GrpcStatus } from '@grpc/grpc-js';
-import { DispatchSagaService } from './dispatch-saga.service';
+import { type DispatchSagaService } from './dispatch-saga.service';
 
 interface ListDispatchesRequest {
   status?: string;

@@ -1,12 +1,12 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ClientGrpc } from '@nestjs/microservices';
+import { Injectable, type OnModuleInit, type OnModuleDestroy, Logger } from '@nestjs/common';
+import { type ConfigService } from '@nestjs/config';
+import { type ClientGrpc } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
-import { Metadata } from '@grpc/grpc-js';
+import { type Metadata } from '@grpc/grpc-js';
 import {
-  CounterpartyResponse,
-  ContractResponse,
-  ContractTariffResponse,
+  type CounterpartyResponse,
+  type ContractResponse,
+  type ContractTariffResponse,
 } from './dto/counterparty.dto';
 
 interface CounterpartyGrpcClient {

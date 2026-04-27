@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common'
-import { ConfigModule, ConfigService } from '@nestjs/config'
+import { ConfigModule } from '@nestjs/config'
 import { DatabaseModule } from './database/database.module'
 import { OrderModule } from './order/order.module'
 import { CounterpartyModule } from './counterparty/counterparty.module'

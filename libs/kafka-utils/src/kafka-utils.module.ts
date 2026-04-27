@@ -8,4 +8,5 @@ import { IdempotencyGuard } from './idempotency/idempotency.guard';
   providers: [OutboxService, OutboxProcessor, IdempotencyGuard],
   exports: [OutboxService, OutboxProcessor, IdempotencyGuard],
 })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class KafkaUtilsModule {}

@@ -1,5 +1,5 @@
 import { FleetGrpcController } from './fleet.grpc.controller'
-import { FleetService } from './fleet.service'
+import { type FleetService } from './fleet.service'
 
 describe('FleetGrpcController', () => {
   let controller: FleetGrpcController
@@ -85,6 +85,7 @@ describe('FleetGrpcController', () => {
           capacityKg: 1500,
           capacityM3: 8,
           status: 'available',
+          version: 1,
           currentLat: 55.7558,
           currentLng: 37.6173,
           currentDriverId: 'driver-1',
@@ -108,7 +109,7 @@ describe('FleetGrpcController', () => {
         phone: '+1234567890',
       })
       expect(result.vehicle!.order).toBeDefined()
-      expect(result.vehicle!.order?.id).toBe('order-1')
+      expect(result.vehicle!.order.id).toBe('order-1')
     })
   })
 

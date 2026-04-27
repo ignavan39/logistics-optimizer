@@ -12,6 +12,7 @@
     "baseUrl": "./",
     "incremental": false,
     "skipLibCheck": true,
+    "strict": true,
     "strictNullChecks": false,
     "noImplicitAny": false,
     "esModuleInterop": true,

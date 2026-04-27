@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
-import { ClientGrpc } from '@nestjs/microservices';
+import { type DataSource } from 'typeorm';
+import { type ClientGrpc } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
 import { firstValueFrom, timeout, catchError, throwError } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
@@ -35,27 +35,6 @@ export interface SagaStep {
   executedAt?: Date
 }
 
-interface GetOrderResponse {
-  order_id: string
-  customer_id: string
-  origin: { lat: number; lng: number }
-  destination: { lat: number; lng: number }
-  weight_kg: number
-  volume_m3: number
-}
-
-interface GetVehiclesResponse {
-  vehicles: Array<{ id: string }>
-}
-
-interface CalculateRouteResponse {
-  route_id: string
-}
-
-interface AssignVehicleResponse {
-  success: boolean
-  message?: string
-}
 
 const GRPC_TIMEOUT_MS = 5_000;
 
@@ -106,7 +85,7 @@ export class DispatchSagaService {
 
     // Execute asynchronously — don't block the caller
     setImmediate(() => this.execute(saga).catch(err =>
-      this.logger.error(`Saga ${sagaId} execution error`, err)
+      { this.logger.error(`Saga ${sagaId} execution error`, err); }
     ));
 
     return saga;
@@ -119,7 +98,7 @@ private async execute(saga: DispatchSaga): Promise<void> {
         orderSvc.getOrder({ order_id: saga.orderId }).pipe(
           timeout(GRPC_TIMEOUT_MS),
         )
-      ) as GetOrderResponse
+      )
       this.addStep(saga, 'get_order', 'completed')
 
       await this.updateSagaStatus(saga, SagaStatus.FINDING_VEHICLE)
@@ -139,9 +118,9 @@ private async execute(saga: DispatchSaga): Promise<void> {
             return throwError(() => err);
           })
         )
-      ) as GetVehiclesResponse
+      )
 
-      if (!vehiclesRes.vehicles?.length) {
+      if (!vehiclesRes.vehicles.length) {
         throw new Error('No available vehicles found');
       }
 
@@ -165,7 +144,7 @@ private async execute(saga: DispatchSaga): Promise<void> {
             return throwError(() => err);
           })
         )
-      ) as CalculateRouteResponse;
+      );
 
       this.addStep(saga, 'calculate_route', 'completed');
       saga.routeId = route.route_id;
@@ -176,7 +155,7 @@ private async execute(saga: DispatchSaga): Promise<void> {
           order_id:         saga.orderId,
           expected_version: (vehicle as any).version,
         }).pipe(timeout(GRPC_TIMEOUT_MS))
-      ) as AssignVehicleResponse;
+      );
 
       if (!assignRes.success) {
         // Vehicle was taken by concurrent saga — compensate & retry
@@ -199,7 +178,7 @@ private async execute(saga: DispatchSaga): Promise<void> {
 
       await this.updateSagaStatus(saga, SagaStatus.ASSIGNED);
       this.logger.log(
-        `Saga completed: ${saga.sagaId} — order ${saga.orderId} → vehicle ${vehicle.id} route ${(route as CalculateRouteResponse).route_id}`
+        `Saga completed: ${saga.sagaId} — order ${saga.orderId} → vehicle ${vehicle.id} route ${(route).route_id}`
       );
 
     } catch (err) {

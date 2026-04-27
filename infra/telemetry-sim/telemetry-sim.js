@@ -132,7 +132,7 @@ async function main() {
 
   // Produce loop
   setInterval(async () => {
-    vehicles.forEach(v => v.move());
+    vehicles.forEach(v => { v.move(); });
 
     // Send in batches for efficiency
     const messages = vehicles.map(v => ({

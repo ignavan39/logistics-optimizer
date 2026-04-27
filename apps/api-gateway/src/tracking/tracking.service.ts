@@ -1,8 +1,8 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import { ClientGrpc } from '@nestjs/microservices'
+import { Injectable, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common'
+import { type ConfigService } from '@nestjs/config'
+import { type ClientGrpc } from '@nestjs/microservices'
 import { Inject } from '@nestjs/common'
-import { GetLatestPositionDto, GetTrackDto } from './dto/tracking.dto'
+import { type GetLatestPositionDto, type GetTrackDto } from './dto/tracking.dto'
 
 interface TrackingGrpcClient {
   getLatestPosition(data: GetLatestPositionDto): Promise<any>

@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { Role } from './entities/role.entity';
-import { Permission } from './entities/permission.entity';
-import { UserRole } from './entities/user-role.entity';
+import { type Repository } from 'typeorm';
+import { type Role } from './entities/role.entity';
+import { type Permission } from './entities/permission.entity';
+import { type UserRole } from './entities/user-role.entity';
 import {
-  CreateRoleDto,
-  UpdateRoleDto,
-  AssignRoleDto,
-  CreatePermissionDto,
+  type CreateRoleDto,
+  type UpdateRoleDto,
+  type CreatePermissionDto,
 } from './dto/role.dto';
 
 @Injectable()
@@ -39,7 +38,7 @@ export class RolesService {
     });
     const savedRole = await this.roleRepository.save(role);
 
-    if (dto.permissions?.length) {
+    if (dto.permissions.length) {
       const permissions = await this.permissionRepository.findBy({
         name: dto.permissions as any,
       });

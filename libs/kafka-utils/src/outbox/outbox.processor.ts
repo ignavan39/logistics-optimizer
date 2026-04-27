@@ -1,27 +1,34 @@
-import { Injectable, Logger, OnApplicationShutdown } from '@nestjs/common';
+import { Logger as NestLogger, Injectable, type Logger, type OnApplicationShutdown, Inject } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
-import { ClientKafka } from '@nestjs/microservices';
-import { Inject } from '@nestjs/common';
+import type { DataSource } from 'typeorm';
+import type { ClientKafka } from '@nestjs/microservices';
 
 const OUTBOX_POLL_INTERVAL_MS = 1_000;
 const OUTBOX_BATCH_SIZE = 50;
 const OUTBOX_MAX_RETRIES = 5;
 
-/**
- * OutboxProcessor — периодически вычитывает необработанные события из outbox
- * и публикует их в Kafka. Обеспечивает at-least-once delivery.
- *
- * Алгоритм:
- * 1. SELECT ... FOR UPDATE SKIP LOCKED — конкурентно-безопасная выборка
- * 2. Publish to Kafka
- * 3. UPDATE processed_at = NOW() если успешно
- * 4. UPDATE retry_count++, last_error если ошибка
- * 5. После MAX_RETRIES — переносим в DLQ или помечаем как failed
- */
+interface OutboxEventRow {
+  id: string;
+  event_type: string;
+  payload: unknown;
+  created_at: Date;
+}
+
+interface PublishSuccessResult {
+  status: 'fulfilled';
+  value: unknown;
+}
+
+interface PublishFailureResult {
+  status: 'rejected';
+  reason: unknown;
+}
+
+type PublishResult = PublishSuccessResult | PublishFailureResult;
+
 @Injectable()
 export class OutboxProcessor implements OnApplicationShutdown {
-  private readonly logger = new Logger(OutboxProcessor.name);
+  private readonly logger: Logger;
   private timer: NodeJS.Timeout | null = null;
   private running = false;
 
@@ -30,7 +37,9 @@ export class OutboxProcessor implements OnApplicationShutdown {
     private readonly dataSource: DataSource,
     @Inject('KAFKA_CLIENT')
     private readonly kafkaClient: ClientKafka,
-  ) { }
+  ) {
+    this.logger = new NestLogger(OutboxProcessor.name);
+  }
 
   onApplicationBootstrap(): void {
     this.start();
@@ -53,7 +62,9 @@ export class OutboxProcessor implements OnApplicationShutdown {
   }
 
   private scheduleNext(): void {
-    this.timer = setTimeout(() => this.poll(), OUTBOX_POLL_INTERVAL_MS);
+    this.timer = setTimeout(() => {
+      void this.poll();
+    }, OUTBOX_POLL_INTERVAL_MS);
   }
 
   private async poll(): Promise<void> {
@@ -63,7 +74,7 @@ export class OutboxProcessor implements OnApplicationShutdown {
     try {
       await this.processOutbox();
     } catch (err) {
-      this.logger.error('OutboxProcessor error', err);
+      this.logger.error('OutboxProcessor error', err instanceof Error ? err : new Error(String(err)));
     } finally {
       this.running = false;
       this.scheduleNext();
@@ -76,47 +87,57 @@ export class OutboxProcessor implements OnApplicationShutdown {
     await queryRunner.startTransaction();
 
     try {
-      const events = await queryRunner.query(
-        `SELECT * FROM outbox_events
+      const events: OutboxEventRow[] = await queryRunner.query(
+        `SELECT id, event_type, payload, created_at
+         FROM outbox_events
          WHERE processed_at IS NULL
            AND retry_count < $1
          ORDER BY created_at ASC
          LIMIT $2
          FOR UPDATE SKIP LOCKED`,
         [OUTBOX_MAX_RETRIES, OUTBOX_BATCH_SIZE],
-      );
+      ) as OutboxEventRow[];
 
       if (events.length === 0) {
         await queryRunner.commitTransaction();
         return;
       }
 
-      this.logger.debug(`Processing ${events.length} outbox events`);
+      this.logger.debug(`Processing ${String(events.length)} outbox events`);
 
-      const publishResults = await Promise.allSettled(
-        events.map((event: { event_type: string; id: string; payload: unknown }) =>
-          this.kafkaClient
-            .emit(event.event_type, {
-              key: event.id,
-              value: event.payload,
-            })
-            .toPromise(),
-        ),
-      );
+      const publishPromises: Array<Promise<unknown>> = [];
+      for (const event of events) {
+        const messagePayload = {
+          key: event.id,
+          value: event.payload,
+        };
+        const promise = this.kafkaClient
+          .emit(event.event_type, messagePayload)
+          .toPromise() as Promise<unknown>;
+        publishPromises.push(promise);
+      }
+
+      const publishResults: PublishResult[] = await Promise.allSettled(publishPromises) as PublishResult[];
 
       const ids: string[] = [];
-      const failedIds: { id: string; error: string }[] = [];
+      const failedIds: Array<{ id: string; error: string }> = [];
 
-      publishResults.forEach((result, i) => {
+      for (let i = 0; i < publishResults.length; i++) {
+        const result = publishResults[i];
+        const event = events[i];
         if (result.status === 'fulfilled') {
-          ids.push(events[i].id);
+          ids.push(event.id);
         } else {
+          const errorReason = result.reason;
+          const errorMessage = typeof errorReason === 'object' && errorReason !== null && 'message' in errorReason
+            ? String((errorReason as { message: unknown }).message)
+            : String(errorReason);
           failedIds.push({
-            id: events[i].id,
-            error: String(result.reason),
+            id: event.id,
+            error: errorMessage,
           });
         }
-      });
+      }
 
       if (ids.length > 0) {
         await queryRunner.query(
@@ -125,14 +146,14 @@ export class OutboxProcessor implements OnApplicationShutdown {
         );
       }
 
-      for (const { id, error } of failedIds) {
+      for (const failed of failedIds) {
         await queryRunner.query(
           `UPDATE outbox_events
            SET retry_count = retry_count + 1, last_error = $2
            WHERE id = $1`,
-          [id, error],
+          [failed.id, failed.error],
         );
-        this.logger.warn(`Outbox event ${id} failed: ${error}`);
+        this.logger.warn(`Outbox event ${failed.id} failed: ${failed.error}`);
       }
 
       await queryRunner.commitTransaction();

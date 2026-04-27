@@ -1,17 +1,15 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { ConflictException } from '@nestjs/common';
-import { OrderService, CreateOrderDto, UpdateOrderStatusDto } from './order.service';
+import { OrderService, type CreateOrderDto, type UpdateOrderStatusDto } from './order.service';
 import { OrderEntity, OrderStatus, OrderPriority } from './entities/order.entity';
 import { OutboxEventEntity } from './entities/outbox-event.entity';
 import { OrderStatusHistoryEntity } from './entities/order-status-history.entity';
 import { getDataSourceToken } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
 import { CounterpartyService } from '../counterparty/counterparty.service';
 import { RoutingService } from '../routing/routing.service';
 
 describe('OrderService', () => {
   let service: OrderService;
-  let dataSource: DataSource;
 
   const mockOrderRepo = {
     findOne: jest.fn(),
@@ -62,7 +60,6 @@ describe('OrderService', () => {
     }).compile();
 
     service = module.get<OrderService>(OrderService);
-    dataSource = module.get<DataSource>(getDataSourceToken());
   });
 
   it('should be defined', () => {

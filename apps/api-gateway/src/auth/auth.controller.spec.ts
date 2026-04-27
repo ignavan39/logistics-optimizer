@@ -1,13 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { RolesService } from '../roles/roles.service';
-import { PermissionsService } from '../roles/roles.service';
+import { RolesService, PermissionsService } from '../roles/roles.service';
 import { UsersService } from '../users/users.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RbacGuard } from './guards/rbac.guard';
-import { Reflector } from '@nestjs/core';
-import { ThrottlerModule } from '@nestjs/throttler';
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashed_password'),
@@ -18,7 +15,6 @@ jest.mock('bcrypt', () => ({
 describe('AuthController', () => {
   let controller: AuthController;
   let authService: AuthService;
-  let reflector: Reflector;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -69,7 +65,6 @@ describe('AuthController', () => {
 
     controller = module.get<AuthController>(AuthController);
     authService = module.get<AuthService>(AuthService);
-    reflector = module.get<Reflector>(Reflector);
   });
 
   it('should be defined', () => {

@@ -1,6 +1,6 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ClientGrpc } from '@nestjs/microservices';
+import { Injectable, type OnModuleInit, type OnModuleDestroy, Logger, Inject } from '@nestjs/common';
+import { type ConfigService } from '@nestjs/config';
+import { type ClientGrpc } from '@nestjs/microservices';
 
 export interface InvoiceResponse {
   id: string;
@@ -67,7 +67,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
 
   async getInvoice(id: string): Promise<InvoiceResponse | null> {
     try {
-      return await this.invoiceClient!.getInvoice({ invoiceId: id });
+      return await this.invoiceClient.getInvoice({ invoiceId: id });
     } catch (e) {
       this.logger.error(`Failed to get invoice ${id}: ${e}`);
       return null;
@@ -76,7 +76,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
 
   async getInvoiceByOrder(orderId: string): Promise<InvoiceResponse | null> {
     try {
-      return await this.invoiceClient!.getInvoiceByOrder({ orderId });
+      return await this.invoiceClient.getInvoiceByOrder({ orderId });
     } catch (e) {
       this.logger.error(`Failed to get invoice for order ${orderId}: ${e}`);
       return null;
@@ -85,7 +85,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
 
   async listInvoices(params: ListInvoicesParams = {}): Promise<ListInvoicesResult> {
     try {
-      const response = await this.invoiceClient!.listInvoices({
+      const response = await this.invoiceClient.listInvoices({
         counterpartyId: params.counterpartyId,
         status: params.status,
         page: params.page ?? 1,
@@ -103,7 +103,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
     status: 'paid' | 'cancelled',
   ): Promise<InvoiceResponse | null> {
     try {
-      return await this.invoiceClient!.updateInvoiceStatus({
+      return await this.invoiceClient.updateInvoiceStatus({
         invoiceId: id,
         status: status.toUpperCase(),
       });
@@ -115,7 +115,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
 
   async generateInvoicePdfUrl(invoiceId: string): Promise<PdfUrlResponse | null> {
     try {
-      return await this.invoiceClient!.getInvoicePdfUrl({ invoiceId });
+      return await this.invoiceClient.getInvoicePdfUrl({ invoiceId });
     } catch (e) {
       this.logger.error(`Failed to get PDF URL for invoice ${invoiceId}: ${e}`);
       return null;

@@ -1,39 +1,16 @@
-import { Logger } from '@nestjs/common';
-import { KafkaContext } from '@nestjs/microservices';
-import { KafkaEvent } from '../interfaces/kafka-event.interface';
-import { IdempotencyGuard } from '../idempotency/idempotency.guard';
+import { Logger as NestLogger } from '@nestjs/common';
+import type { Logger } from '@nestjs/common';
+import type { KafkaContext } from '@nestjs/microservices';
+import type { KafkaEvent } from '../interfaces/kafka-event.interface';
+import type { IdempotencyGuard } from '../idempotency/idempotency.guard';
 
 export interface ConsumerOptions {
   maxRetries?: number;
   retryDelayMs?: number;
 }
 
-/**
- * BaseConsumer — абстрактный базовый класс для всех Kafka-консюмеров.
- *
- * Предоставляет:
- * - Идемпотентную обработку (через IdempotencyGuard)
- * - Retry с exponential backoff
- * - Dead Letter Queue (DLQ) для необрабатываемых сообщений
- * - Структурированное логирование с трейсингом
- *
- * Usage:
- *   @Injectable()
- *   export class OrderCreatedConsumer extends BaseConsumer {
- *     constructor(idempotency: IdempotencyGuard) {
- *       super(idempotency, { maxRetries: 3 });
- *     }
- *
- *     @EventPattern('order.created')
- *     async handle(event: KafkaEvent<OrderCreatedPayload>, @Ctx() ctx: KafkaContext) {
- *       await this.process(event, ctx, async (e) => {
- *         // your business logic here
- *       });
- *     }
- *   }
- */
 export abstract class BaseConsumer {
-  protected readonly logger = new Logger(this.constructor.name);
+  protected readonly logger: Logger;
   private readonly maxRetries: number;
   private readonly retryDelayMs: number;
 
@@ -41,6 +18,7 @@ export abstract class BaseConsumer {
     protected readonly idempotency: IdempotencyGuard,
     options: ConsumerOptions = {},
   ) {
+    this.logger = new NestLogger(this.constructor.name);
     this.maxRetries = options.maxRetries ?? 3;
     this.retryDelayMs = options.retryDelayMs ?? 500;
   }
@@ -58,14 +36,12 @@ export abstract class BaseConsumer {
       `Processing ${event.type} [${event.eventId}] topic=${topic} partition=${partition} offset=${offset}`,
     );
 
-    // Idempotency check
     const shouldProcess = await this.idempotency.shouldProcess(event.eventId, event.type);
     if (!shouldProcess) {
       this.logger.warn(`Skipping duplicate event: ${event.type} [${event.eventId}]`);
       return;
     }
 
-    // Process with retry
     let attempt = 0;
     while (attempt <= this.maxRetries) {
       try {
@@ -82,10 +58,9 @@ export abstract class BaseConsumer {
         if (attempt > this.maxRetries) {
           this.logger.error(
             `Event permanently failed after ${this.maxRetries} retries: ${event.type} [${event.eventId}]`,
-            err,
+            err instanceof Error ? err : new Error(String(err)),
           );
-          // TODO: publish to DLQ topic
-          await this.publishToDlq(event, err as Error);
+          void this.publishToDlq(event, err instanceof Error ? err : new Error(String(err)));
           return;
         }
 
@@ -98,10 +73,8 @@ export abstract class BaseConsumer {
     }
   }
 
-  private async publishToDlq<T>(event: KafkaEvent<T>, error: Error): Promise<void> {
+  protected async publishToDlq<T>(_event: KafkaEvent<T>, _error: Error): Promise<void> {
     // DLQ publishing is implemented in concrete services
-    // Override this method to add service-specific DLQ handling
-    this.logger.error(`DLQ: ${event.type} [${event.eventId}] — ${error.message}`);
   }
 
   private sleep(ms: number): Promise<void> {

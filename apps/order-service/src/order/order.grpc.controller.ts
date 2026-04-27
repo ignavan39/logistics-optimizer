@@ -1,8 +1,8 @@
 import { Controller, Logger } from '@nestjs/common';
 import { GrpcMethod, RpcException } from '@nestjs/microservices';
 import { status as GrpcStatus } from '@grpc/grpc-js';
-import { OrderService } from './order.service';
-import { OrderStatus, OrderPriority } from './entities/order.entity';
+import { type OrderService } from './order.service';
+import { type OrderEntity, type OrderStatus, OrderPriority } from './entities/order.entity';
 
 // These types mirror the proto definitions
 interface CreateOrderRequest {
@@ -81,7 +81,7 @@ export class OrderGrpcController {
           new_status: h.newStatus,
           changed_by: h.changedBy || '',
           reason: h.reason || '',
-          created_at_unix: h.createdAt?.getTime() ? Math.floor(h.createdAt.getTime() / 1000) : 0,
+          created_at_unix: h.createdAt.getTime() ? Math.floor(h.createdAt.getTime() / 1000) : 0,
         })),
       };
     } catch (err) {
@@ -144,7 +144,7 @@ export class OrderGrpcController {
 
   
 
-  private toProto(order: import('./entities/order.entity').OrderEntity) {
+  private toProto(order: OrderEntity) {
     const statusMap: Record<string, string> = {
       pending: 'ORDER_STATUS_PENDING',
       assigned: 'ORDER_STATUS_ASSIGNED',
@@ -162,20 +162,20 @@ export class OrderGrpcController {
     return {
       id: order.id,
       customer_id: order.customerId,
-      origin: order.originLat != null ? { lat: order.originLat, lng: order.originLng, address: order.originAddress ?? '' } : null,
-      destination: order.destinationLat != null ? { lat: order.destinationLat, lng: order.destinationLng, address: order.destinationAddress ?? '' } : null,
+      origin: { lat: order.originLat, lng: order.originLng, address: order.originAddress ?? '' },
+      destination: { lat: order.destinationLat, lng: order.destinationLng, address: order.destinationAddress ?? '' },
       status: statusMap[order.status] ?? 'ORDER_STATUS_PENDING',
       priority: priorityMap[order.priority] ?? 'ORDER_PRIORITY_NORMAL',
-      weight_kg: order.weightKg ?? 0,
-      volume_m3: order.volumeM3 ?? 0,
+      weight_kg: order.weightKg,
+      volume_m3: order.volumeM3,
       notes: order.notes ?? '',
       vehicle_id: order.vehicleId ?? '',
       driver_id: order.driverId ?? '',
       route_id: order.routeId ?? '',
       sla_deadline_unix: order.slaDeadline ? Math.floor(order.slaDeadline.getTime() / 1000) : 0,
-      created_at_unix: order.createdAt ? Math.floor(order.createdAt.getTime() / 1000) : 0,
-      updated_at_unix: order.updatedAt ? Math.floor(order.updatedAt.getTime() / 1000) : 0,
-      version: order.version ?? 0,
+      created_at_unix: Math.floor(order.createdAt.getTime() / 1000),
+      updated_at_unix: Math.floor(order.updatedAt.getTime() / 1000),
+      version: order.version,
     };
   }
 

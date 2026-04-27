@@ -1,10 +1,10 @@
 import { Injectable, ConflictException } from '@nestjs/common';
-import { Repository, DataSource } from 'typeorm';
+import { type Repository, type DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { User, UserStatus } from './entities/user.entity';
-import { Session } from './entities/session.entity';
-import { RefreshToken } from './entities/refresh-token.entity';
-import { CreateUserDto, RegisterDto, ListUsersQueryDto, UpdateUserDto } from './dto/user.dto';
+import { type User, UserStatus } from './entities/user.entity';
+import { type Session } from './entities/session.entity';
+import { type RefreshToken } from './entities/refresh-token.entity';
+import { type CreateUserDto, type RegisterDto, type ListUsersQueryDto, type UpdateUserDto } from './dto/user.dto';
 
 
 @Injectable()
@@ -64,17 +64,17 @@ export class UsersService {
   }
 
   async findUsers(options?: ListUsersQueryDto): Promise<{ users: any[]; total: number; limit: number; offset: number }> {
-    const limit = options?.limit || 50;
-    const offset = options?.offset || 0;
+    const limit = options.limit || 50;
+    const offset = options.offset || 0;
     const params: any[] = [];
     const conditions: string[] = [];
 
-    if (options?.search) {
+    if (options.search) {
       params.push(`%${options.search}%`);
       conditions.push(`(u.email ILIKE $${params.length} OR u.first_name ILIKE $${params.length} OR u.last_name ILIKE $${params.length})`);
     }
 
-    if (options?.status) {
+    if (options.status) {
       params.push(options.status === UserStatus.ACTIVE);
       conditions.push(`u.is_active = $${params.length}`);
     }

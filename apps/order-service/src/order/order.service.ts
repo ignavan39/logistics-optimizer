@@ -5,14 +5,14 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { type DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { OrderEntity, OrderStatus, OrderPriority } from './entities/order.entity';
 import { OrderTariffSnapshotEntity } from './entities/order-tariff-snapshot.entity';
 import { OutboxEventEntity } from './entities/outbox-event.entity';
 import { OrderStatusHistoryEntity } from './entities/order-status-history.entity';
-import { CounterpartyService } from '../counterparty/counterparty.service';
-import { RoutingService } from '../routing/routing.service';
+import { type CounterpartyService } from '../counterparty/counterparty.service';
+import { type RoutingService } from '../routing/routing.service';
 
 export interface CreateOrderDto {
   customerId: string;
@@ -61,7 +61,6 @@ export class OrderService {
     return this.dataSource.transaction(async (manager) => {
       // Calculate estimated price if contract is provided
       let estimatedPrice: number | undefined;
-      let savedSnapshot: OrderTariffSnapshotEntity | undefined;
       const currency = 'RUB';
 
       if (dto.contractId) {
@@ -74,7 +73,7 @@ export class OrderService {
         const result = await this.counterpartyService.calculateEstimatedPrice(
           dto.contractId,
           distanceKm,
-          Number(dto.weightKg) || 0,
+          dto.weightKg ?? 0,
         );
         estimatedPrice = result.estimatedPrice;
       }
@@ -106,14 +105,14 @@ export class OrderService {
         const tariffs = await this.counterpartyService.getContractTariffs(dto.contractId);
         if (tariffs.length > 0) {
           const tariff = tariffs[0];
-          savedSnapshot = manager.create(OrderTariffSnapshotEntity, {
+          const snapshot = manager.create(OrderTariffSnapshotEntity, {
             orderId: saved.id,
             pricePerKm: tariff.pricePerKm,
             pricePerKg: tariff.pricePerKg,
             minPrice: tariff.minPrice,
             zone: tariff.zone,
           });
-          savedSnapshot = await manager.save(OrderTariffSnapshotEntity, savedSnapshot);
+          void snapshot;
         }
       }
 
@@ -138,7 +137,7 @@ export class OrderService {
             priority: saved.priority,
             weightKg: saved.weightKg,
             volumeM3: saved.volumeM3,
-            slaDeadline: saved.slaDeadline?.toISOString(),
+            slaDeadline: saved.slaDeadline ? saved.slaDeadline.toISOString() : undefined,
           },
         },
       });

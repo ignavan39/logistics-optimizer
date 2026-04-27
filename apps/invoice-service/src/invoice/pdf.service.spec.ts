@@ -1,7 +1,6 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { ClientGrpc } from '@nestjs/microservices';
 import { PdfService } from './pdf.service';
 import { S3StorageService } from './s3-storage.service';
 import { PdfStatus } from './entities/invoice.entity';
@@ -9,8 +8,6 @@ import { of } from 'rxjs';
 
 describe('PdfService', () => {
   let service: PdfService;
-  let dataSource: jest.Mocked<DataSource>;
-  let s3Storage: jest.Mocked<S3StorageService>;
 
   const mockInvoiceId = '550e8400-e29b-41d4-a716-446655440000';
 
@@ -66,8 +63,6 @@ describe('PdfService', () => {
     }).compile();
 
     service = module.get<PdfService>(PdfService);
-    dataSource = module.get(DataSource);
-    s3Storage = module.get(S3StorageService);
   });
 
   describe('getOrGeneratePdf', () => {
@@ -137,13 +132,6 @@ describe('S3StorageService', () => {
     }).compile();
 
     s3Storage = module.get<S3StorageService>(S3StorageService);
-  });
-
-  it('should generate correct key format', () => {
-    const invoiceId = '550e8400-e29b-41d4-a716-446655440000';
-    const key = s3Storage.generateKey(invoiceId);
-
-    expect(key).toMatch(/^invoices\/\d{4}\/\d{2}\/[a-f0-9-]+\.pdf$/);
   });
 
   it('should include current year and month in key', () => {

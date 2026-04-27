@@ -1,7 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { ClientGrpc } from '@nestjs/microservices';
-import { InvoicesService, InvoiceResponse } from './invoices.service';
+
+import { InvoicesService, type InvoiceResponse } from './invoices.service';
 
 const mockConfigService = {
   get: jest.fn(),

@@ -1,7 +1,5 @@
 import { RouteCacheService } from './route-cache.service';
-import { ConfigService } from '@nestjs/config';
-import { DataSource } from 'typeorm';
-import { Route } from '../routing.service';
+import { type Route } from '../routing.service';
 
 describe('RouteCacheService', () => {
   let service: RouteCacheService;
