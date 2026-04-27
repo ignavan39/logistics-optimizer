@@ -100,6 +100,9 @@ erDiagram
 | counterparty_id | UUID | FK → counterparty |
 | contract_id | UUID | FK → contract |
 | version | INT | Optimistic lock |
+| pdf_url | TEXT | URL to generated PDF (S3/MinIO) |
+| pdf_status | VARCHAR(20) | PDF generation status: generating/ready/failed |
+| pdf_generated_at | TIMESTAMPTZ | PDF generation timestamp |
 
 ### settings
 

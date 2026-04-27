@@ -13,7 +13,8 @@
 | `git checkout -- .` откатывает ВСЁ | Используй `git restore path/to/file` |
 | `init SQL` запускается только при первом старте контейнера | При schema errors — пересоздай контейнер |
 | gRPC `waitForReady()` = true ≠ методы работают | Тестируй реальные методы, не только readiness |
-| InvoicesModule временно отключён | ESM/CJS конфликт с `@logistics/document-templates` |
+| **PDF generation: PostgreSQL advisory lock** | Только один запрос генерирует PDF, остальные poll |
+| **MinIO для enterprise PDF storage** | S3-compatible, легко поднять локально |
 
 ---
 
@@ -106,13 +107,38 @@ export class OrderModule {}
 
 ---
 
+## ✅ Решенные проблемы
+
+| Проблема | Решение | Дата |
+|----------|---------|------|
+| Cross-DB JOIN в pdf.service.ts | Используем gRPC для order/counterparty/settings | 2026-04-27 |
+
+---
+
+## ⚠️ Правило: НЕ ДЕЛАТЬ Cross-DB JOIN
+
+**Никогда** не делай SQL JOIN к таблицам других сервисов:
+```sql
+-- ❌ ЗАПРЕЩЕНО
+JOIN other_db.orders o ON ...
+JOIN counterparty_db.counterparties c ON ...
+
+-- ✅ ПРАВИЛЬНО
+-- Используй gRPC вызовы к соответствующим сервисам
+const order = await firstValueFrom(this.orderClient.GetOrder({ order_id }))
+const counterparty = await firstValueFrom(this.counterpartyClient.GetCounterparty({ id }))
+```
+
+---
+
 ## 📝 Открытые вопросы / TODO
 
 _Добавляй вопросы которые требуют ответа или исследования_
 
 | Вопрос | Приоритет | Добавлено |
 |--------|-----------|----------|
-| Исправить ESM/CJS в @logistics/document-templates | Medium | 2026-04 |
+| Исправить cross-DB JOIN в pdf.service.ts | High | 2026-04-27 |
+| Интегрировать PDF generation в api-gateway | Medium | 2026-04-27 |
 
 ---
 

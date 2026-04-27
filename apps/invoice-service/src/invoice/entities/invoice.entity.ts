@@ -77,4 +77,19 @@ export class InvoiceEntity {
 
   @VersionColumn()
   version!: number;
+
+  @Column({ name: 'pdf_url', type: 'text', nullable: true })
+  pdfUrl?: string;
+
+  @Column({ name: 'pdf_status', length: 20, nullable: true })
+  pdfStatus?: string;
+
+  @Column({ name: 'pdf_generated_at', type: 'timestamptz', nullable: true })
+  pdfGeneratedAt?: Date;
+}
+
+export enum PdfStatus {
+  GENERATING = 'generating',
+  READY = 'ready',
+  FAILED = 'failed',
 }

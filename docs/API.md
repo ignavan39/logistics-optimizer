@@ -278,9 +278,20 @@ Get invoice details.
 **Auth:** JWT (`invoices.read`)
 
 ### GET /invoices/:id/pdf
-Download invoice PDF.
+Download invoice PDF (lazy generation).
 
 **Auth:** JWT (`invoices.read`)
+**Response:**
+```json
+{
+  "url": "http://minio:9000/invoices/2026/04/invoice-id.pdf"
+}
+```
+**Notes:**
+- PDF is generated on first request (lazy)
+- Concurrent requests: only one generates, others poll
+- Uses PostgreSQL advisory lock to prevent duplicate generation
+- Generated PDF is cached and stored in MinIO/S3
 
 ### PATCH /invoices/:id/status
 Update invoice status.
