@@ -156,7 +156,7 @@ services:
       MAX_CLIENT_CONN: 50
       DEFAULT_POOL_SIZE: 10
     ports:
-      - '6433:5432'
+      - '6401:5432'
     networks:
       - logistics-net
     depends_on:
@@ -175,7 +175,7 @@ services:
       MAX_CLIENT_CONN: 50
       DEFAULT_POOL_SIZE: 10
     ports:
-      - '6434:5432'
+      - '6402:5432'
     networks:
       - logistics-net
     depends_on:
@@ -194,7 +194,7 @@ services:
       MAX_CLIENT_CONN: 50
       DEFAULT_POOL_SIZE: 10
     ports:
-      - '6435:5432'
+      - '6403:5432'
     networks:
       - logistics-net
     depends_on:
@@ -213,7 +213,7 @@ services:
       MAX_CLIENT_CONN: 50
       DEFAULT_POOL_SIZE: 10
     ports:
-      - '6436:5432'
+      - '6404:5432'
     networks:
       - logistics-net
     depends_on:
@@ -232,7 +232,7 @@ services:
       MAX_CLIENT_CONN: 50
       DEFAULT_POOL_SIZE: 10
     ports:
-      - '6437:5432'
+      - '6405:5432'
     networks:
       - logistics-net
     depends_on:
@@ -251,7 +251,7 @@ services:
       MAX_CLIENT_CONN: 50
       DEFAULT_POOL_SIZE: 10
     ports:
-      - '6439:5432'
+      - '6406:5432'
     networks:
       - logistics-net
     depends_on:
@@ -270,7 +270,7 @@ services:
       MAX_CLIENT_CONN: 50
       DEFAULT_POOL_SIZE: 10
     ports:
-      - '6440:5432'
+      - '6407:5432'
     networks:
       - logistics-net
     depends_on:
