@@ -1,9 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport, ClientKafka, ClientGrpc } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
+import { DataSource } from 'typeorm';
 import { InvoiceService } from './invoice.service';
 import { InvoiceGrpcController } from './invoice.grpc.controller';
 import { InvoiceEventHandler } from './invoice-event-handler';
+import { PdfController } from './pdf.controller';
+import { PdfService } from './pdf.service';
+import { S3StorageService } from './s3-storage.service';
 
 @Module({
   imports: [
@@ -50,8 +54,40 @@ import { InvoiceEventHandler } from './invoice-event-handler';
       },
     ]),
   ],
-  controllers: [InvoiceGrpcController],
-  providers: [InvoiceService, InvoiceEventHandler],
-  exports: [InvoiceService],
+  controllers: [InvoiceGrpcController, PdfController],
+  providers: [
+    InvoiceService,
+    InvoiceEventHandler,
+    S3StorageService,
+    {
+      provide: DataSource,
+      useFactory: async (configService: ConfigService) => {
+        const dataSource = new DataSource({
+          type: 'postgres',
+          host: configService.get('DB_HOST', 'pg-invoice'),
+          port: configService.get<number>('DB_PORT', 5432),
+          database: configService.get('DB_NAME', 'logistics_invoices'),
+          username: configService.get('DB_USER', 'logistics'),
+          password: configService.get('DB_PASS', 'logistics_secret'),
+        });
+        await dataSource.initialize();
+        return dataSource;
+      },
+      inject: [ConfigService],
+    },
+    {
+      provide: PdfService,
+      useFactory: (
+        dataSource: DataSource,
+        s3Storage: S3StorageService,
+        configService: ConfigService,
+        orderGrpc: ClientGrpc,
+        counterpartyGrpc: ClientGrpc,
+      ) =>
+        new PdfService(dataSource, s3Storage, configService, orderGrpc, counterpartyGrpc),
+      inject: [DataSource, S3StorageService, ConfigService, 'ORDER_PACKAGE', 'COUNTERPARTY_PACKAGE'],
+    },
+  ],
+  exports: [InvoiceService, PdfService],
 })
 export class InvoiceModule {}

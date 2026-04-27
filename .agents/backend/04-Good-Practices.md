@@ -360,6 +360,130 @@ private async flush() {
 
 ---
 
+## Шаблон: PostgreSQL Advisory Lock (Distributed Lock)
+
+Для операций которые должны выполняться только один раз (например, PDF generation):
+
+```typescript
+// invoice/pg-advisory-lock.ts
+export class PgAdvisoryLock {
+  constructor(private readonly dataSource: DataSource) {}
+
+  async acquire(key: string): Promise<boolean> {
+    const keyHash = this.hashKey(key);
+    const result = await this.dataSource.query(
+      `SELECT pg_try_advisory_lock(${keyHash}) as acquired`,
+    );
+    return result[0]?.acquired === true;
+  }
+
+  async release(key: string): Promise<void> {
+    const keyHash = this.hashKey(key);
+    await this.dataSource.query(`SELECT pg_advisory_unlock(${keyHash})`);
+  }
+
+  async withLock<T>(key: string, fn: () => Promise<T>): Promise<T | null> {
+    if (await this.acquire(key)) {
+      try {
+        return await fn();
+      } finally {
+        await this.release(key);
+      }
+    }
+    return null; // Lock busy
+  }
+
+  private hashKey(key: string): number {
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+      hash = ((hash << 5) - hash) + key.charCodeAt(i);
+      hash = hash & hash;
+    }
+    return Math.abs(hash) % 2147483647;
+  }
+}
+
+// Использование в PdfService:
+async getOrGeneratePdf(invoiceId: string): Promise<string> {
+  const lockKey = `pdf:${invoiceId}`;
+  
+  // 1. Проверяем кеш
+  const existing = await this.getExistingPdf(invoiceId);
+  if (existing) return existing;
+
+  // 2. Acquire lock - только один генерирует
+  const result = await this.lock.withLock(lockKey, async () => {
+    // Double-check кеш после получения lock
+    const fresh = await this.getExistingPdf(invoiceId);
+    if (fresh) return fresh;
+    return this.generateAndUpload(invoiceId);
+  });
+
+  if (!result) {
+    throw new ConflictException('PDF generation in progress');
+  }
+  return result;
+}
+```
+
+**Преимущества:**
+- PostgreSQL-native, не нужен Redis
+- Session-level, автоматически освобождается при disconnet
+- TTL через `pg_advisory_lock_shared` + таймаут
+
+---
+
+## Шаблон: S3/MinIO Storage
+
+Для enterprise-совместимого хранения файлов:
+
+```typescript
+// invoice/s3-storage.service.ts
+@Injectable()
+export class S3StorageService {
+  private readonly client: S3Client;
+
+  constructor(private readonly configService: ConfigService) {
+    this.client = new S3Client({
+      region: 'us-east-1',
+      endpoint: configService.get('S3_ENDPOINT'),
+      credentials: {
+        accessKeyId: configService.get('S3_ACCESS_KEY'),
+        secretAccessKey: configService.get('S3_SECRET_KEY'),
+      },
+      forcePathStyle: true, // Для MinIO
+    });
+  }
+
+  async upload(key: string, data: Buffer, contentType: string): Promise<string> {
+    await this.client.send(new PutObjectCommand({
+      Bucket: this.config.bucket,
+      Key: key,
+      Body: data,
+      ContentType: contentType,
+    }));
+    return this.getPublicUrl(key);
+  }
+
+  generateKey(invoiceId: string): string {
+    const now = new Date();
+    return `invoices/${now.getFullYear()}/${now.getMonth() + 1}/${invoiceId}.pdf`;
+  }
+}
+```
+
+**Docker (MinIO):**
+```yaml
+minio:
+  image: minio/minio
+  environment:
+    MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+    MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+  command: server /data
+```
+
+---
+
 ## Документация: когда обновлять
 
 | Изменение | Файл |
