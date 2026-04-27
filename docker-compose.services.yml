@@ -10,6 +10,11 @@ x-service-common: &service-common
   env_file: .env
   networks:
     - logistics-net
+  volumes:
+    - ./tests/e2e:/app/tests/e2e:ro
+    - ./libs:/app/libs:ro
+    - ./tests/e2e/tsconfig.json:/app/tests/e2e/tsconfig.json:ro
+    - ./tests/e2e/jest.config.js:/app/tests/e2e/jest.config.js:ro
   depends_on:
     pg-order:
       condition: service_healthy

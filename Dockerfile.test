@@ -1,0 +1,33 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Dockerfile for E2E Tests
+# Запускает интеграционные тесты внутри Docker сети
+# ─────────────────────────────────────────────────────────────────────────────
+
+FROM node:20-alpine
+WORKDIR /app
+
+# Install pnpm and build tools
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Install Python for native modules
+RUN apk add --no-cache python3 make g++
+
+# Copy workspace files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY libs libs
+COPY tests tests
+COPY tsconfig.base.json ./
+COPY tsconfig.json ./
+
+# Install all dependencies (including dev for tests)
+RUN pnpm config set public-hoist-pattern '*' && \
+    pnpm install --frozen-lockfile
+
+# Copy proto files (already compiled)
+COPY libs/proto/src ./libs/proto/src
+
+ENV NODE_ENV=test
+ENV IN_DOCKER=true
+
+# Run E2E tests with docker config
+CMD ["npx", "jest", "--config", "tests/e2e/jest.docker.config.js", "--testTimeout=30000"]

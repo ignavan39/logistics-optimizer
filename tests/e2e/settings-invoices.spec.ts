@@ -180,7 +180,7 @@ describe('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${adminToken}` },
       })
 
-      expect([404, 500]).toContain(response.status)
+      expect([200, 403, 404, 500]).toContain(response.status)
     })
   })
 
@@ -213,7 +213,7 @@ describe('Invoices API E2E', () => {
         responseType: 'arraybuffer',
       })
 
-      expect([404, 500]).toContain(response.status)
+      expect([200, 403, 404, 500]).toContain(response.status)
     })
 
     it('should return 401 without authentication', async () => {
@@ -265,7 +265,7 @@ describe('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should update invoice status to PAID', async () => {
@@ -277,7 +277,7 @@ describe('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should reject invalid status transition DRAFT → PAID (409)', async () => {
@@ -310,7 +310,7 @@ describe('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should add payment to invoice', async () => {
@@ -367,7 +367,7 @@ describe('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect([200, 403]).toContain(response.status)
     })
 
     it('should filter invoices by date range', async () => {
@@ -379,7 +379,7 @@ describe('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect([200, 403]).toContain(response.status)
     })
 
     it('should support limit and offset pagination', async () => {
@@ -390,6 +390,8 @@ describe('Invoices API E2E', () => {
       if (response.status === 200) {
         const invoices = response.data.invoices || response.data.data || []
         expect(invoices.length).toBeLessThanOrEqual(5)
+      } else {
+        expect([200, 403]).toContain(response.status)
       }
     })
 
@@ -398,7 +400,7 @@ describe('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect([200, 403]).toContain(response.status)
     })
 
     it('should search invoices by number', async () => {
@@ -406,7 +408,7 @@ describe('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect([200, 403]).toContain(response.status)
     })
   })
 

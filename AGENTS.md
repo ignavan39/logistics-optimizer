@@ -10,7 +10,7 @@
 
 ### 1. READ — перед любой задачей
 ```
-Любая задача  →  .agents/MEMORY.md            (что уже знаем, открытые вопросы)
+Любая задача  →  .agents/backend/MEMORY.md     (бэкенд знания)
 Backend задача  →  .agents/backend/00-README.md  (архитектура + правила)
 Frontend задача →  .agents/frontend/00-README.md (архитектура + правила)
 >1 сервиса     →  .agents/backend/02-Contracts.md

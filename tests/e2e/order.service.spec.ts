@@ -4,16 +4,17 @@ import * as protoLoader from '@grpc/proto-loader'
 import { v4 as uuidv4 } from 'uuid'
 
 const PROTO_PATH = `${__dirname}/../../libs/proto/src/order.proto`
+const GRPC_HOST = process.env.GRPC_ORDER_HOST || 'localhost:50051'
 
 describe('OrderService E2E', () => {
   let client: any
 
-  beforeAll(async () => {
+  beforeAll(() => {
     const packageDefinition = protoLoader.loadSync(PROTO_PATH)
     const grpcPackage = grpc.loadPackageDefinition(packageDefinition) as any
     const OrderService = grpcPackage.order.OrderService
 
-    client = new OrderService('localhost:50051', grpc.credentials.createInsecure())
+    client = new OrderService(GRPC_HOST, grpc.credentials.createInsecure())
 
     await new Promise<void>((resolve, reject) => {
       client.waitForReady(Date.now() + 10000, (err: any) => {
