@@ -55,6 +55,7 @@
 | HTTP вызовы между сервисами | Нарушает архитектурное правило R1 | Только gRPC (sync) или Kafka (async) |
 | Cross-DB JOIN через TypeORM | Нарушает изоляцию БД, ломается при переезде сервиса | gRPC вызов в другой сервис |
 | Хардкод gRPC адресов | Не работает в Docker/K8s | `configService.get('FLEET_SERVICE_URL')` |
+| **Business logic в api-gateway** | Дублирование с другими сервисами | Api-gateway = proxy, business logic в отдельных сервисах |
 
 ## Git
 

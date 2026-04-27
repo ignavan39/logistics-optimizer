@@ -457,70 +457,101 @@ CREATE TABLE order_tariff_snapshots (
 
 ## Invoice PDF Generation
 
-Generates professional invoices as PDF documents.
+Generates professional invoices as PDF documents with MinIO/S3 storage.
 
-### Flow
+### Architecture Flow
+
 ```mermaid
-flowchart LR
-    Client -->|GET /invoices/:id/pdf| API
-    API -->|gRPC| OrderService
-    API -->|gRPC| CounterpartyService
-    API -->|gRPC| OrderService.getCompanySettings
-    OrderService -->|invoice| API
-    CounterpartyService -->|buyer| API
-    OrderService -->|companySettings| API
-    API -->|generate| PDF[PDF Generator]
-    PDF -->|Buffer| Client
+sequenceDiagram
+    participant Client
+    participant API as api-gateway
+    participant Invoice as invoice-service
+    participant MinIO
+
+    Client->>API: GET /invoices/:id/pdf
+    API->>Invoice: gRPC GetInvoicePdfUrl
+    Invoice->>Invoice: Check cache (pdf_url, pdf_status)
+
+    alt PDF not cached
+        Invoice->>Invoice: PostgreSQL Advisory Lock
+        Invoice->>Invoice: Generate PDF (pdfkit)
+        Invoice->>MinIO: Upload PDF
+        Invoice->>MinIO: Return URL
+    end
+
+    Invoice-->>API: { url: "http://minio/..." }
+    API-->>Client: 200 { url: "..." }
 ```
 
-### PDF Content
-- Invoice header with number and date
-- Seller info (from company settings)
-- Buyer info (from counterparty)
-- Line items
-- Subtotal, VAT, Total
-- Payment terms
-
-### Implementation
-
-```typescript
-// libs/document-templates/src/invoice.ts
-export async function generateInvoice(data: InvoicePdfData): Promise<Uint8Array> {
-  const doc = new PDFDocument({ size: 'A4', margin: 50 });
-
-  // Header
-  doc.text(`СЧЁТ № ${data.number}`, { align: 'center' });
-  doc.text(`от ${data.date}`, { align: 'center' });
-
-  // Seller
-  doc.text('Продавец:', { underline: true });
-  doc.text(`${data.seller.name}`);
-  doc.text(`ИНН: ${data.seller.inn}, КПП: ${data.seller.kpp}`);
-  doc.text(data.seller.address);
-
-  // Buyer
-  doc.text('Покупатель:', { underline: true });
-  doc.text(`${data.buyer.name}`);
-  doc.text(`ИНН: ${data.buyer.inn}`);
-  doc.text(data.buyer.address);
-
-  // Items table
-  // ...
-
-  // Totals
-  doc.text(`Итого: ${data.total} ₽`);
-  doc.text(`НДС ${data.vatRate}%: ${data.vatAmount} ₽`);
-
-  // Payment terms
-  doc.text(`Срок оплаты: ${data.paymentTerms}`);
-
-  return doc.end();
-}
-```
+### Key Benefits
+- **Single Source of Truth**: invoice-service owns PDF generation
+- **MinIO/S3 Storage**: Enterprise-ready, S3-compatible
+- **Advisory Lock**: Prevents duplicate generation on concurrent requests
+- **Lazy Generation**: PDF generated only when requested
+- **Idempotency**: Same URL returned for same invoice
 
 ### Endpoint
 ```
-GET /invoices/:id/pdf
-Content-Type: application/pdf
-Content-Disposition: attachment; filename="invoice-{number}.pdf"
+GET /api/v1/invoices/:id/pdf
+Response: { "url": "http://minio:9000/invoices/2026/04/invoice-id.pdf" }
+```
+
+### Race Condition Handling
+
+```mermaid
+sequenceDiagram
+    participant R1 as Request 1
+    participant R2 as Request 2
+    participant Invoice as invoice-service
+    participant MinIO
+
+    R1->>Invoice: GET /pdf (invoice-1)
+    R2->>Invoice: GET /pdf (invoice-1)
+    Invoice->>Invoice: pg_try_advisory_lock(pdf:invoice-1)
+
+    Note over R1,R2: Only one request acquires lock
+
+    Invoice->>Invoice: pdf_status = 'generating'
+    Invoice->>Invoice: Generate PDF
+    Invoice->>MinIO: Upload
+    Invoice->>MinIO: Get URL
+
+    Invoice-->>R1: { url: "..." }
+    R2->>Invoice: Poll until READY
+    Invoice-->>R2: { url: "..." }
+
+### Implementation
+
+PDF generation is handled by invoice-service:
+
+```typescript
+// apps/invoice-service/src/invoice/pdf.service.ts
+async getOrGeneratePdf(invoiceId: string): Promise<string> {
+  // 1. Check cache
+  const existing = await this.getExistingPdf(invoiceId);
+  if (existing) return existing;
+
+  // 2. Acquire lock (PostgreSQL advisory lock)
+  return await this.lock.withLock(`pdf:${invoiceId}`, async () => {
+    // 3. Double-check cache
+    const fresh = await this.getExistingPdf(invoiceId);
+    if (fresh) return fresh;
+
+    // 4. Generate PDF via gRPC to order/counterparty
+    // 5. Upload to MinIO
+    // 6. Return URL
+  });
+}
+```
+
+### Storage (MinIO)
+
+```yaml
+# docker-compose.yml
+minio:
+  image: minio/minio:latest
+  environment:
+    MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+    MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+  command: server /data
 ```
