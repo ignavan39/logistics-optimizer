@@ -23,6 +23,9 @@ RUN corepack enable && corepack prepare pnpm@latest --activate && \
 WORKDIR /workspace/libs/document-templates
 RUN pnpm build
 
+WORKDIR /workspace/libs/kafka-utils
+RUN pnpm build
+
 WORKDIR /workspace/apps/${SERVICE}
 RUN pnpm build
 
@@ -44,6 +47,7 @@ RUN pnpm config set public-hoist-pattern '*' && \
     npm rebuild
 
 COPY --from=builder /workspace/libs/proto/src ./libs/proto/src
+COPY --from=builder /workspace/libs/kafka-utils/dist ./libs/kafka-utils/dist
 COPY --from=builder /workspace/libs/document-templates/dist ./libs/document-templates/dist
 COPY --from=builder /workspace/apps/${SERVICE}/dist ./dist
 COPY entrypoint.sh /entrypoint.sh
