@@ -75,6 +75,9 @@ service InvoiceService {
 - Optimistic locking on invoices
 - VAT calculation and tracking
 - Payment tracking (due date, paid date)
+- **Lazy PDF generation with S3/MinIO storage**
+- **PostgreSQL advisory lock for concurrent request handling**
+- **Distributed generation: only one request generates, others poll**
 
 ---
 

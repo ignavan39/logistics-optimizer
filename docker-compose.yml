@@ -355,6 +355,42 @@ services:
     networks:
       - logistics-net
 
+minio:
+    image: minio/minio:latest
+    container_name: logistics-minio
+    restart: unless-stopped
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minio123}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - logistics-net
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: logistics-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: /bin/sh
+    command: >
+      mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY:-minio} ${MINIO_SECRET_KEY:-minio123} &&
+      mc mb local/invoices --ignore-existing &&
+      mc anonymous set download local/invoices &&
+      echo 'MinIO bucket created successfully!'
+    networks:
+      - logistics-net
+
 volumes:
   kafka-data:
   pg-order-data:
@@ -367,6 +403,7 @@ volumes:
   pg-invoice-data:
   prometheus-data:
   grafana-data:
+  minio-data:
 
 networks:
   logistics-net:
