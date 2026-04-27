@@ -1,108 +1,112 @@
-# logistics-optimizer — Frontend
+# apps/web — Frontend Agent
 
-> React + TypeScript веб-приложение для логистики
+> React 18 · TypeScript · Vite · Tailwind · React Query · Zustand · react-leaflet · Socket.io
 
 ---
 
-## 🎯 Главный принцип
+## 🔄 ПРОТОКОЛ: READ → THINK → DO → UPDATE
 
-**Эволюционируй вместе с проектом.** Нашёл новый паттерн или ошибку → запиши в `.agents/frontend/`:
+### 1. READ — перед любой задачей
+```
+Любая задача     →  .agents/frontend/MEMORY.md         (что уже знаем, открытые баги)
+Новая фича       →  .agents/frontend/00-README.md       (архитектура + страницы)
+Интеграция с API →  .agents/frontend/02-Contract-Checklist.md
+Пишем тесты      →  .agents/frontend/05-Testing-Patterns.md
+```
 
-| Что нашёл | Куда |
-|----------|------|
-| Решение после проблемы | `.agents/frontend/01-ADRs.md` |
-| Контракт с бэкендом | `.agents/frontend/02-Contract-Checklist.md` |
-| Антипаттерн (не делать) | `.agents/frontend/03-Pitfalls.md` |
-| Правильный паттерн (делать) | `.agents/frontend/04-Good-Practices.md` |
-| Паттерн тестирования | `.agents/frontend/05-Testing-Patterns.md` |
-| Процесс работы | `.agents/frontend/06-Processes.md` |
+### 2. THINK — перед написанием кода
+
+**Для задачи >50 строк — обязательно:**
+1. Какая страница затрагивается? Какие компоненты?
+2. Server state (React Query) или Client state (Zustand)?
+3. Нужен ли оптимистичный апдейт?
+4. Если карта — нужна ли кластеризация? WebSocket или polling?
+
+**UX check:**
+- Есть ли loading state?
+- Есть ли error state с понятным сообщением?
+- Есть ли empty state?
+
+### 3. DO — выполни задачу
+- Следуй `.agents/frontend/04-Good-Practices.md`
+- Избегай `.agents/frontend/03-Pitfalls.md`
+- Компонент без теста — не готов
+
+### 4. UPDATE — **обязательный последний шаг**
+
+| Вопрос | Файл |
+|--------|------|
+| Решил нестандартную проблему? | `.agents/frontend/01-ADRs.md` |
+| Наткнулся на ловушку (>15 мин отладки)? | `.agents/frontend/03-Pitfalls.md` |
+| Нашёл паттерн который стоит повторять? | `.agents/frontend/04-Good-Practices.md` |
+| Изменился API контракт с бэкендом? | `.agents/frontend/02-Contract-Checklist.md` |
+| Узнал что-то важное о проекте? | `.agents/frontend/MEMORY.md` |
+
+---
+
+## Структура приложения
+
+```
+apps/web/src/
+├── pages/              # Страницы (React Router)
+│   ├── login/
+│   ├── orders/         # Список, создание, детали
+│   ├── vehicles/       # Автопарк + карта
+│   ├── tracking/       # Трекинг конкретного ТС
+│   ├── counterparties/ # Контрагенты + контракты
+│   ├── invoices/       # Счета + PDF скачивание
+│   ├── settings/       # Настройки компании (admin)
+│   └── admin/          # Пользователи, роли, аудит
+├── components/
+│   ├── ui/             # Базовые: Button, Input, Badge, Modal
+│   ├── map/            # MapContainer, VehicleMarker, RoutePolyline
+│   ├── orders/         # OrderCard, OrderStatusBadge, OrderForm
+│   ├── vehicles/       # VehicleCard, VehicleStatusBadge
+│   └── layout/         # Sidebar, Header, PageLayout
+├── hooks/              # useOrders, useVehicles, useTracking, useWebSocket
+├── stores/             # Zustand: ui.store.ts, map.store.ts, auth.store.ts
+├── lib/
+│   ├── api/            # apiClient (axios instance), typed endpoints
+│   ├── socket.ts       # Socket.io клиент + reconnect
+│   └── utils.ts        # cn(), formatDate(), formatPrice()
+└── types/              # Общие TypeScript типы
+```
+
+---
+
+## Стек и ключевые решения
+
+| Задача | Инструмент | Почему |
+|--------|-----------|--------|
+| Server state | React Query | кеш, retry, инвалидация |
+| Client state | Zustand | без boilerplate, TypeScript |
+| Формы | React Hook Form + Zod | валидация, типобезопасность |
+| Карты | react-leaflet | OSM, кастомные маркеры |
+| Real-time | Socket.io-client | WebSocket + fallback |
+| Стили | Tailwind + cn() | утилитарный, без конфликтов |
+| HTTP | axios | interceptors, baseURL |
+| Тесты | Vitest + Testing Library | скорость, DX |
+| E2E | Playwright | надёжный, параллельный |
 
 ---
 
 ## Команды
 
 ```bash
-# Dev
 cd apps/web
-pnpm dev
 
-# Build
-pnpm build
+pnpm dev            # http://localhost:5173
+pnpm build          # dist/
+pnpm preview        # Превью production build
 
-# Lint & Typecheck
-pnpm lint
-pnpm typecheck
+pnpm test           # Vitest (unit + component)
+pnpm test:e2e       # Playwright
 
-# Tests
-pnpm test
-pnpm test:e2e
-
-# Docker
-docker compose up -d
-docker compose logs -f web
+pnpm lint           # ESLint
+pnpm typecheck      # tsc --noEmit
 ```
 
----
-
-## Стек
-
-```typescript
-// State management
-import { create } from 'zustand'                    // глобальное
-import { useQuery, useMutation } from '@tanstack/react-query' // серверное
-
-// API — только через typed client
-import { apiClient } from '@logistics/api-client'    // автогенерация из OpenAPI
-
-// Maps
-import { useMemo } from 'react'
-import { Marker, Popup } from 'react-leaflet'
-
-// Styling
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
-```
-
----
-
-## ❌ Антипаттерны (НЕ делать)
-
-Полный список: `.agents/frontend/03-Pitfalls.md`
-
-- **useEffect для фетчинга** → React Query (`useQuery`)
-- **Мутация Zustand напрямую** → только через `actions`
-- **>50 маркеров без кластеризации** → `@react-leaflet/markercluster` или виртуализация
-- **any в TypeScript** → всегда типизировать
-- **Hardcoded URL** → использовать env variables
-
----
-
-## ✅ Правильные паттерны
-
-Полный список: `.agents/frontend/04-Good-Practices.md`
-
-- **React Query** — запросы с кешированием, retry, инвалидацией
-- **Zustand** — глобальное состояние без boilerplate
-- **react-leaflet с мемоизацией** — карты с оптимизацией рендера
-- **Virtualized lists** — >100 элементов без лагов
-
----
-
-## Карты (важно!)
-
-Полный список: `docs/MAPS.md` или `apps/web/src/components/Map/`
-
-- Любая фича с картой: сначала `loading` → `error` → `data`
-- Всегда fallback при потере WebSocket соединения
-- Оптимизация маркеров: кластеризация при >100 объектов
-
----
-
-## Pre-commit
-
+**Pre-commit:**
 ```bash
 pnpm lint && pnpm typecheck && pnpm build
 ```
@@ -112,15 +116,8 @@ pnpm lint && pnpm typecheck && pnpm build
 ## Observability
 
 | Инструмент | URL |
-|---|---|
-| Frontend DevTools | F12 |
-| API | http://localhost:3000 |
+|-----------|-----|
+| React DevTools | F12 → Components |
+| React Query DevTools | F12 → Query |
+| API Gateway | http://localhost:3000 |
 | Grafana | http://localhost:3001 |
-
----
-
-## Документация
-
-- `apps/web/src/` — компоненты, хуки, страницы
-- `.agents/frontend/04-Good-Practices.md` — паттерны для копирования
-- `.agents/frontend/03-Pitfalls.md` — что НЕ делать
