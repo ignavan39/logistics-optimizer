@@ -16,6 +16,7 @@ service InvoiceService {
   rpc ListInvoices (ListInvoicesRequest) returns (ListInvoicesResponse);
   rpc CreateInvoice (CreateInvoiceRequest) returns (InvoiceResponse);
   rpc UpdateInvoiceStatus (UpdateInvoiceStatusRequest) returns (InvoiceResponse);
+  rpc GetInvoicePdfUrl (GetInvoicePdfUrlRequest) returns (GetInvoicePdfUrlResponse);
 }
 
 // ── Enums ──
@@ -94,4 +95,12 @@ message ListInvoicesResponse {
   repeated InvoiceResponse invoices = 1;
   int32 total = 2;
   int32 page = 3;
+}
+
+message GetInvoicePdfUrlRequest {
+  string invoice_id = 1;
+}
+
+message GetInvoicePdfUrlResponse {
+  string url = 1;
 }

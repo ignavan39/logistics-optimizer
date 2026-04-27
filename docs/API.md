@@ -278,7 +278,7 @@ Get invoice details.
 **Auth:** JWT (`invoices.read`)
 
 ### GET /invoices/:id/pdf
-Download invoice PDF (lazy generation).
+Get invoice PDF URL (lazy generation).
 
 **Auth:** JWT (`invoices.read`)
 **Response:**
@@ -292,6 +292,7 @@ Download invoice PDF (lazy generation).
 - Concurrent requests: only one generates, others poll
 - Uses PostgreSQL advisory lock to prevent duplicate generation
 - Generated PDF is cached and stored in MinIO/S3
+- API gateway delegates to invoice-service via gRPC
 
 ### PATCH /invoices/:id/status
 Update invoice status.
