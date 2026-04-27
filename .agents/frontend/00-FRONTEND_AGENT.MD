@@ -1,6 +1,6 @@
 # Frontend Agent — Справочник для AI ассистентов
 
-> "Как работать с frontend частью проекта" — основной документ для AI агентов.
+> "Как работать с frontend частью проекта"
 
 ---
 
@@ -16,19 +16,6 @@
 | Правильный паттерн (делать) | `04-Good-Practices.md` |
 | Паттерн тестирования | `05-Testing-Patterns.md` |
 | Процесс работы | `06-Processes.md` |
-
----
-
-## Стек
-
-```bash
-# Frontend — React + TypeScript
-- React 18 + TypeScript
-- Vite
-- Tailwind CSS
-- React Query + Zustand
-- react-leaflet
-```
 
 ---
 
@@ -68,13 +55,13 @@ apps/web/src/
 
 ---
 
-## Карты (важно!)
+## Стек
 
-Смотри `.agents/frontend/04-Good-Practices.md` — карты требуют особого внимания:
-
-- Всегда `loading` → `error` → `data`
-- WebSocket fallback при потере соединения
-- Кластеризация при > 100 объектов
+- React 18 + TypeScript
+- Vite
+- Tailwind CSS
+- React Query + Zustand
+- react-leaflet
 
 ---
 
@@ -87,20 +74,17 @@ apps/web/src/
 
 ---
 
-## Важные файлы
+## Pre-commit
 
-- `apps/web/AGENTS.md` — этот файл
-- `.eslintrc.json` — ESLint правила
-- `vite.config.ts` — Vite конфиг
-
----
-
-## ❌ Антипаттерны
-
-Смотри `.agents/frontend/03-Pitfalls.md`
+```bash
+pnpm lint && pnpm typecheck && pnpm build
+```
 
 ---
 
-## ✅ Good Practices
+## Карты (важно!)
 
-Смотри `.agents/frontend/04-Good-Practices.md`
+Смотри `04-Good-Practices.md`:
+- Всегда `loading` → `error` → `data`
+- WebSocket fallback при потере соединения
+- Кластеризация при >100 объектов
