@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ClientsModule, Transport, ClientKafka } from '@nestjs/microservices';
+import { ClientsModule, Transport, ClientKafka, ClientGrpc } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
+import { DataSource } from 'typeorm';
+import { KafkaUtilsModule } from '@logistics/kafka-utils';
 import { InvoiceEntity } from './entities/invoice.entity';
 import { InvoiceService } from './invoice.service';
 import { InvoiceGrpcController } from './invoice.grpc.controller';
@@ -10,6 +12,7 @@ import { InvoiceEventHandler } from './invoice-event-handler';
 @Module({
   imports: [
     TypeOrmModule.forFeature([InvoiceEntity]),
+    KafkaUtilsModule,
     ClientsModule.registerAsync([
       {
         name: 'ORDER_PACKAGE',
@@ -36,6 +39,18 @@ import { InvoiceEventHandler } from './invoice-event-handler';
             consumer: {
               groupId: `${configService.get('KAFKA_GROUP_ID_PREFIX', 'logistics')}.invoice-service`,
             },
+          },
+        }),
+      },
+      {
+        name: 'COUNTERPARTY_PACKAGE',
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.GRPC,
+          options: {
+            package: 'counterparty',
+            protoPath: '/app/libs/proto/src/counterparty.proto',
+            url: configService.get('GRPC_COUNTERPARTY_HOST', 'counterparty-service:50057'),
           },
         }),
       },
