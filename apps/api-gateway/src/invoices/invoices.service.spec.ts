@@ -22,6 +22,7 @@ describe('InvoicesService', () => {
       updateInvoiceStatus: jest.fn(),
       getOrder: jest.fn(),
       getCompanySettings: jest.fn(),
+      getInvoicePdfUrl: jest.fn(),
     };
 
     mockCounterpartyClient = {
@@ -177,110 +178,29 @@ describe('InvoicesService', () => {
     });
   });
 
-  describe('generateInvoicePdf()', () => {
-    const mockInvoice: InvoiceResponse = {
-      id: 'inv-1',
-      orderId: 'order-1',
-      number: 'INV-001',
-      type: 'standard',
-      amountRub: 12000,
-      vatRate: 20,
-      vatAmount: 2000,
-      status: 'ISSUED',
-      dueDate: new Date('2024-02-15'),
-      counterpartyId: 'cp-1',
-      createdAt: new Date('2024-01-15'),
-    };
+  describe('generateInvoicePdfUrl()', () => {
+    it('should return PDF URL from gRPC', async () => {
+      const mockResponse = { url: 'http://minio.test/invoices/test.pdf' };
+      mockClient.getInvoicePdfUrl.mockResolvedValue(mockResponse);
 
-    const mockOrder = {
-      id: 'order-1',
-      destinationAddress: 'г. Санкт-Петербург, Невский пр., д. 10',
-    };
+      const result = await service.generateInvoicePdfUrl('inv-1');
 
-    const mockSettings = {
-      companyName: 'ООО "Тест"',
-      companyInn: '1234567890',
-      companyKpp: '123456789',
-      companyAddress: 'Москва',
-      companyPhone: '+7 123 456-78-90',
-      companyEmail: 'test@example.com',
-      defaultPaymentTermsDays: 30,
-      defaultVatRate: 20,
-    };
-
-    const mockCounterparty = {
-      id: 'cp-1',
-      name: 'ООО "Покупатель"',
-      inn: '9876543210',
-      kpp: '987654321',
-      address: { full: 'Санкт-Петербург' },
-    };
-
-    it('should generate PDF with company settings and counterparty', async () => {
-      mockClient.getInvoice.mockResolvedValue(mockInvoice);
-      mockClient.getOrder.mockResolvedValue(mockOrder);
-      mockClient.getCompanySettings.mockResolvedValue(mockSettings);
-      mockCounterpartyClient.getCounterparty.mockResolvedValue(mockCounterparty);
-
-      const result = await service.generateInvoicePdf('inv-1');
-
-      expect(result).toBeInstanceOf(Buffer);
-      expect(result!.length).toBeGreaterThan(0);
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.getInvoicePdfUrl).toHaveBeenCalledWith({ invoiceId: 'inv-1' });
     });
 
     it('should return null when invoice not found', async () => {
-      mockClient.getInvoice.mockResolvedValue(null);
+      mockClient.getInvoicePdfUrl.mockResolvedValue(null);
 
-      const result = await service.generateInvoicePdf('nonexistent');
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null when order not found', async () => {
-      mockClient.getInvoice.mockResolvedValue(mockInvoice);
-      mockClient.getOrder.mockResolvedValue(null);
-
-      const result = await service.generateInvoicePdf('inv-1');
+      const result = await service.generateInvoicePdfUrl('nonexistent');
 
       expect(result).toBeNull();
-    });
-
-    it('should use fallback settings when gRPC fails', async () => {
-      mockClient.getInvoice.mockResolvedValue(mockInvoice);
-      mockClient.getOrder.mockResolvedValue(mockOrder);
-      mockClient.getCompanySettings.mockRejectedValue(new Error('Connection failed'));
-
-      const result = await service.generateInvoicePdf('inv-1');
-
-      expect(result).toBeInstanceOf(Buffer);
-    });
-
-    it('should generate PDF without counterparty', async () => {
-      const invoiceWithoutCp = { ...mockInvoice, counterpartyId: undefined };
-      mockClient.getInvoice.mockResolvedValue(invoiceWithoutCp);
-      mockClient.getOrder.mockResolvedValue(mockOrder);
-      mockClient.getCompanySettings.mockResolvedValue(mockSettings);
-
-      const result = await service.generateInvoicePdf('inv-1');
-
-      expect(result).toBeInstanceOf(Buffer);
-    });
-
-    it('should use buyer from counterparty when available', async () => {
-      mockClient.getInvoice.mockResolvedValue(mockInvoice);
-      mockClient.getOrder.mockResolvedValue(mockOrder);
-      mockClient.getCompanySettings.mockResolvedValue(mockSettings);
-      mockCounterpartyClient.getCounterparty.mockResolvedValue(mockCounterparty);
-
-      const result = await service.generateInvoicePdf('inv-1');
-
-      expect(result).toBeInstanceOf(Buffer);
     });
 
     it('should return null on error', async () => {
-      mockClient.getInvoice.mockRejectedValue(new Error('Generation failed'));
+      mockClient.getInvoicePdfUrl.mockRejectedValue(new Error('Generation failed'));
 
-      const result = await service.generateInvoicePdf('inv-1');
+      const result = await service.generateInvoicePdfUrl('inv-1');
 
       expect(result).toBeNull();
     });

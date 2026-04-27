@@ -49,7 +49,9 @@ export const useAuthStore = create<AuthState>()(
               method: 'POST',
               headers: { Authorization: `Bearer ${token}` },
             })
-          } catch {}
+          } catch {
+            // Ignore logout errors - intentional for auth cleanup
+          }
         }
         set({
           user: null,
