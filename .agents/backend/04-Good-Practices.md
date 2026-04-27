@@ -1,147 +1,376 @@
-# Good-Practices — Правильные паттерны
+# Good Practices — Шаблоны для копирования
 
-> "Шаблоны для копирования" — проверенные подходы.
-
----
-
-## 🎯 Strict Mode Activation
-
-**Перед реализацией фичи >50 строк:**
-1. Задай уточняющие вопросы (если не хватает контекста)
-2. Предложи план с декомпозицией
-3. Дождись подтверждения
-4. Только потом пиши код
-
-**Запрещено**: сразу генерировать код без плана.
+> Проверенные паттерны. Копируй как есть, адаптируй имена.
 
 ---
 
-## ⚡ Golden Rule: Tests First
+## ⚡ Когда обновлять ЭТОТ файл
 
-**Перед написанием любой бизнес-логики:**
-1. Создай unit-тест для чистой функции/сервиса
-2. Создай интеграционный тест для Kafka/gRPC/DB взаимодействия
-3. Создай e2e-сценарий для сквозного потока (если >1 сервиса)
+Обнови если:
+- Нашёл паттерн который применял >2 раз и он работает
+- Появился новый "правильный" способ делать что-то в этом стеке
+- Обновился существующий паттерн (добавилось что-то важное)
 
 ---
 
-## Backend Patterns
+## 🏗️ Режим Архитектора
 
-### ConfigService
+**Перед реализацией фичи >50 строк — ОБЯЗАТЕЛЬНО:**
 
-```typescript
-// ПРАВИЛЬНО
-const configService = app.get(ConfigService);
-const host = configService.get('HOST', 'localhost');
-const port = configService.get<number>('PORT', 3000);
+1. Изложи план: какие сущности, какие сервисы, какие контракты меняются
+2. Architect check:
+   - Не нарушает ли изоляцию БД?
+   - Нужен ли Outbox?
+   - Нужна ли идемпотентность?
+   - Нужен ли optimistic lock?
+   - Какой сервис несёт ответственность за эту логику?
+3. Получи подтверждение → только потом код
 
-// НЕПРАВИЛЬНО
-const host = process.env.HOST; // Ломается в Docker
+**Если видишь техдолг или возможность улучшения — скажи об этом.** Формат:
+```
+💡 Архитектурное наблюдение: [что заметил] → [предложение]
 ```
 
-### DataSource Factory
+---
+
+## 🔴 Tests First
+
+Перед бизнес-логикой:
+1. Unit тест для чистой функции/сервиса
+2. Integration тест для Kafka/gRPC/DB
+3. E2E сценарий если затрагивает >1 сервиса
+
+---
+
+## Шаблон: DatabaseModule (@Global)
 
 ```typescript
-// ПРАВИЛЬНО — TypeORM без @nestjs/typeorm
-export const dataSourceFactory = async (config: ConfigService) => {
-  const dataSource = new DataSource({
-    type: 'postgres',
-    host: config.get('DB_HOST'),
-    port: config.get<number>('DB_PORT'),
-    synchronize: config.get('NODE_ENV') !== 'production',
-  });
-  await dataSource.initialize();
-  return dataSource;
-};
+// shared/database/database.module.ts
+@Global()
+@Module({
+  providers: [
+    {
+      provide: DataSource,
+      useFactory: async (config: ConfigService) => {
+        const ds = new DataSource({
+          type: 'postgres',
+          host: config.get('DB_HOST', 'localhost'),
+          port: config.get<number>('DB_PORT', 5432),
+          database: config.get('DB_NAME'),
+          username: config.get('DB_USER', 'logistics'),
+          password: config.get('DB_PASS'),
+          synchronize: config.get('NODE_ENV') !== 'production',
+          entities: [join(__dirname, '../../**/*.entity{.ts,.js}')],
+          logging: config.get('NODE_ENV') === 'development',
+        });
+        await ds.initialize();
+        return ds;
+      },
+      inject: [ConfigService],
+    },
+  ],
+  exports: [DataSource],
+})
+export class DatabaseModule {}
 ```
 
-### Transactional Outbox
+---
+
+## Шаблон: Module с useFactory
 
 ```typescript
-// ПРАВИЛЬНО — гарантированная доставка событий
-@EventSubscriber('order.created')
-async handleOrderCreated(evt: OrderCreatedEvent) {
-  // 1. Сохраняем в outbox
-  await this.outboxRepository.save({
-    aggregateId: evt.orderId,
-    type: 'ORDER_CREATED',
-    payload: evt,
+// order/order.module.ts
+@Module({
+  imports: [DatabaseModule],
+  providers: [
+    {
+      provide: OrderService,
+      useFactory: (ds: DataSource, config: ConfigService) =>
+        new OrderService(
+          ds.getRepository(OrderEntity),
+          ds.getRepository(OutboxEventEntity),
+          config,
+        ),
+      inject: [DataSource, ConfigService],
+    },
+  ],
+  controllers: [OrderController],
+  exports: [OrderService],
+})
+export class OrderModule {}
+```
+
+---
+
+## Шаблон: Transactional Outbox (полная реализация)
+
+```typescript
+// order.service.ts
+async createOrder(dto: CreateOrderDto): Promise<OrderEntity> {
+  return this.dataSource.transaction(async (em) => {
+    const order = em.create(OrderEntity, {
+      ...dto,
+      status: OrderStatus.PENDING,
+      version: 0,
+    });
+    await em.save(order);
+
+    await em.save(OutboxEventEntity, {
+      aggregateType: 'Order',
+      aggregateId: order.id,
+      eventType: 'created',
+      payload: {
+        orderId: order.id,
+        customerId: dto.customerId,
+        origin: dto.origin,
+        destination: dto.destination,
+      },
+    });
+
+    return order;
   });
-  // 2. Отправляем в Kafka после commit
 }
 ```
 
-### Idempotent Consumer
-
 ```typescript
-// ПРАВИЛЬНО — обработка дубликатов
-@EventListener('order.created')
-async handle(evt: OrderCreatedEvent) {
-  // Проверяем обработан ли eventId
-  const exists = await this.processedEvents.findOne({
-    where: { eventId: evt.eventId },
-  });
-  if (exists) return; // Уже обработан
-  
-  await this.processOrder(evt);
-  await this.processedEvents.save({ eventId: evt.eventId });
+// outbox.processor.ts
+@Injectable()
+export class OutboxProcessor implements OnModuleInit {
+  private interval: NodeJS.Timeout;
+
+  onModuleInit() {
+    this.interval = setInterval(() => this.process(), 1000);
+  }
+
+  async process() {
+    const events = await this.outboxRepo
+      .createQueryBuilder('e')
+      .where('e.processedAt IS NULL')
+      .andWhere('e.retryCount < :max', { max: 5 })
+      .orderBy('e.createdAt', 'ASC')
+      .setLock('pessimistic_write')
+      .skip(0).take(50)
+      .getMany();
+
+    for (const event of events) {
+      try {
+        await this.kafka.send({
+          topic: `order.${event.eventType}`,
+          messages: [{ key: event.aggregateId, value: JSON.stringify(event.payload) }],
+        });
+        event.processedAt = new Date();
+      } catch (err) {
+        event.retryCount++;
+        event.lastError = (err as Error).message;
+      }
+      await this.outboxRepo.save(event);
+    }
+  }
 }
 ```
 
 ---
 
-## Frontend Patterns
-
-### React Query
+## Шаблон: Idempotent Consumer (DB-based)
 
 ```typescript
-// ПРАВИЛЬНО
-const { data, isLoading, error } = useQuery({
-  queryKey: ['orders'],
-  queryFn: () => apiClient.getOrders(),
-  staleTime: 5000,
-});
-```
+// libs/kafka-utils/src/idempotency/idempotency.guard.ts
+@Injectable()
+export class IdempotencyGuard {
+  constructor(private readonly dataSource: DataSource) {}
 
-### Zustand Store
-
-```typescript
-// ПРАВИЛЬНО
-interface AppStore {
-  orders: Order[];
-  setOrders: (orders: Order[]) => void;
+  async tryAcquire(eventId: string, eventType: string): Promise<boolean> {
+    const result = await this.dataSource.query(
+      `INSERT INTO processed_events (event_id, event_type)
+       VALUES ($1, $2)
+       ON CONFLICT (event_id) DO NOTHING
+       RETURNING id`,
+      [eventId, eventType],
+    );
+    return result.length > 0; // false = уже обработан
+  }
 }
 
-const useStore = create<AppStore>((set) => ({
-  orders: [],
-  setOrders: (orders) => set({ orders }),
-}));
+// Использование в consumer:
+async handle(event: KafkaEvent<OrderCreatedPayload>) {
+  const acquired = await this.idempotency.tryAcquire(event.eventId, event.type);
+  if (!acquired) {
+    this.logger.debug(`Skipping duplicate event: ${event.eventId}`);
+    return;
+  }
+  await this.processOrder(event.payload);
+}
 ```
 
 ---
 
-## 📚 Документация
+## Шаблон: Optimistic Locking
 
-Поддерживай актуальность в `docs/`:
+```typescript
+// Entity
+@Entity('orders')
+export class OrderEntity {
+  @VersionColumn() version: number;
+  // ...
+}
 
-| Файл | Обновлять при |
-|------|--------------|
-| `docs/SERVICES.md` | Добавлении/удалении сервиса |
-| `docs/COMMUNICATION.md` | Изменении gRPC методов, Kafka событий |
-| `docs/DATABASE.md` | Изменении схемы БД |
-| `docs/API.md` | Добавлении REST endpoints |
-| `docs/FEATURES.md` | Добавлении новых фич |
+// Service
+async updateOrderStatus(id: string, status: OrderStatus, expectedVersion: number) {
+  const order = await this.orderRepo.findOneBy({ id });
+  if (!order) throw new NotFoundException(`Order ${id} not found`);
 
-**Проверка после изменений:**
+  if (order.version !== expectedVersion) {
+    throw new ConflictException(
+      `Version conflict: expected ${expectedVersion}, got ${order.version}`
+    );
+  }
+
+  order.status = status;
+  // version инкрементируется автоматически через @VersionColumn
+  return this.orderRepo.save(order);
+}
+```
+
+---
+
+## Шаблон: ConfigService (не process.env)
+
+```typescript
+// ✅ Правильно — всегда с default значением
+const host = configService.get<string>('DB_HOST', 'localhost');
+const port = configService.get<number>('DB_PORT', 5432);
+const isDev = configService.get<string>('NODE_ENV') !== 'production';
+
+// ❌ Никогда
+const host = process.env.DB_HOST; // undefined в Docker до инициализации
+```
+
+---
+
+## Шаблон: gRPC клиент в NestJS
+
+```typescript
+// fleet.module.ts
+@Module({
+  imports: [
+    ClientsModule.register([{
+      name: 'FLEET_PACKAGE',
+      transport: Transport.GRPC,
+      options: {
+        package: 'fleet',
+        protoPath: join(__dirname, '../../../libs/proto/fleet.proto'),
+        url: process.env.FLEET_SERVICE_URL || 'localhost:50052',
+      },
+    }]),
+  ],
+})
+export class FleetModule {}
+
+// fleet.service.ts
+@Injectable()
+export class FleetClientService implements OnModuleInit {
+  private client: FleetServiceClient;
+
+  constructor(@Inject('FLEET_PACKAGE') private readonly grpc: ClientGrpc) {}
+
+  onModuleInit() {
+    this.client = this.grpc.getService<FleetServiceClient>('FleetService');
+  }
+
+  getAvailableVehicles(request: FindVehicleRequest) {
+    return firstValueFrom(this.client.getAvailableVehicles(request));
+  }
+}
+```
+
+---
+
+## Шаблон: Dispatch Saga с компенсацией
+
+```typescript
+async executeDispatch(orderId: string, attempt = 1): Promise<DispatchResult> {
+  const MAX_ATTEMPTS = 5;
+
+  try {
+    const order = await this.orderService.getOrder(orderId);
+    const vehicle = await this.fleetService.getAvailableVehicles({
+      origin: order.origin,
+      capacity: order.cargoWeight,
+    });
+    const route = await this.routingService.calculateRoute({
+      origin: order.origin,
+      destination: order.destination,
+    });
+    await this.fleetService.assignVehicle({
+      vehicleId: vehicle.id,
+      orderId,
+      version: vehicle.version, // optimistic lock
+    });
+    await this.orderService.updateOrderStatus({ orderId, status: 'ASSIGNED' });
+
+    return { success: true, vehicleId: vehicle.id };
+  } catch (err) {
+    // Компенсация
+    if (vehicleId) await this.fleetService.releaseVehicle({ vehicleId, orderId });
+
+    if (attempt < MAX_ATTEMPTS) {
+      const delay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s, 8s, 16s
+      this.logger.warn(`Dispatch attempt ${attempt} failed, retry in ${delay}ms`);
+      await sleep(delay);
+      return this.executeDispatch(orderId, attempt + 1);
+    }
+
+    await this.orderService.updateOrderStatus({
+      orderId,
+      status: 'FAILED',
+      reason: `Dispatch failed after ${MAX_ATTEMPTS} attempts`,
+    });
+    return { success: false };
+  }
+}
+```
+
+---
+
+## Шаблон: Backpressure (tracking-service)
+
+```typescript
+async handleTelemetry(data: TelemetryData, partition: number) {
+  this.queue.push(data);
+
+  // Если writer перегружен — останавливаем потребление
+  if (this.batchWriter.isOverloaded()) {
+    this.kafkaConsumer.pause([{ topic: 'vehicle.telemetry', partition }]);
+    this.batchWriter.onNextFlush(() => {
+      this.kafkaConsumer.resume([{ topic: 'vehicle.telemetry', partition }]);
+    });
+  }
+
+  const shouldFlush = this.queue.length >= 500 || Date.now() - this.lastFlush >= 200;
+  if (shouldFlush) await this.flush();
+}
+
+private async flush() {
+  if (!this.queue.length) return;
+  const batch = this.queue.splice(0);
+  await this.batchWriter.bulkInsert(batch); // unnest() → ~50k rows/sec
+  this.lastFlush = Date.now();
+}
+```
+
+---
+
+## Документация: когда обновлять
+
+| Изменение | Файл |
+|-----------|------|
+| Новый/удалённый сервис | `docs/SERVICES.md` |
+| gRPC метод или Kafka топик | `docs/COMMUNICATION.md` + `02-Contracts.md` |
+| Схема БД | `docs/DATABASE.md` |
+| REST endpoint | `docs/API.md` |
+| Новая фича/паттерн | `docs/FEATURES.md` |
+
 ```bash
+# После любых изменений
 pnpm build && pnpm typecheck
 ```
-
----
-
-## Как добавлять Practices
-
-1. Копируй проверенный паттерн
-2. Объясни почему это работает
-3. Добавь пример кода
-4. Обозначь "ПРАВИЛЬНО" vs "НЕПРАВИЛЬНО"
