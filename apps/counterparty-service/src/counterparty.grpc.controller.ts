@@ -166,6 +166,7 @@ export class CounterpartyGrpcController {
     unloadingRate?: number
     waitingRate?: number
     additionalInsurance?: number
+    vatRate?: number
   }) {
     try {
       const entity = await this.contractService.createTariff(data)
@@ -226,6 +227,7 @@ export class CounterpartyGrpcController {
       unloadingRate: entity.unloadingRate ? Number(entity.unloadingRate) : undefined,
       waitingRate: entity.waitingRate ? Number(entity.waitingRate) : undefined,
       additionalInsurance: entity.additionalInsurance ? Number(entity.additionalInsurance) : undefined,
+      vatRate: entity.vatRate ? Number(entity.vatRate) : 20,
       createdAt: entity.createdAt?.getTime() ?? 0,
       updatedAt: entity.updatedAt?.getTime() ?? 0,
       version: entity.version,

@@ -46,6 +46,7 @@ interface CreateTariffData {
   unloadingRate?: number
   waitingRate?: number
   additionalInsurance?: number
+  vatRate?: number
 }
 
 interface FindTariffsData {
@@ -155,6 +156,7 @@ export class ContractService {
       unloadingRate: data.unloadingRate,
       waitingRate: data.waitingRate,
       additionalInsurance: data.additionalInsurance,
+      vatRate: data.vatRate ?? 20,
     })
     return this.tariffRepo.save(entity)
   }

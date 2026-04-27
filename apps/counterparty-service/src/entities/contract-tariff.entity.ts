@@ -51,6 +51,9 @@ export class ContractTariffEntity {
   @Column({ name: 'additional_insurance', type: 'numeric', precision: 5, scale: 2, nullable: true })
   additionalInsurance?: number;
 
+  @Column({ name: 'vat_rate', type: 'numeric', precision: 4, scale: 2, nullable: true, default: 20 })
+  vatRate?: number;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 

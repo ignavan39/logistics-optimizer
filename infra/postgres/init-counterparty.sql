@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS contract_tariff (
     unloading_rate DECIMAL(10,2),
     waiting_rate DECIMAL(10,2),
     additional_insurance DECIMAL(5,2),
+    vat_rate DECIMAL(4,2) DEFAULT 20,  -- НДС ставка: 20 для РФ, 19 для EU, etc.
     version INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

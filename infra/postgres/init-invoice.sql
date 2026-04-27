@@ -24,3 +24,15 @@ CREATE INDEX IF NOT EXISTS idx_invoice_order_status ON invoice(order_id, status)
 CREATE INDEX IF NOT EXISTS idx_invoice_counterparty ON invoice(counterparty_id);
 CREATE INDEX IF NOT EXISTS idx_invoice_due_date ON invoice(due_date);
 CREATE INDEX IF NOT EXISTS idx_invoice_status ON invoice(status);
+
+-- Processed events table for idempotency (Kafka consumer protection)
+CREATE TABLE IF NOT EXISTS processed_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id VARCHAR(255) NOT NULL UNIQUE,
+    event_type VARCHAR(100) NOT NULL,
+    processed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_processed_events_event_id ON processed_events(event_id);
+CREATE INDEX IF NOT EXISTS idx_processed_events_type ON processed_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_processed_events_processed_at ON processed_events(processed_at);
