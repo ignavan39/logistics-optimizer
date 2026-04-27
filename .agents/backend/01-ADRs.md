@@ -58,7 +58,8 @@
 ## ADR-004: Test Database Strategy
 - **Дата**: 2026-04
 - **Контекст**: интеграционные тесты требуют изолированные БД, отличные от production
-- **Решение**: отдельные `pg-*-test` БД + pgbouncer на ports 6400+, использование init SQL файлов
+- **Решение**: отдельные `pg-*-test` БД + pgbouncer на ports 6401-6407 с пробросом наружу
+- **Порты**: 6401 (order), 6402 (fleet), 6403 (routing), 6404 (tracking), 6405 (dispatcher), 6406 (counterparty), 6407 (invoice)
 - **Статус**: Accepted
 
 ## ADR-005: API Gateway @nestjs/typeorm bug

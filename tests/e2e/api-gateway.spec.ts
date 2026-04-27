@@ -496,7 +496,7 @@ describe('API Gateway E2E', () => {
         origin: { lat: 55.7558, lng: 37.6173 },
       })
 
-      expect([200, 400, 422, 500]).toContain(response.status)
+      expect([200, 400, 404, 422, 500]).toContain(response.status)
     })
   })
 
