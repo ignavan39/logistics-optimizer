@@ -1,352 +1,258 @@
-# Testing Patterns
+### 📄 `05-Testing-Patterns.md` (Исправлен конфликт Jest + сжат)
 
-> Паттерны тестирования. Копируй структуру, адаптируй содержимое.
+```markdown
+# 05-Testing-Patterns.md — Паттерны тестирования
 
----
-
-## ⚡ Когда обновлять ЭТОТ файл
-
-Обнови если:
-- Нашёл новый паттерн тестирования который работает лучше
-- Обнаружил что существующий паттерн не работает в каком-то случае
-- Добавил новый тип тестов (e2e, contract, load)
+> Копируй структуру, адаптируй имена. Не меняй тест под баг — чини причину.
+> 🔄 Обновляй при: новом рабочем паттерне, изменении конфига, добавлении типа тестов.
 
 ---
 
-## Иерархия тестов
+## 🧪 Иерархия и правила
+| Тип | Что тестирует | Запуск | Правило |
+|-----|--------------|--------|---------|
+| **Unit** | Чистая логика, сервисы | `pnpm test` | Мокай всё внешнее. Прямая инстанциация > Nest DI |
+| **Integration** | gRPC, Kafka, БД | `./scripts/run-tests.sh --grpc-only` | Реальные порты, изолированные `*_test` БД |
+| **E2E** | Полный flow через HTTP | `./scripts/run-tests.sh --up --health --down` | Нужна живая infra. Не полагайся на статичные данные |
+| **Load** | k6 сценарии | `k6 run infra/k6/load-test.js` | Только после прохождения E2E |
 
-```
-Unit Tests      → Чистая логика, без I/O, мокать всё внешнее
-Integration     → Kafka/gRPC/DB через реальные порты (тестовые БД)
-E2E             → Полный HTTP сценарий через api-gateway
-Load            → k6 сценарии в infra/k6/
-```
+**Золотое правило**: `AAA` (Arrange → Act → Assert). Один тест = одно поведение. Имя описывает результат: `should throw ConflictException on version mismatch`.
 
 ---
 
-## Unit: Service Testing
+## ⚙️ Jest Config: Разделение (КРИТИЧНО)
 
-```typescript
-// order/order.service.spec.ts
-describe('OrderService', () => {
-  let service: OrderService;
-  let mockOrderRepo: jest.Mocked<Repository<OrderEntity>>;
-  let mockOutboxRepo: jest.Mocked<Repository<OutboxEventEntity>>;
-  let mockDataSource: jest.Mocked<DataSource>;
-
-  beforeEach(async () => {
-    mockOrderRepo = {
-      findOneBy: jest.fn(),
-      save: jest.fn(),
-      createQueryBuilder: jest.fn(),
-    } as any;
-
-    mockOutboxRepo = { save: jest.fn() } as any;
-
-    mockDataSource = {
-      transaction: jest.fn().mockImplementation((cb) =>
-        cb({ save: jest.fn().mockImplementation((_, dto) => ({ id: 'uuid', ...dto })) })
-      ),
-    } as any;
-
-    service = new OrderService(mockOrderRepo, mockOutboxRepo, mockDataSource);
-  });
-
-  describe('createOrder', () => {
-    it('should create order and outbox event in single transaction', async () => {
-      const dto = { customerId: 'c-1', origin: 'MSK', destination: 'SPB' };
-
-      const result = await service.createOrder(dto);
-
-      expect(result.status).toBe('PENDING');
-      expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
-    });
-
-    it('should throw if transaction fails', async () => {
-      mockDataSource.transaction.mockRejectedValueOnce(new Error('DB error'));
-
-      await expect(service.createOrder({} as any)).rejects.toThrow('DB error');
-    });
-  });
-
-  describe('updateOrderStatus', () => {
-    it('should throw ConflictException on version mismatch', async () => {
-      mockOrderRepo.findOneBy.mockResolvedValue({ id: '1', version: 5 } as any);
-
-      await expect(
-        service.updateOrderStatus('1', 'ASSIGNED', 3) // wrong version
-      ).rejects.toThrow(ConflictException);
-    });
-  });
-});
+### Unit-тесты (быстро, без `.js` в `src/`)
+```javascript
+// apps/*/jest.config.js
+transform: { '^.+\\.ts$': ['ts-jest', { isolatedModules: true }] }
 ```
 
----
-
-## Integration: gRPC Testing
-
-```typescript
-// tests/integration/fleet.grpc.spec.ts
-import * as grpc from '@grpc/grpc-js';
-import * as protoLoader from '@grpc/proto-loader';
-
-describe('FleetService gRPC Integration', () => {
-  let client: any;
-
-  beforeAll(async () => {
-    const def = protoLoader.loadSync(
-      join(__dirname, '../../../libs/proto/fleet.proto')
-    );
-    const pkg = grpc.loadPackageDefinition(def) as any;
-
-    client = new pkg.fleet.FleetService(
-      'localhost:50052',
-      grpc.credentials.createInsecure()
-    );
-
-    // Ждём готовности
-    await new Promise<void>((resolve, reject) => {
-      client.waitForReady(Date.now() + 10_000, (err: any) =>
-        err ? reject(err) : resolve()
-      );
-    });
-
-    // ⚠️ Обязательно тестируем реальный метод, не только readiness
-    const { vehicles } = await new Promise<any>((res, rej) =>
-      client.getAvailableVehicles({ origin: 'health-check' }, (e: any, r: any) =>
-        e ? rej(e) : res(r)
-      )
-    );
-    expect(Array.isArray(vehicles)).toBe(true);
-  });
-
-  it('should assign vehicle to order', async () => {
-    const response = await new Promise<any>((res, rej) =>
-      client.assignVehicle(
-        { vehicleId: 'test-vehicle-1', orderId: 'test-order-1', version: 0 },
-        (err: any, r: any) => (err ? rej(err) : res(r))
-      )
-    );
-
-    expect(response.success).toBe(true);
-  });
-});
-```
-
----
-
-## Integration: Kafka Testing
-
-```typescript
-// tests/integration/order-events.spec.ts
-describe('Order Kafka Events', () => {
-  let kafka: Kafka;
-  let consumer: Consumer;
-  let received: any[] = [];
-
-  beforeAll(async () => {
-    kafka = new Kafka({ brokers: ['localhost:9092'] });
-    consumer = kafka.consumer({ groupId: 'test-group-' + Date.now() });
-    await consumer.connect();
-    await consumer.subscribe({ topic: 'order.created', fromBeginning: false });
-    await consumer.run({
-      eachMessage: async ({ message }) => {
-        received.push(JSON.parse(message.value!.toString()));
-      },
-    });
-  });
-
-  afterAll(async () => {
-    await consumer.disconnect();
-  });
-
-  it('should publish order.created event after createOrder', async () => {
-    received = [];
-
-    // Создаём заказ через API
-    await axios.post('http://localhost:3000/api/v1/orders', {
-      origin: 'Moscow', destination: 'SPB',
-      cargo: { weightKg: 100, volumeM3: 1 },
-    }, { headers: { Authorization: `Bearer ${testToken}` } });
-
-    // Ждём событие
-    await waitFor(() => received.length > 0, { timeout: 5000 });
-
-    expect(received[0].type).toBe('order.created');
-    expect(received[0].eventId).toBeDefined();
-    expect(received[0].payload.origin).toBe('Moscow');
-  });
-});
-```
-
----
-
-## E2E: API Testing
-
-```typescript
-// tests/e2e/orders.e2e.spec.ts
-describe('Orders E2E', () => {
-  const api = axios.create({ baseURL: 'http://localhost:3000' });
-  let token: string;
-
-  beforeAll(async () => {
-    const { data } = await api.post('/auth/login', {
-      email: 'admin@logistics.local',
-      password: 'secret',
-    });
-    token = data.accessToken;
-  });
-
-  it('full order lifecycle: create → dispatch → assign', async () => {
-    // 1. Создаём заказ
-    const { data: order } = await api.post(
-      '/api/v1/orders',
-      { origin: 'Moscow, Tverskaya 1', destination: 'SPB, Nevsky 10',
-        cargo: { weightKg: 500, volumeM3: 2 } },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    expect(order.status).toBe('PENDING');
-
-    // 2. Ждём автоназначения через Saga
-    await waitFor(async () => {
-      const { data } = await api.get(`/api/v1/orders/${order.id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      expect(data.status).toBe('ASSIGNED');
-    }, { timeout: 30_000, interval: 1000 });
-
-    // 3. Проверяем историю статусов
-    const { data: history } = await api.get(
-      `/api/v1/orders/${order.id}/history`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    expect(history.map((h: any) => h.newStatus)).toContain('ASSIGNED');
-  });
-});
-```
-
----
-
-## DB Isolation Verification
-
-```typescript
-// tests/e2e/db-isolation.spec.ts
-const TEST_DB_CONFIG = {
-  order:        { host: 'localhost', port: 6401, database: 'order_db_test' },
-  fleet:        { host: 'localhost', port: 6402, database: 'fleet_db_test' },
-  routing:      { host: 'localhost', port: 6403, database: 'routing_db_test' },
-  tracking:     { host: 'localhost', port: 6404, database: 'tracking_db_test' },
-  dispatcher:   { host: 'localhost', port: 6405, database: 'dispatcher_db_test' },
-  counterparty: { host: 'localhost', port: 6406, database: 'counterparty_db_test' },
-  invoice:      { host: 'localhost', port: 6407, database: 'invoice_db_test' },
-};
-
-describe('DB Isolation', () => {
-  const pools: Record<string, Pool> = {};
-
-  beforeAll(async () => {
-    for (const [name, cfg] of Object.entries(TEST_DB_CONFIG)) {
-      pools[name] = new Pool(cfg);
-      await pools[name].query('SELECT 1'); // проверяем доступность
-    }
-  });
-
-  afterAll(async () => {
-    for (const pool of Object.values(pools)) await pool.end();
-  });
-
-  it.each(Object.entries(TEST_DB_CONFIG))(
-    '%s should use its own database',
-    async (name, cfg) => {
-      const { rows } = await pools[name].query('SELECT current_database() AS db');
-      expect(rows[0].db).toBe(cfg.database);
-    }
-  );
-});
-```
-
----
-
-## Test Data Management
-
-```typescript
-// tests/helpers/test-data.ts
-const TEST_PREFIX = `test-${Date.now()}`;
-
-export const testOrder = (overrides = {}) => ({
-  customerId: `${TEST_PREFIX}-customer`,
-  origin: 'Moscow, Test St 1',
-  destination: 'SPB, Test Av 2',
-  cargo: { weightKg: 100, volumeM3: 1 },
-  ...overrides,
-});
-
-// В тестах
-afterAll(async () => {
-  // Удаляем тестовые данные по префиксу
-  await pool.query(
-    `DELETE FROM orders WHERE customer_id LIKE $1`,
-    [`${TEST_PREFIX}%`]
-  );
-});
-```
-
----
-
-## Jest Config для E2E
-
+### E2E-тесты (отключаем Babel, решаем парсинг-ошибки)
 ```javascript
 // tests/e2e/jest.config.js
-const rootDir = process.cwd();
+transform: {
+  '^.+\\.ts$': ['ts-jest', {
+    tsconfig: 'tests/e2e/tsconfig.json',
+    useIsolatedModules: false // ⚠️ Отключает Babel под капотом ts-jest
+  }]
+}
+```
+> 📌 **Правило**: Если видишь `SyntaxError: Unexpected token` в E2E → проверь `useIsolatedModules: false`.
 
-module.exports = {
-  rootDir,
-  roots: [`${rootDir}/tests/e2e`],
-  testRegex: '.*\\.spec\\.ts$',
-  transform: {
-    '^.+\\.(t|j)s$': ['ts-jest', {
-      tsconfig: `${rootDir}/tests/e2e/tsconfig.json`,
-      isolatedModules: true, // ← предотвращает .js файлы в src/
-    }],
-  },
-  testEnvironment: 'node',
-  testTimeout: 30_000, // E2E могут быть медленными
+---
+
+## 🛠 Unit: Сервисы с gRPC-клиентами
+```typescript
+// ✅ Прямая инстанциация (надёжнее Test.createTestingModule)
+const grpcMock = {
+  getService: jest.fn().mockReturnValue({
+    getAvailableVehicles: jest.fn().mockResolvedValue({ vehicles: [] }),
+    assignVehicle: jest.fn().mockResolvedValue({ success: true }),
+  }),
+};
+
+const mockConfig = { get: jest.fn().mockReturnValue('localhost') };
+
+let service: OrderService;
+beforeEach(() => {
+  service = new OrderService(mockConfig as any, grpcMock as any);
+  service.onModuleInit();
+});
+```
+
+---
+
+## 🔌 Integration: gRPC & Kafka
+```typescript
+// gRPC: всегда тестируй реальный метод, не только waitForReady()
+await new Promise<void>((resolve, reject) => {
+  client.waitForReady(Date.now() + 10_000, (err) => err ? reject(err) : resolve());
+});
+const res = await new Promise<any>((res, rej) => 
+  client.getAvailableVehicles({ origin: 'health-check' }, (e, r) => e ? rej(e) : res(r))
+);
+expect(Array.isArray(res.vehicles)).toBe(true);
+
+// Kafka: проверяй envelope
+expect(event.eventId).toBeDefined();
+expect(event.source).toBe('order-service');
+expect(event.type).toBe('order.created');
+```
+
+---
+
+## 🌐 E2E: API & DB Isolation
+```typescript
+// E2E: используй тестовые префиксы для лёгкой очистки
+const TEST_PREFIX = `test-${Date.now()}`;
+await pool.query(`DELETE FROM orders WHERE customer_id LIKE $1`, [`${TEST_PREFIX}%`]);
+
+// DB Isolation: проверяй порты из ADR-004
+const TEST_DBS = {
+  order: 6401, fleet: 6402, routing: 6403,
+  tracking: 6404, dispatcher: 6405, counterparty: 6406, invoice: 6407
 };
 ```
 
 ---
 
-## Запуск тестов
-
+## 🚀 Быстрый запуск
 ```bash
-# Unit
-pnpm test
+pnpm test                          # Unit (все)
+pnpm --filter @logistics/order test # Unit (один)
+./scripts/run-tests.sh --up --health --down # E2E полный цикл
+./scripts/run-tests.sh --grpc-only # Только gRPC
+./scripts/run-tests.sh --kafka-only # Только Kafka
+```
 
-# Один сервис
-pnpm --filter @logistics/order-service test
-
-# E2E (нужна infra)
-./scripts/run-tests.sh --up --health --down
-
-# По группам
-./scripts/run-tests.sh --db-only
-./scripts/run-tests.sh --grpc-only
-./scripts/run-tests.sh --kafka-only
-
-# Конкретный файл
-npx jest tests/e2e/order.service.spec.ts --config tests/e2e/jest.config.js
-
-# Нагрузочный (нужен k6)
-k6 run --env BASE_URL=http://localhost:3000 --env JWT_TOKEN=... infra/k6/load-test.js
+---
+💡 **Meta**: Если тест падает >3 раз подряд → проверь `03-Pitfalls.md#testing`. Не мокай то, что тестируешь.
 ```
 
 ---
 
-## Правила
+### 📄 `06-Processes.md` (Runbook-стиль, убраны планы)
 
-1. **AAA** — Arrange, Act, Assert в каждом тесте
-2. **Один assertion на тест** — упавший тест даёт точную информацию
-3. **Имя описывает поведение** — `should throw ConflictException on version mismatch`
-4. **Независимость** — каждый тест работает сам по себе
-5. **Test prefix** — тестовые данные с префиксом `test-{timestamp}` для лёгкой очистки
-6. **Не мокай то что тестируешь** — если тестируешь интеграцию, нужна реальная БД
+```markdown
+# 06-Processes.md — Runbook & Checklists
+
+> Чеклисты и процессы. Не запоминай — читай перед действием.
+> 🔄 Обновляй при: изменении CI/CD, новом типе задач, находке более быстрого способа.
+
+---
+
+## 🚀 Feature Dev Flow
+1. `MEMORY.md` → что уже знаем?
+2. `AGENTS.md` → READ → THINK → DO → UPDATE
+3. План (>50 строк) → Architect check → подтверждение
+4. Tests first → Unit → Integration → E2E
+5. `pnpm lint && pnpm typecheck && pnpm build`
+6. Коммит → ОБНОВИТЬ доки
+
+---
+
+## 🧩 Создание нового сервиса
+```bash
+nx g @nx/node:app новый-сервис --directory=apps
+# 1. Скопировать DatabaseModule из 04-Good-Practices
+# 2. Добавить в docker-compose.yml + init SQL (infra/postgres/)
+# 3. Портировать pgbouncer на 640X (ADR-004)
+# 4. Обновить: docs/SERVICES.md, docs/COMMUNICATION.md, 00-README.md, AGENTS.md
+```
+
+---
+
+## 🔌 Добавление gRPC / Kafka
+| Шаг | gRPC | Kafka |
+|-----|------|-------|
+| 1 | `libs/proto/service.proto` | Топик в `docker-compose.yml` (kafka-init) |
+| 2 | `pnpm --filter @logistics/proto build` | Payload в `libs/kafka-utils/src/events/` |
+| 3 | Реализовать `@GrpcMethod()` | Publisher через **Outbox** |
+| 4 | Клиент в зависимом сервисе | Consumer с **IdempotencyGuard** |
+| 5 | Интеграционный тест | Интеграционный тест |
+| 6 | `02-Contracts.md` + `docs/COMMUNICATION.md` | `02-Contracts.md` + `docs/COMMUNICATION.md` |
+
+---
+
+## 🔍 Debugging — по симптому
+| Симптом | Команда | Решение |
+|---------|---------|---------|
+| `Nest can't resolve dependencies` | `grep -r "@nestjs/typeorm" apps/` | Заменить на `DataSource` factory (ADR-001) |
+| `column does not exist` | `docker compose down -v && up -d` | Init SQL не применился → пересоздай контейнер |
+| gRPC `Internal Error` | `docker compose exec postgres psql -U logistics -d order_db -c "\dt"` | Проверь схему БД + трейс в Jaeger (`localhost:16686`) |
+| Kafka consumer lag | `http://localhost:8080` → Consumer Groups | Проверь `processed_events` и `retryCount` |
+| Jest не находит тесты | `find apps libs -name "*.js" -path "*/src/*" -delete` | Удали скомпилированные `.js`, проверь `isolatedModules` |
+
+---
+
+## ✅ Pre-commit & Code Review Checklist
+- [ ] Нет `process.env` → только `configService.get()`
+- [ ] Нет `@nestjs/typeorm` → только `DataSource`
+- [ ] Нет HTTP между сервисами
+- [ ] Kafka publish → **только через Outbox**
+- [ ] Kafka consumer → **IdempotencyGuard**
+- [ ] Конкурентные сущности → `@VersionColumn`
+- [ ] Нет `any` без обоснования
+- [ ] Тесты написаны и проходят
+- [ ] Документация обновлена
+- [ ] Нет secrets в коде
+
+---
+💡 **Meta**: Если процесс устарел или появился быстрее → замени, не копи.
+```
+
+---
+
+### 📄 `MEMORY.md` (Live State, без истории)
+
+```markdown
+# MEMORY — Текущее состояние проекта
+
+> 🎯 Первый файл для чтения. Содержит только **актуальные факты, открытые проблемы и критические правила**.
+> 🔄 Обновляй в конце каждой сессии. Переноси решённое в архив или удаляй.
+> ⏱ Агенту читать только секции `🔴 КРИТИЧЕСКИЕ ФАКТЫ` и `🛠 Активные проблемы`.
+
+---
+
+## 🔴 КРИТИЧЕСКИЕ ФАКТЫ (Знать обязательно)
+| Факт | Контекст |
+|------|----------|
+| `@nestjs/typeorm` сломан в Docker/pnpm | Используй `new DataSource()` напрямую (ADR-001) |
+| gRPC порты (Docker → localhost) | order=50051, invoice=50052, fleet=50053, routing=50054, tracking=50055, dispatcher=50056, counterparty=50057 |
+| NestJS версии | Только `10.x`. Root `^11.x` ломает Docker-сборку |
+| `git checkout -- .` | Откатывает ВСЁ. Используй `git restore path/to/file` |
+| E2E Babel-ошибка | В `tests/e2e/jest.config.js` → `useIsolatedModules: false` |
+| Init SQL | Запускается только при первом старте. При `column does not exist` → `docker compose down -v && up -d` |
+
+---
+
+## 🛠 Активные проблемы / TODO
+| Проблема | Статус | Временное решение | Правильное решение |
+|----------|--------|-------------------|-------------------|
+| `counterparty-service`, `invoice-service` DI error | 🔴 High | Заглушки в модулях | Исправить `useFactory` и зависимости |
+| E2E gRPC timeouts | 🟡 Medium | Локальный `pnpm start:dev` + env vars | Исправить `docker-compose.test.yml` network |
+| `document-templates` ESM/CJS конфликт | 🟡 Medium | `esModuleInterop: true` + `require()` | Перевести либу на ESM или вынести в shared |
+
+---
+
+## ✅ Подтверждённые паттерны (быстрая справка)
+```typescript
+// DataSource Factory (@Global)
+@Global() @Module({ providers: [{ provide: DataSource, useFactory: async (cfg) => { const ds = new DataSource({...}); await ds.initialize(); return ds; }, inject: [ConfigService] }], exports: [DataSource] })
+export class DatabaseModule {}
+
+// Unit-тест сервиса с gRPC
+const grpcMock = { getService: jest.fn().mockReturnValue({ method: jest.fn() }) };
+const service = new MyService(mockConfig as any, grpcMock as any);
+service.onModuleInit();
+```
+
+---
+
+## 🔍 Диагностика частых проблем
+| Ошибка | Причина | Решение |
+|--------|---------|---------|
+| `Nest can't resolve dependencies` | `@nestjs/typeorm` | Заменить на `DataSource` factory |
+| `column does not exist` | Init SQL не применился | `docker compose down -v && up -d` |
+| gRPC `Internal Error` | Схема БД неполная | Проверить `\dt` + Jaeger трейс |
+| Kafka дубли | Нет идемпотентности | Проверять `eventId` в `processed_events` |
+| Jest не находит тесты | `.js` в `src/` | `find ... -name "*.js" -path "*/src/*" -delete` |
+
+---
+
+## 📜 Архив сессий (для контекста, не читать при старте)
+<details>
+<summary>28.04.2026 — Fix build, tests, ports, ESM/CJS</summary>
+- Исправлены порты в AGENTS.md под docker-compose
+- Unit: 97/97 ✅
+- E2E Babel fixed (`useIsolatedModules: false`)
+- ESLint strict mode enabled, ts-jest разделён (Unit/E2E)
+- PDF generation унифицирован через invoice-service + MinIO
+</details>
+
+---
+📝 **Правило**: Если вопрос решён >3 дня назад → перенеси в `01-ADRs.md` или `03-Pitfalls.md` и удали отсюда. Не накапливай историю.
+```
+
+---

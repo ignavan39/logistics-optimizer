@@ -50,7 +50,7 @@ Frontend задача →  .agents/frontend/00-README.md (архитектура
 | Изменил схему БД? | `docs/DATABASE.md` |
 | Добавил/удалил REST endpoint? | `docs/API.md` |
 | Добавил новый сервис или изменил ответственность? | `docs/SERVICES.md` |
-| Узнал что-то важное о проекте? | `.agents/MEMORY.md` |
+| Узнал что-то важное о проекте? | `.agents/backend/MEMORY.md` |
 
 **Правило**: если не уверен нужно ли обновлять — обновляй. Лишняя запись лучше потери знания.
 
@@ -65,9 +65,9 @@ Frontend задача →  .agents/frontend/00-README.md (архитектура
 └──┬──────┬────────┬────────┬────────┬─────────┬──────────────┘
    │gRPC  │gRPC    │gRPC    │gRPC    │gRPC     │gRPC
    ▼      ▼        ▼        ▼        ▼         ▼
-order  fleet   routing  tracking counterparty dispatcher
-:50051 :50052  :50053   :50054   :50056       :50055
-pg-ord pg-flt  pg-rut   pg-trk   pg-cnt       pg-dis
+order  fleet   routing  tracking  counterparty dispatcher invoice
+:50051 :50053  :50054   :50055    :50057        :50056      :50052
+pg-ord pg-flt  pg-rut   pg-trk    pg-cnt        pg-dis      pg-inv
                                               (Saga orch)
        Kafka Events ──────────────────────────────▲
        order.created / order.updated / vehicle.telemetry
@@ -77,12 +77,12 @@ pg-ord pg-flt  pg-rut   pg-trk   pg-cnt       pg-dis
 |--------|-----------|-----|-------------------|
 | api-gateway | — (HTTP 3000) | pg-auth | JWT, RBAC, WebSocket |
 | order-service | 50051 | pg-order | Outbox, State Machine, Tariff Snapshots |
-| fleet-service | 50052 | pg-fleet+PostGIS | OptimisticLock, PostGIS proximity |
-| routing-service | 50053 | pg-routing+PostGIS | Route cache, A*/VRP |
-| tracking-service | 50054 | pg-tracking | Backpressure, Batch writes, Partitioning |
-| dispatcher-service | 50055 | pg-dispatcher | Saga, Compensation, Retry x5 |
-| counterparty-service | 50056 | pg-counterparty | OptimisticLock, Zone tariffs |
-| invoice-service | 50057 | pg-invoices | PDF gen, VAT calc |
+| fleet-service | 50053 | pg-fleet+PostGIS | OptimisticLock, PostGIS proximity |
+| routing-service | 50054 | pg-routing+PostGIS | Route cache, A*/VRP |
+| tracking-service | 50055 | pg-tracking | Backpressure, Batch writes, Partitioning |
+| dispatcher-service | 50056 | pg-dispatcher | Saga, Compensation, Retry x5 |
+| counterparty-service | 50057 | pg-counterparty | OptimisticLock, Zone tariffs |
+| invoice-service | 50052 | pg-invoices | PDF gen, VAT calc |
 
 **Правила архитектуры (нарушать запрещено):**
 - Межсервисное общение: только gRPC (sync) или Kafka (async). HTTP между сервисами — запрещено
