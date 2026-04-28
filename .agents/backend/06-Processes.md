@@ -59,7 +59,7 @@ docker run -d --name test-<service-name> --network <net-id> \
 ## Feature Development Flow
 
 ```
-1. Read .agents/MEMORY.md              ← Что уже знаем?
+1. Read .agents/backend/MEMORY.md              ← Что уже знаем?
 2. Read .agents/backend/00-README.md   ← Архитектура?
 3. Plan (>50 строк → обязательно)      ← Декомпозиция + архитектурный чек
 4. Write tests first                   ← Unit + Integration

@@ -30,7 +30,6 @@ export class SettingsService implements OnModuleInit, OnModuleDestroy {
   private client!: OrderGrpcClient;
 
   constructor(
-    private configService: ConfigService,
     @Inject('ORDER_PACKAGE') private grpcClient: ClientGrpc,
   ) {}
 

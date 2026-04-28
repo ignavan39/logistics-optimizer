@@ -1,7 +1,7 @@
 import type { Logger } from '@nestjs/common'
 import { Logger as NestLogger, ConflictException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import type { Repository, DataSource } from 'typeorm'
+import { Repository, DataSource } from 'typeorm'
 import { VehicleEntity } from './entities/vehicle.entity'
 
 interface DriverRow {

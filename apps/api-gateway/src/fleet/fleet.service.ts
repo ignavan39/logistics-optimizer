@@ -23,7 +23,6 @@ export class FleetService implements OnModuleInit, OnModuleDestroy {
   private fleetClient!: FleetGrpcClient
 
   constructor(
-    private configService: ConfigService,
     @Inject('FLEET_PACKAGE') private client: ClientGrpc,
   ) {}
 

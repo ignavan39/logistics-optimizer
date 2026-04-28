@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, Query, Patch, Delete, HttpCode, HttpStatus } from '@nestjs/common';
-import { type OrderService, type CreateOrderDto, type UpdateOrderStatusDto } from './order.service';
-import { type OrderEntity } from './entities/order.entity';
+import { OrderService, CreateOrderDto, UpdateOrderStatusDto } from './order.service';
+import { OrderEntity } from './entities/order.entity';
 
 interface OrderResponseDto {
   orderId: string;

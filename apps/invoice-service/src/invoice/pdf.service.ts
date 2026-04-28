@@ -1,9 +1,9 @@
 import { Injectable, Logger, NotFoundException, ConflictException, Inject } from '@nestjs/common';
-import { type DataSource } from 'typeorm';
-import { type ConfigService } from '@nestjs/config';
-import { type ClientGrpc } from '@nestjs/microservices';
+import { DataSource } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
+import { ClientGrpc } from '@nestjs/microservices';
 import { PdfStatus } from './entities/invoice.entity';
-import { type S3StorageService } from './s3-storage.service';
+import { S3StorageService } from './s3-storage.service';
 import { PgAdvisoryLock } from './pg-advisory-lock';
 import { generateInvoice, type InvoiceData } from '@logistics/document-templates';
 import { firstValueFrom } from 'rxjs';

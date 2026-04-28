@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
-import { ClientsModule, Transport, type ClientGrpc, type ClientKafka } from '@nestjs/microservices';
+import { Module, Inject } from '@nestjs/common';
+import { ClientsModule, Transport, ClientGrpc, ClientKafka } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { InvoiceService } from './invoice.service';
@@ -70,20 +70,10 @@ import { S3StorageService } from './s3-storage.service';
         configService: ConfigService,
         orderGrpc: ClientGrpc,
         counterpartyGrpc: ClientGrpc,
-      ) =>
-        new PdfService(dataSource, s3Storage, configService, orderGrpc, counterpartyGrpc),
+      ) => new PdfService(dataSource, s3Storage, configService, orderGrpc, counterpartyGrpc),
       inject: [DataSource, S3StorageService, ConfigService, 'ORDER_PACKAGE', 'COUNTERPARTY_PACKAGE'],
     },
-    {
-      provide: InvoiceEventHandler,
-      useFactory: (
-        dataSource: DataSource,
-        invoiceService: InvoiceService,
-        kafka: ClientKafka,
-        counterpartyGrpc: ClientGrpc,
-      ) => new InvoiceEventHandler(kafka, counterpartyGrpc, invoiceService, dataSource),
-      inject: [DataSource, InvoiceService, 'KAFKA_CLIENT', 'COUNTERPARTY_PACKAGE'],
-    },
+    InvoiceEventHandler,
   ],
   exports: [InvoiceService, PdfService],
 })

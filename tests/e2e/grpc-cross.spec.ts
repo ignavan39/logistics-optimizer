@@ -15,6 +15,7 @@ describe('gRPC Cross-Service Integration', () => {
   let dispatcherClient: any
 
   beforeAll(async () => {
+    // Увеличиваем timeout для beforeAll (Jest по умолчанию 30 сек)
     // Загружаем proto файлы
     const orderProto = protoLoader.loadSync(`${PROTO_PATH}/order.proto`)
     const invoiceProto = protoLoader.loadSync(`${PROTO_PATH}/invoice.proto`)
@@ -33,24 +34,28 @@ describe('gRPC Cross-Service Integration', () => {
     const dispatcherPkg = grpc.loadPackageDefinition(dispatcherProto) as any
 
     // Создаем gRPC клиенты - используем env vars для docker networking
+    // Порты Docker (docker-compose.services.yml):
+    // order:50051, invoice:50052, fleet:50053, routing:50054, tracking:50055, dispatcher:50056, counterparty:50057
     const createClient = (Service: any, hostEnv: string) => {
       const host = process.env[hostEnv] || hostEnv
       console.log(`Creating ${hostEnv} client for ${host}`)
       return new Service(host, grpc.credentials.createInsecure())
     }
 
-    orderClient = createClient(orderPkg.order.OrderService, 'GRPC_ORDER_HOST')
-    invoiceClient = createClient(invoicePkg.invoice.InvoiceService, 'GRPC_INVOICE_HOST')
-    fleetClient = createClient(fleetPkg.fleet.FleetService, 'GRPC_FLEET_HOST')
-    routingClient = createClient(routingPkg.routing.RoutingService, 'GRPC_ROUTING_HOST')
-    trackingClient = createClient(trackingPkg.tracking.TrackingService, 'GRPC_TRACKING_HOST')
-    dispatcherClient = createClient(dispatcherPkg.dispatcher.DispatcherService, 'GRPC_DISPATCHER_HOST')
-    counterpartyClient = createClient(counterpartyPkg.counterparty.CounterpartyService, 'GRPC_COUNTERPARTY_HOST')
+    // Реальные порты Docker (localhost проброс)
+    orderClient = createClient(orderPkg.order.OrderService, process.env.GRPC_ORDER_HOST || 'localhost:50051')
+    invoiceClient = createClient(invoicePkg.invoice.InvoiceService, process.env.GRPC_INVOICE_HOST || 'localhost:50052')
+    fleetClient = createClient(fleetPkg.fleet.FleetService, process.env.GRPC_FLEET_HOST || 'localhost:50053')
+    routingClient = createClient(routingPkg.routing.RoutingService, process.env.GRPC_ROUTING_HOST || 'localhost:50054')
+    trackingClient = createClient(trackingPkg.tracking.TrackingService, process.env.GRPC_TRACKING_HOST || 'localhost:50055')
+    dispatcherClient = createClient(dispatcherPkg.dispatcher.DispatcherService, process.env.GRPC_DISPATCHER_HOST || 'localhost:50056')
+    counterpartyClient = createClient(counterpartyPkg.counterparty.CounterpartyService, process.env.GRPC_COUNTERPARTY_HOST || 'localhost:50057')
 
-    // Ждем готовности сервисов (увеличенный таймаут для docker)
+    // Ждем готовности сервисов
     const waitForReady = (client: any, name: string) => new Promise<void>((resolve, reject) => {
       console.log(`Waiting for ${name}...`)
-      client.waitForReady(Date.now() + 30000, (err: any) => {
+      // Увеличиваем timeout до 60 сек для медленных сервисов
+      client.waitForReady(Date.now() + 60000, (err: any) => {
         if (err) {
           console.error(`Failed to connect to ${name}:`, err.message)
           reject(err)

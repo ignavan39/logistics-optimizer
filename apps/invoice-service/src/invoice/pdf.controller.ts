@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Res } from '@nestjs/common';
 import { type Response } from 'express';
-import { type PdfService } from './pdf.service';
-import { type S3StorageService } from './s3-storage.service';
+import { PdfService } from './pdf.service';
+import { S3StorageService } from './s3-storage.service';
 
 @Controller()
 export class PdfController {

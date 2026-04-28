@@ -63,15 +63,14 @@ export class OutboxProcessor implements OnApplicationBootstrap, OnApplicationShu
     await qr.startTransaction();
 
     try {
-      type OutboxRow = { id: string; event_type: string; payload: unknown };
-      const rows: OutboxRow[] = await qr.query<OutboxRow>(
+      const rows = await qr.query(
           `SELECT id, event_type, payload FROM outbox_events
            WHERE processed_at IS NULL AND retry_count < $1
            ORDER BY created_at ASC
            LIMIT $2
            FOR UPDATE SKIP LOCKED`,
           [MAX_RETRIES, BATCH_SIZE],
-        );
+        ) as { id: string; event_type: string; payload: unknown }[];
 
       if (rows.length === 0) {
         await qr.commitTransaction();
@@ -80,7 +79,7 @@ export class OutboxProcessor implements OnApplicationBootstrap, OnApplicationShu
 
       this.logger.debug(`Outbox: publishing ${rows.length} events`);
 
-      const publishPromises = rows.map((row: OutboxRow) =>
+      const publishPromises = rows.map((row) =>
         lastValueFrom(
           this.kafka.emit(String(row.event_type), {
             key: (row.payload as { aggregateId?: string }).aggregateId ?? row.id,

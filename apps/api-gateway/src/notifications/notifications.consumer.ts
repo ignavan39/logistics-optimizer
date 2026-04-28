@@ -1,5 +1,5 @@
 import { Controller, Logger } from '@nestjs/common';
-import { EventPattern, Payload } from '@nestjs/microservices';
+import { EventPattern, Payload, Ctx, KafkaContext } from '@nestjs/microservices';
 import { type NotificationsGateway } from './notifications.gateway';
 
 interface OrderEventPayload {

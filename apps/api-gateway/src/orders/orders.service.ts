@@ -24,7 +24,6 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   private orderClient!: OrderGrpcClient
 
   constructor(
-    private configService: ConfigService,
     @Inject('ORDERS_PACKAGE') private client: ClientGrpc,
   ) {}
 

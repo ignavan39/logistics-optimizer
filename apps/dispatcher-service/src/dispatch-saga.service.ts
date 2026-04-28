@@ -98,7 +98,7 @@ private async execute(saga: DispatchSaga): Promise<void> {
         orderSvc.getOrder({ order_id: saga.orderId }).pipe(
           timeout(GRPC_TIMEOUT_MS),
         )
-      )
+      ) as any;
       this.addStep(saga, 'get_order', 'completed')
 
       await this.updateSagaStatus(saga, SagaStatus.FINDING_VEHICLE)
@@ -118,7 +118,7 @@ private async execute(saga: DispatchSaga): Promise<void> {
             return throwError(() => err);
           })
         )
-      )
+      ) as any;
 
       if (!vehiclesRes.vehicles.length) {
         throw new Error('No available vehicles found');
@@ -144,7 +144,7 @@ private async execute(saga: DispatchSaga): Promise<void> {
             return throwError(() => err);
           })
         )
-      );
+      ) as any;
 
       this.addStep(saga, 'calculate_route', 'completed');
       saga.routeId = route.route_id;
@@ -155,7 +155,7 @@ private async execute(saga: DispatchSaga): Promise<void> {
           order_id:         saga.orderId,
           expected_version: (vehicle as any).version,
         }).pipe(timeout(GRPC_TIMEOUT_MS))
-      );
+      ) as any;
 
       if (!assignRes.success) {
         // Vehicle was taken by concurrent saga — compensate & retry
