@@ -3,6 +3,7 @@ import { type JwtService } from '@nestjs/jwt';
 import { type Repository, type DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import * as crypto from 'crypto';
 import { type User } from '../users/entities/user.entity';
 import { type RefreshToken } from '../users/entities/refresh-token.entity';
 

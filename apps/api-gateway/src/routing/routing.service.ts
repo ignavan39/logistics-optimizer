@@ -1,17 +1,17 @@
-import { Injectable, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common'
-import { type ConfigService } from '@nestjs/config'
-import { type ClientGrpc } from '@nestjs/microservices'
-import { Inject } from '@nestjs/common'
-import { type CalculateRouteDto, type GetRouteDto } from './dto/routing.dto'
+import { Injectable, type OnModuleInit, type OnModuleDestroy, Logger } from '@nestjs/common';
+import { type ConfigService } from '@nestjs/config';
+import { type ClientGrpc } from '@nestjs/microservices';
+import { Inject } from '@nestjs/common';
+import { type CalculateRouteDto, type GetRouteDto } from './dto/routing.dto';
 
 interface RoutingGrpcClient {
-  calculateRoute(data: CalculateRouteDto): Promise<any>
-  getRoute(data: GetRouteDto): Promise<any>
+  calculateRoute(data: CalculateRouteDto): Promise<any>;
+  getRoute(data: GetRouteDto): Promise<any>;
 }
 
 @Injectable()
 export class RoutingService implements OnModuleInit, OnModuleDestroy {
-  private routingClient!: RoutingGrpcClient
+  private routingClient!: RoutingGrpcClient;
 
   constructor(
     private configService: ConfigService,
@@ -19,21 +19,31 @@ export class RoutingService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    this.routingClient = this.client.getService<RoutingGrpcClient>('RoutingService')
+    this.routingClient = this.client.getService<RoutingGrpcClient>('RoutingService');
   }
 
   onModuleDestroy() {}
 
   async calculateRoute(dto: CalculateRouteDto) {
-    return this.routingClient.calculateRoute({
-      order_id: dto.order_id,
-      vehicle_id: dto.vehicle_id,
-      origin: { lat: dto.origin.lat, lng: dto.origin.lng },
-      destination: { lat: dto.destination.lat, lng: dto.destination.lng },
-    })
+    try {
+      return await this.routingClient.calculateRoute({
+        order_id: dto.order_id,
+        vehicle_id: dto.vehicle_id,
+        origin: { lat: dto.origin.lat, lng: dto.origin.lng },
+        destination: { lat: dto.destination.lat, lng: dto.destination.lng },
+      });
+    } catch (e) {
+      Logger.error(`Failed to calculate route: ${e}`, RoutingService.name);
+      return null;
+    }
   }
 
   async getRoute(routeId: string) {
-    return this.routingClient.getRoute({ route_id: routeId })
+    try {
+      return await this.routingClient.getRoute({ route_id: routeId });
+    } catch (e) {
+      Logger.error(`Failed to get route ${routeId}: ${e}`, RoutingService.name);
+      return null;
+    }
   }
 }

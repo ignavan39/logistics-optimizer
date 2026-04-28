@@ -1,33 +1,30 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-
-import { ConfigService } from '@nestjs/config';
 import { TrackingService } from './tracking.service';
+import { ConfigService } from '@nestjs/config';
+
+const trackingClient = {
+  getLatestPosition: jest.fn().mockResolvedValue({ vehicleId: 'vehicle-1', lat: 55.7558, lng: 37.6173 }),
+  getTrack: jest.fn().mockResolvedValue({ points: [], total: 0 }),
+};
+
+const mockClientGrpc = {
+  getService: jest.fn().mockReturnValue(trackingClient),
+};
+
+const mockConfigService = {
+  get: jest.fn(),
+};
 
 describe('TrackingService', () => {
   let service: TrackingService;
-  let trackingClient: any;
 
-  const mockTrackingClient = {
-    getLatestPosition: jest.fn().mockResolvedValue({ vehicleId: 'vehicle-1', lat: 55.7558, lng: 37.6173 }),
-    getTrack: jest.fn().mockResolvedValue({ points: [], total: 0 }),
-  };
+  beforeEach(() => {
+    jest.clearAllMocks();
 
-  beforeEach(async () => {
-    const mockClientGrpc = {
-      getService: jest.fn().mockReturnValue(mockTrackingClient),
-    };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TrackingService,
-        { provide: 'TRACKING_PACKAGE', useValue: mockClientGrpc },
-        { provide: ConfigService, useValue: { get: jest.fn() } },
-      ],
-    }).compile();
-
-    service = module.get<TrackingService>(TrackingService);
+    service = new TrackingService(
+      mockConfigService as any,
+      mockClientGrpc as any,
+    );
     service.onModuleInit();
-    trackingClient = mockTrackingClient;
   });
 
   it('should be defined', () => {

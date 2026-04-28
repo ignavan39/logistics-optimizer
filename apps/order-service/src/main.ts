@@ -1,4 +1,4 @@
-import './tracing';
+// import './tracing';
 
 import { NestFactory } from '@nestjs/core';
 import { type MicroserviceOptions, Transport } from '@nestjs/microservices';

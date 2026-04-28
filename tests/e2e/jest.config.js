@@ -8,9 +8,10 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'json'],
   testRegex: '.*\\.spec\\.ts$',
   transform: {
-    '^.+\\.(t|j)s$': ['ts-jest', { 
+    '^.+\\.ts$': ['ts-jest', { 
       tsconfig: path.resolve(rootDir, 'tests/e2e/tsconfig.json'),
-      isolatedModules: true 
+      // Убираем isolatedModules - он включает Babel
+      useIsolatedModules: false,
     }],
   },
   testEnvironment: 'node',
@@ -20,5 +21,5 @@ module.exports = {
     '^@logistics/proto(.*)$': path.resolve(rootDir, 'libs/proto/src$1'),
     '^@logistics/kafka-utils(.*)$': path.resolve(rootDir, 'libs/kafka-utils/src$1'),
   },
-  testTimeout: 30000,
+  testTimeout: 120000, // 2 минуты для beforeAll с ожиданием сервисов
 }

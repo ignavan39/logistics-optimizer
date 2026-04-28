@@ -14,23 +14,6 @@ services:
       dockerfile: Dockerfile.test
     container_name: logistics-e2e-tests
     restart: no
-    depends_on:
-      api-gateway:
-        condition: service_started
-      order-service:
-        condition: service_started
-      fleet-service:
-        condition: service_started
-      routing-service:
-        condition: service_started
-      tracking-service:
-        condition: service_started
-      dispatcher-service:
-        condition: service_started
-      counterparty-service:
-        condition: service_started
-      invoice-service:
-        condition: service_started
     environment:
       NODE_ENV: test
       IN_DOCKER: "true"

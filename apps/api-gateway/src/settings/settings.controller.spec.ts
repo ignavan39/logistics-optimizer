@@ -1,9 +1,5 @@
-import { Test, type TestingModule } from '@nestjs/testing';
 import { SettingsController } from './settings.controller';
 import { SettingsService } from './settings.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RbacGuard } from '../auth/guards/rbac.guard';
-import { Reflector } from '@nestjs/core';
 
 const mockSettingsService = {
   getCompanySettings: jest.fn(),
@@ -13,29 +9,11 @@ const mockSettingsService = {
 describe('SettingsController', () => {
   let controller: SettingsController;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.clearAllMocks();
-
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [SettingsController],
-      providers: [
-        { provide: SettingsService, useValue: mockSettingsService },
-        {
-          provide: Reflector,
-          useValue: {
-            get: jest.fn(),
-            getAllAndOverride: jest.fn(),
-          },
-        },
-      ],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(RbacGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
-
-    controller = module.get<SettingsController>(SettingsController);
+    controller = new SettingsController(
+      mockSettingsService as any,
+    );
   });
 
   it('should be defined', () => {
@@ -90,7 +68,7 @@ describe('SettingsController', () => {
       };
       mockSettingsService.updateCompanySettings.mockResolvedValue(updatedSettings);
 
-      const result = await controller.updateCompanySettings(dto);
+      const result = await controller.updateCompanySettings(dto as any);
 
       expect(mockSettingsService.updateCompanySettings).toHaveBeenCalledWith(dto);
       expect(result).toEqual(updatedSettings);
@@ -99,7 +77,7 @@ describe('SettingsController', () => {
     it('should return null on error', async () => {
       mockSettingsService.updateCompanySettings.mockResolvedValue(null);
 
-      const result = await controller.updateCompanySettings({ companyName: 'Test' });
+      const result = await controller.updateCompanySettings({ companyName: 'Test' } as any);
 
       expect(result).toBeNull();
     });
@@ -118,7 +96,7 @@ describe('SettingsController', () => {
       };
       mockSettingsService.updateCompanySettings.mockResolvedValue(updatedSettings);
 
-      const result = await controller.updateCompanySettings(dto);
+      const result = await controller.updateCompanySettings(dto as any);
 
       expect(result?.defaultVatRate).toBe(18);
     });

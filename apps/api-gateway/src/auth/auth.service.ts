@@ -183,6 +183,10 @@ export class AuthService {
     return this.usersService.getUserRoles(userId);
   }
 
+  async listApiKeys(userId: string) {
+    return this.apiKeyService.getUserApiKeys(userId);
+  }
+
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
     return this.passwordService.changePassword(userId, currentPassword, newPassword);
   }

@@ -86,21 +86,21 @@ export class AuthController {
     @Body() dto: ChangePasswordDto,
     @CurrentUser() user: { userId: string },
   ) {
-    return this.authService.changePassword(user.userId, dto);
+    return this.authService.changePassword(user.userId, dto.currentPassword, dto.newPassword);
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get current user info' })
   async getMe(@CurrentUser() user: { userId: string }) {
-    return this.usersService.getUserById(user.userId);
+    return this.usersService.findUserById(user.userId);
   }
 
   @Get('me/sessions')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get active sessions' })
   async getMySessions(@CurrentUser() user: { userId: string }) {
-    return this.authService.getUserSessions(user.userId);
+    return this.usersService.getUserSessions(user.userId);
   }
 
   @Post('api-keys')
@@ -129,7 +129,7 @@ export class AuthController {
     @Body() dto: CreateUserDto,
     @CurrentUser() user: { userId: string },
   ) {
-    return this.usersService.createUser(dto, user.userId);
+    return this.usersService.createUser(dto);
   }
 
   @Get('users')
@@ -140,9 +140,11 @@ export class AuthController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.usersService.listUsers({
-      page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 20,
+    const currentPage = page ? parseInt(page, 10) :1;
+    const currentLimit = limit ? parseInt(limit, 10) :20;
+    return this.usersService.findUsers({
+      limit: currentLimit,
+      offset: (currentPage - 1) * currentLimit,
     });
   }
 }

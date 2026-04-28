@@ -1,7 +1,11 @@
-import { Test, type TestingModule } from '@nestjs/testing';
+import { InvoicesService, type InvoiceResponse } from './invoices.service';
 import { ConfigService } from '@nestjs/config';
 
-import { InvoicesService, type InvoiceResponse } from './invoices.service';
+let invoiceClient: any;
+
+const mockGrpcClient = {
+  getService: jest.fn().mockImplementation(() => invoiceClient),
+};
 
 const mockConfigService = {
   get: jest.fn(),
@@ -9,46 +13,22 @@ const mockConfigService = {
 
 describe('InvoicesService', () => {
   let service: InvoicesService;
-  let mockClient: any;
-  let mockCounterpartyClient: any;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.clearAllMocks();
 
-    mockClient = {
+    invoiceClient = {
       getInvoice: jest.fn(),
       getInvoiceByOrder: jest.fn(),
       listInvoices: jest.fn(),
       updateInvoiceStatus: jest.fn(),
-      getOrder: jest.fn(),
-      getCompanySettings: jest.fn(),
       getInvoicePdfUrl: jest.fn(),
     };
 
-    mockCounterpartyClient = {
-      getCounterparty: jest.fn(),
-    };
-
-    const mockGrpcClient = {
-      getService: jest.fn().mockImplementation((name: string) => {
-        if (name === 'InvoiceService') return mockClient;
-        if (name === 'OrderService') return mockClient;
-        if (name === 'CounterpartyService') return mockCounterpartyClient;
-        return {};
-      }),
-    };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        InvoicesService,
-        { provide: ConfigService, useValue: mockConfigService },
-        { provide: 'INVOICE_PACKAGE', useValue: mockGrpcClient },
-        { provide: 'ORDER_PACKAGE', useValue: mockGrpcClient },
-        { provide: 'COUNTERPARTY_PACKAGE', useValue: mockGrpcClient },
-      ],
-    }).compile();
-
-    service = module.get<InvoicesService>(InvoicesService);
+    service = new InvoicesService(
+      mockConfigService as any,
+      mockGrpcClient as any,
+    );
     service.onModuleInit();
   });
 
@@ -69,16 +49,16 @@ describe('InvoicesService', () => {
         status: 'DRAFT',
         dueDate: new Date(),
       };
-      mockClient.getInvoice.mockResolvedValue(invoice);
+      invoiceClient.getInvoice.mockResolvedValue(invoice);
 
       const result = await service.getInvoice('inv-1');
 
-      expect(mockClient.getInvoice).toHaveBeenCalledWith({ invoiceId: 'inv-1' });
+      expect(invoiceClient.getInvoice).toHaveBeenCalledWith({ invoiceId: 'inv-1' });
       expect(result).toEqual(invoice);
     });
 
     it('should return null on error', async () => {
-      mockClient.getInvoice.mockRejectedValue(new Error('Not found'));
+      invoiceClient.getInvoice.mockRejectedValue(new Error('Not found'));
 
       const result = await service.getInvoice('nonexistent');
 
@@ -89,16 +69,16 @@ describe('InvoicesService', () => {
   describe('getInvoiceByOrder()', () => {
     it('should return invoice by order id', async () => {
       const invoice: InvoiceResponse = { id: 'inv-1', orderId: 'order-1' } as any;
-      mockClient.getInvoiceByOrder.mockResolvedValue(invoice);
+      invoiceClient.getInvoiceByOrder.mockResolvedValue(invoice);
 
       const result = await service.getInvoiceByOrder('order-1');
 
-      expect(mockClient.getInvoiceByOrder).toHaveBeenCalledWith({ orderId: 'order-1' });
+      expect(invoiceClient.getInvoiceByOrder).toHaveBeenCalledWith({ orderId: 'order-1' });
       expect(result).toEqual(invoice);
     });
 
     it('should return null on error', async () => {
-      mockClient.getInvoiceByOrder.mockRejectedValue(new Error('Not found'));
+      invoiceClient.getInvoiceByOrder.mockRejectedValue(new Error('Not found'));
 
       const result = await service.getInvoiceByOrder('nonexistent');
 
@@ -113,7 +93,7 @@ describe('InvoicesService', () => {
         total: 2,
         page: 1,
       };
-      mockClient.listInvoices.mockResolvedValue(result);
+      invoiceClient.listInvoices.mockResolvedValue(result);
 
       const response = await service.listInvoices({ page: 1, limit: 20 });
 
@@ -121,7 +101,7 @@ describe('InvoicesService', () => {
     });
 
     it('should return empty list on error', async () => {
-      mockClient.listInvoices.mockRejectedValue(new Error('Connection failed'));
+      invoiceClient.listInvoices.mockRejectedValue(new Error('Connection failed'));
 
       const response = await service.listInvoices();
 
@@ -130,11 +110,11 @@ describe('InvoicesService', () => {
     });
 
     it('should use default pagination', async () => {
-      mockClient.listInvoices.mockResolvedValue({ invoices: [], total: 0, page: 1 });
+      invoiceClient.listInvoices.mockResolvedValue({ invoices: [], total: 0, page: 1 });
 
       await service.listInvoices();
 
-      expect(mockClient.listInvoices).toHaveBeenCalledWith({
+      expect(invoiceClient.listInvoices).toHaveBeenCalledWith({
         page: 1,
         limit: 20,
         counterpartyId: undefined,
@@ -146,11 +126,11 @@ describe('InvoicesService', () => {
   describe('updateInvoiceStatus()', () => {
     it('should update invoice status to paid', async () => {
       const invoice = { id: 'inv-1', status: 'PAID' };
-      mockClient.updateInvoiceStatus.mockResolvedValue(invoice);
+      invoiceClient.updateInvoiceStatus.mockResolvedValue(invoice);
 
       const result = await service.updateInvoiceStatus('inv-1', 'paid');
 
-      expect(mockClient.updateInvoiceStatus).toHaveBeenCalledWith({
+      expect(invoiceClient.updateInvoiceStatus).toHaveBeenCalledWith({
         invoiceId: 'inv-1',
         status: 'PAID',
       });
@@ -159,18 +139,18 @@ describe('InvoicesService', () => {
 
     it('should update invoice status to cancelled', async () => {
       const invoice = { id: 'inv-1', status: 'CANCELLED' };
-      mockClient.updateInvoiceStatus.mockResolvedValue(invoice);
+      invoiceClient.updateInvoiceStatus.mockResolvedValue(invoice);
 
       const result = await service.updateInvoiceStatus('inv-1', 'cancelled');
 
-      expect(mockClient.updateInvoiceStatus).toHaveBeenCalledWith({
+      expect(invoiceClient.updateInvoiceStatus).toHaveBeenCalledWith({
         invoiceId: 'inv-1',
         status: 'CANCELLED',
       });
     });
 
     it('should return null on error', async () => {
-      mockClient.updateInvoiceStatus.mockRejectedValue(new Error('Update failed'));
+      invoiceClient.updateInvoiceStatus.mockRejectedValue(new Error('Update failed'));
 
       const result = await service.updateInvoiceStatus('inv-1', 'paid');
 
@@ -181,16 +161,16 @@ describe('InvoicesService', () => {
   describe('generateInvoicePdfUrl()', () => {
     it('should return PDF URL from gRPC', async () => {
       const mockResponse = { url: 'http://minio.test/invoices/test.pdf' };
-      mockClient.getInvoicePdfUrl.mockResolvedValue(mockResponse);
+      invoiceClient.getInvoicePdfUrl.mockResolvedValue(mockResponse);
 
       const result = await service.generateInvoicePdfUrl('inv-1');
 
       expect(result).toEqual(mockResponse);
-      expect(mockClient.getInvoicePdfUrl).toHaveBeenCalledWith({ invoiceId: 'inv-1' });
+      expect(invoiceClient.getInvoicePdfUrl).toHaveBeenCalledWith({ invoiceId: 'inv-1' });
     });
 
     it('should return null when invoice not found', async () => {
-      mockClient.getInvoicePdfUrl.mockResolvedValue(null);
+      invoiceClient.getInvoicePdfUrl.mockResolvedValue(null);
 
       const result = await service.generateInvoicePdfUrl('nonexistent');
 
@@ -198,7 +178,7 @@ describe('InvoicesService', () => {
     });
 
     it('should return null on error', async () => {
-      mockClient.getInvoicePdfUrl.mockRejectedValue(new Error('Generation failed'));
+      invoiceClient.getInvoicePdfUrl.mockRejectedValue(new Error('Generation failed'));
 
       const result = await service.generateInvoicePdfUrl('inv-1');
 

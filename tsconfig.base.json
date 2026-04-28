@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "rootDir": ".",
+    "rootDir": "src",
     "outDir": "./dist",
     "sourceMap": true,
     "declaration": false,
@@ -13,6 +13,7 @@
     "lib": ["ES2021"],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
+    "esModuleInterop": true,
     "baseUrl": ".",
     "strict": false,
     "strictNullChecks": false,
@@ -28,5 +29,5 @@
       "@logistics/document-templates/*": ["libs/document-templates/dist/*"]
     }
   },
-  "exclude": ["node_modules", "tmp", "apps/**", "libs/**", "tests/**"]
+  "exclude": ["node_modules", "tmp", "apps/**", "libs/**", "tests/**", "dist/**"]
 }

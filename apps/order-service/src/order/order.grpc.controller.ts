@@ -1,8 +1,8 @@
 import { Controller, Logger } from '@nestjs/common';
 import { GrpcMethod, RpcException } from '@nestjs/microservices';
 import { status as GrpcStatus } from '@grpc/grpc-js';
-import { type OrderService } from './order.service';
-import { type OrderEntity, type OrderStatus, OrderPriority } from './entities/order.entity';
+import { OrderService } from './order.service';
+import { OrderEntity, OrderStatus, OrderPriority } from './entities/order.entity';
 
 // These types mirror the proto definitions
 interface CreateOrderRequest {

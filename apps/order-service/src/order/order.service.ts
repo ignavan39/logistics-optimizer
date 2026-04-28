@@ -5,14 +5,14 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { type DataSource } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { OrderEntity, OrderStatus, OrderPriority } from './entities/order.entity';
 import { OrderTariffSnapshotEntity } from './entities/order-tariff-snapshot.entity';
 import { OutboxEventEntity } from './entities/outbox-event.entity';
 import { OrderStatusHistoryEntity } from './entities/order-status-history.entity';
-import { type CounterpartyService } from '../counterparty/counterparty.service';
-import { type RoutingService } from '../routing/routing.service';
+import { CounterpartyService } from '../counterparty/counterparty.service';
+import { RoutingService } from '../routing/routing.service';
 
 export interface CreateOrderDto {
   customerId: string;
@@ -49,6 +49,11 @@ export class OrderService {
     private readonly routingService: RoutingService,
   ) {}
 
+  private async getTariffFromContract(contractId: string): Promise<{pricePerKm: number, pricePerKg: number, minPrice: number} | null> {
+    // TODO: implement this method properly
+    return null;
+  }
+
   private get orderRepo() { return this.dataSource.getRepository(OrderEntity); }
   private get outboxRepo() { return this.dataSource.getRepository(OutboxEventEntity); }
   private get historyRepo() { return this.dataSource.getRepository(OrderStatusHistoryEntity); }
@@ -65,17 +70,12 @@ export class OrderService {
 
       if (dto.contractId) {
         const distanceKm = await this.routingService.calculateDistance(
-          dto.originLat,
-          dto.originLng,
-          dto.destinationLat,
-          dto.destinationLng,
+          dto.originLat, dto.originLng, dto.destinationLat, dto.destinationLng,
         );
         const result = await this.counterpartyService.calculateEstimatedPrice(
-          dto.contractId,
-          distanceKm,
-          dto.weightKg ?? 0,
+          dto.contractId, distanceKm, dto.weightKg ?? 0,
         );
-        estimatedPrice = result.estimatedPrice;
+        estimatedPrice = result.estimatedPrice ?? 0;
       }
 
       // 1. Создать заказ
@@ -100,20 +100,25 @@ export class OrderService {
 
       const saved = await manager.save(OrderEntity, order);
 
-      // 1.1. Сохранить tariff snapshot в отдельную таблицу (prevent race condition)
-      if (dto.contractId && estimatedPrice !== undefined) {
+      // 1.5. Сохранить tariff snapshot (если есть контракт)
+      if (dto.contractId) {
+        const tariffResult = await this.counterpartyService.calculateEstimatedPrice(
+          dto.contractId,
+          0, // distance неизвестна на момент создания
+          dto.weightKg ?? 0,
+        );
+        // Получаем тарифы отдельно для snapshot
         const tariffs = await this.counterpartyService.getContractTariffs(dto.contractId);
-        if (tariffs.length > 0) {
-          const tariff = tariffs[0];
-          const snapshot = manager.create(OrderTariffSnapshotEntity, {
-            orderId: saved.id,
-            pricePerKm: tariff.pricePerKm,
-            pricePerKg: tariff.pricePerKg,
-            minPrice: tariff.minPrice,
-            zone: tariff.zone,
-          });
-          void snapshot;
-        }
+        const primaryTariff = tariffs[0];
+        await manager.save(OrderTariffSnapshotEntity, {
+          orderId: saved.id,
+          contractId: dto.contractId,
+          pricePerKm: primaryTariff?.pricePerKm ?? 0,
+          pricePerKg: primaryTariff?.pricePerKg ?? 0,
+          minPrice: primaryTariff?.minPrice ?? 0,
+          currency: tariffResult.currency ?? 'RUB',
+          snapshotVersion: 1,
+        });
       }
 
       // 2. Атомарно записать событие в outbox (та же транзакция!)
