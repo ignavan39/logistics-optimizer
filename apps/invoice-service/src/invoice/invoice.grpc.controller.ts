@@ -178,12 +178,12 @@ export class InvoiceGrpcController {
       vatRate: Number(invoice.vatRate),
       vatAmount: Number(invoice.vatAmount) * 100,
       status: invoice.status,
-       dueDate: invoice.dueDate?.getTime() ?? 0,
-       paidAt: invoice.paidAt?.getTime() ?? 0,
-       counterpartyId: invoice.counterpartyId ?? '',
-       contractId: invoice.contractId ?? '',
-       description: invoice.description ?? '',
-       createdAt: invoice.createdAt?.getTime() ?? 0,
+      dueDate: invoice.dueDate ? new Date(invoice.dueDate).getTime() : 0,
+      paidAt: invoice.paidAt ? new Date(invoice.paidAt).getTime() : 0,
+      counterpartyId: invoice.counterpartyId ?? '',
+      contractId: invoice.contractId ?? '',
+      description: invoice.description ?? '',
+      createdAt: invoice.createdAt ? new Date(invoice.createdAt).getTime() : 0,
       version: invoice.version,
     };
   }

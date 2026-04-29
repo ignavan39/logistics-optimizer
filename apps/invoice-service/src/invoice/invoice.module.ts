@@ -1,7 +1,6 @@
 import { Module, Inject } from '@nestjs/common';
 import { ClientsModule, Transport, ClientGrpc, ClientKafka } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { InvoiceEntity } from './entities/invoice.entity';
 import { InvoiceService } from './invoice.service';
@@ -13,7 +12,6 @@ import { S3StorageService } from './s3-storage.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([InvoiceEntity]),
     ClientsModule.registerAsync([
       {
         name: 'ORDER_PACKAGE',
