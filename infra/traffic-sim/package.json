@@ -1,0 +1,12 @@
+{
+  "name": "traffic-sim",
+  "version": "1.0.0",
+  "description": "Traffic incidents simulator for logistics-optimizer",
+  "main": "traffic-sim.js",
+  "scripts": {
+    "start": "node traffic-sim.js"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4"
+  }
+}
