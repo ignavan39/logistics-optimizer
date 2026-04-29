@@ -4,15 +4,15 @@
 -- Insert test invoices (linked to delivered/completed orders)
 INSERT INTO invoice (id, order_id, number, type, amount_rub, vat_rate, vat_amount, status, due_date, paid_at, payment_method, counterparty_id, contract_id, description, version, created_at, updated_at) VALUES
     -- Draft invoices
-    ('i0eebc99-9c0b-4ef8-bb6d-6bb9bd380i01', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', 'INV-2026-001', 'invoice', 12000.00, 20.00, 2000.00, 'draft', '2026-05-15', NULL, NULL, 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b05', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c04', 'Первая доставка', 0, NOW() - INTERVAL '7 days', NOW()),
-    ('i0eebc99-9c0b-4ef8-bb6d-6bb9bd380i02', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18', 'INV-2026-002', 'invoice', 15500.00, 20.00, 2583.33, 'draft', '2026-05-10', NULL, NULL, 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b05', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c04', 'Вторая доставка', 0, NOW() - INTERVAL '5 days', NOW()),
+    ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c01', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', 'INV-2026-001', 'invoice', 12000.00, 20.00, 2000.00, 'draft', '2026-05-15', NULL, NULL, 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b05', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c04', 'Первая доставка', 0, NOW() - INTERVAL '7 days', NOW()),
+    ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c02', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18', 'INV-2026-002', 'invoice', 15500.00, 20.00, 2583.33, 'draft', '2026-05-10', NULL, NULL, 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b05', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c04', 'Вторая доставка', 0, NOW() - INTERVAL '5 days', NOW()),
     -- Sent invoices
-    ('i0eebc99-9c0b-4ef8-bb6d-6bb9bd380i03', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19', 'INV-2026-003', 'invoice', 17500.00, 20.00, 2916.67, 'sent', '2026-05-20', NULL, 'bank_transfer', 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b04', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c03', 'Третья доставка', 0, NOW() - INTERVAL '10 days', NOW()),
-    ('i0eebc99-9c0b-4ef8-bb6d-6bb9bd380i04', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20', 'INV-2026-004', 'invoice', 18000.00, 20.00, 3000.00, 'sent', '2026-05-18', NULL, 'card', 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b04', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c03', 'Четвертая доставка', 0, NOW() - INTERVAL '8 days', NOW()),
+    ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c03', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19', 'INV-2026-003', 'invoice', 17500.00, 20.00, 2916.67, 'sent', '2026-05-20', NULL, 'bank_transfer', 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b04', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c03', 'Третья доставка', 0, NOW() - INTERVAL '10 days', NOW()),
+    ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c04', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20', 'INV-2026-004', 'invoice', 18000.00, 20.00, 3000.00, 'sent', '2026-05-18', NULL, 'card', 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b04', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c03', 'Четвертая доставка', 0, NOW() - INTERVAL '8 days', NOW()),
     -- Paid invoices
-    ('i0eebc99-9c0b-4ef8-bb6d-6bb9bd380i05', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'INV-2026-005', 'invoice', 16800.00, 20.00, 2800.00, 'paid', '2026-05-01', NOW() - INTERVAL '3 days', 'bank_transfer', 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c01', 'Текущая доставка', 0, NOW() - INTERVAL '4 days', NOW()),
+    ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c05', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'INV-2026-005', 'invoice', 16800.00, 20.00, 2800.00, 'paid', '2026-05-01', NOW() - INTERVAL '3 days', 'bank_transfer', 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c01', 'Текущая доставка', 0, NOW() - INTERVAL '4 days', NOW()),
     -- Cancelled invoice
-    ('i0eebc99-9c0b-4ef8-bb6d-6bb9bd380i06', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'INV-2026-006', 'invoice', 19000.00, 20.00, 3166.67, 'cancelled', '2026-05-05', NULL, NULL, 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c01', 'Отмененная доставка', 0, NOW() - INTERVAL '3 days', NOW())
+    ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c06', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'INV-2026-006', 'invoice', 19000.00, 20.00, 3166.67, 'cancelled', '2026-05-05', NULL, NULL, 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c01', 'Отмененная доставка', 0, NOW() - INTERVAL '3 days', NOW())
 ON CONFLICT (number) DO NOTHING;
 
 -- Update pdf fields for paid invoices (simulate PDF generation)
