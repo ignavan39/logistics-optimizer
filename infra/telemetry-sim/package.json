@@ -1,0 +1,12 @@
+{
+  "name": "telemetry-sim",
+  "version": "1.0.0",
+  "description": "Vehicle telemetry simulator for logistics-optimizer",
+  "main": "telemetry-sim.js",
+  "scripts": {
+    "start": "node telemetry-sim.js"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4"
+  }
+}
