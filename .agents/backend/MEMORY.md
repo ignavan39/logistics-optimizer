@@ -227,6 +227,68 @@ _Добавляй вопросы которые требуют ответа ил
 
 ---
 
+## 📋 РЕФЛЕКСИЯ: Сессия 29.04.2026 (вечер)
+
+### Что делали:
+1. **NotificationsModule** — включили обратно в `app.module.ts`, исправили `type` импорты в `notifications.gateway.ts` и `notifications.consumer.ts`. WebSocket Gateway инициализируется ✅
+2. **Prometheus Alerts** — создали `infra/prometheus/alerts.yml` с 7 правилами (Kafka down, high lag, CPU/Memory usage, container down). Добавили монтирование в `docker-compose.yml`. Загрузились в Prometheus ✅
+3. **AuthService / AuthController** — пытались запустить полный функционал (логин, регистрация, сессии, API keys). Упростили для тестирования, затем вернули полный код (будет восстановлен через `git checkout`).
+4. **Docker infra** — боролись с падающими Kafka/PostgreSQL. В итоге всё откатили (`docker compose down -v`), чтобы восстановить через git.
+
+### Критические ошибки и решения:
+| # | Проблема | Решение | Где записано |
+|---|----------|---------|--------------|
+| 1 | **NestJS `type` imports** — `import { type X }` не инжектится DI | Убирать `type` перед импортами классов (не интерфейсов) | Этот раздел + Pitfalls.md |
+| 2 | **Nest can't resolve dependencies of X (?, Function)** | Всегда проверять, что провайдеры экспортируются и импортируются в модулях | ADRs.md |
+| 3 | **Kafka `NullPointerException`** | Удаление volume (`docker compose down -v`) помогло временно, но проблема с KRaft/Persistence осталась | docs/DATABASE.md (Kafka section) |
+| 4 | **403 Insufficient permissions** | JWT payload должен содержать `permissions`, а `JwtStrategy.validate()` должен маппить `sub` → `userId` | auth/strategies/jwt.strategy.ts |
+| 5 | **Docker network conflicts** | `docker network create logistics-net` перед запуском | docker-compose.yml |
+
+### Чему научились:
+1. **TypeScript `type` imports в NestJS** — использовать только для интерфейсов, для классов (Services, Entities, Guards) — НЕТ.
+2. **AuthModule в api-gateway** — должен быть упрощён (только JWT verification), без TypeORM/Business logic. Полный `AuthService` нужен только если api-gateway реально работает с БД (чего по архитектуре делать не должен).
+3. **Prometheus alerts** — `rule_files` в `prometheus.yml`, монтирование через volumes, проверка `curl http://localhost:9090/api/v1/rules`.
+4. **WebSocket Gateway** — требует `JwtAuthGuard` + `Reflector` (импортировать `Reflector` из `@nestjs/core`, не `type`).
+
+### Файлы изменены (нужен `git checkout` для восстановления):
+| Файл | Что сделали |
+|------|--------------|
+| `apps/api-gateway/src/app.module.ts` | Добавили `NotificationsModule`, `GuardsModule` |
+| `apps/api-gateway/src/notifications/notifications.gateway.ts` | Убрали `type` перед `JwtService`, `ConfigService` |
+| `apps/api-gateway/src/notifications/notifications.consumer.ts` | Убрали `type` перед `NotificationsGateway` |
+| `apps/api-gateway/src/auth/auth.service.ts` | Упростили для тестов (заглушки), затем вернули полный (будет откат) |
+| `apps/api-gateway/src/auth/auth.controller.ts` | Убрали `type` перед `AuthService`, `UsersService`. Упростили методы |
+| `apps/api-gateway/src/auth/auth.module.ts` | Добавили `AuthController`, убрали лишние провайдеры |
+| `apps/api-gateway/src/auth/guards/jwt-auth.guard.ts` | Убрали `type` перед `Reflector`, `ExecutionContext` |
+| `infra/prometheus/alerts.yml` | СОЗДАЛИ (7 правил алертов) |
+| `infra/prometheus/prometheus.yml` | Добавили `rule_files: ["alerts.yml"]` |
+| `docker-compose.yml` | Добавили монтирование `alerts.yml`, исправили `healthcheck` PostgreSQL |
+
+### Команда для восстановления:
+```bash
+cd /home/ivan/programming/pets/logistics-optimizer
+git checkout -- apps/api-gateway/src/auth/auth.service.ts \
+             apps/api-gateway/src/auth/auth.controller.ts \
+             apps/api-gateway/src/auth/auth.module.ts
+# (остальные файлы можно оставить, они улучшают код)
+```
+
+### Итоговый статус на конец сессии:
+- ✅ **NotificationsModule** работает (WebSocket Gateway OK)
+- ✅ **Prometheus Alerts** настроены
+- ✅ **API Gateway** собирается (0 TypeScript ошибок)
+- ✅ **Логин работает** (`/api/auth/login` → 200 + JWT)
+- ❌ **Docker infra** — Kafka/PostgreSQL падают (нужен рефакторинг `docker-compose.yml` или обновление образов)
+- ❌ **Полный цикл** (создание заказа) — не дотестировали из-за падения инфры
+
+### Следующая сессия (план):
+1. Восстановить файлы через `git checkout`
+2. Починить Docker (Kafka + PostgreSQL) — возможно, обновить версии образов
+3. Дотестировать полный цикл: Login → Create Order → Check Kafka events
+4. Проверить Grafana дашборды (данные из Prometheus)
+
+---
+
 ## 📅 Лог сессий
 
 _Краткое резюме что делалось в каждой сессии_
@@ -392,6 +454,54 @@ Response: 200 { "url": "http://minio:9000/invoices/..." }
 - `a497a33` — Sprint 4: PDF generation with MinIO/S3 storage
 - `632eedc` — fix: docker-compose structure + MinIO test infra
 - `<new>` — unify: PDF generation via invoice-service gRPC
+
+---
+
+### ✅ Этап 6: Seed данные для фронтенда (завершено)
+
+**Задача**: Заполнить БД тестовыми данными для тестирования с фронтом.
+
+**Что сделано**:
+1. **SQL-файлы созданы** в `infra/postgres/seeds/`:
+   - `02-counterparty.sql` — 5 контрагентов, 4 договора, 11 тарифов
+   - `03-fleet.sql` — 8 машин (PostGIS: Москва/СПб/Казань)
+   - `04-orders.sql` — 11 заказов (разные статусы), 11 грузов, 11 tariff snapshots, 31 статус истории
+   - `05-tracking.sql` — 300 точек телеметрии для 3 машин
+   - `06-invoices.sql` — 6 счетов (draft/sent/paid/cancelled)
+
+2. **Данные успешно залиты** в БД:
+   - ✅ pg-counterparty: 5 counterparties, 4 contracts, 11 tariffs
+   - ✅ pg-fleet: 8 vehicles (3 Москва, 2 СПб, 2 Казань)
+   - ✅ pg-order: 11 orders (PENDING×3, ASSIGNED×2, IN_TRANSIT×2, DELIVERED×2, COMPLETED×2), 11 cargo, 11 tariff_snapshots, 31 status_history
+   - ✅ pg-tracking: 300 telemetry points (100 на машину)
+   - ✅ logistics_invoices: 6 invoices (2 draft, 2 sent, 1 paid, 1 cancelled)
+
+3. **Исправлены ошибки**:
+   - PostGIS синтаксис: `ST_GeogFromText` → `ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography`
+   - UUID формат: убраны лишние символы в INSERT
+   - TypeORM таблицы: созданы вручную через SQL (сервисы не запустились из-за proto/bcrypt ошибок)
+
+**Команды для повторного применения**:
+```bash
+# Очистка и запуск инфраструктуры
+docker network rm logistics-net 2>/dev/null
+docker compose down -v
+docker compose up -d
+sleep 45  # ждём инициализации
+
+# Применение seed данных
+cat infra/postgres/seeds/02-counterparty.sql | docker exec -i logistics-pg-counterparty psql -U logistics -d counterparty_db
+cat infra/postgres/seeds/03-fleet.sql | docker exec -i logistics-pg-fleet psql -U logistics -d fleet_db
+cat infra/postgres/seeds/04-orders.sql | docker exec -i logistics-pg-order psql -U logistics -d order_db
+cat infra/postgres/seeds/05-tracking.sql | docker exec -i logistics-pg-tracking psql -U logistics -d tracking_db
+cat infra/postgres/seeds/06-invoices.sql | docker exec -i logistics-pg-invoice psql -U logistics -d logistics_invoices
+```
+
+**Паттерны для будущего**:
+- Seed данные → `infra/postgres/seeds/` (не в `apps/`)
+- PostGIS → `ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography`
+- UUID → используй `gen_random_uuid()` или проверяй формат
+- TypeORM таблицы → если сервисы не запускаются, создавай вручную через SQL
 
 ### Сессия 2026-04-27 (подробно)
 

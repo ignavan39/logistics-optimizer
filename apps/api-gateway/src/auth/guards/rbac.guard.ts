@@ -1,11 +1,11 @@
 import { Injectable, type CanActivate, type ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { type Reflector } from '@nestjs/core';
+import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
-import { type RequestUser } from '../strategies/jwt.strategy';
+import { RequestUser } from '../strategies/jwt.strategy';
 
 @Injectable()
 export class RbacGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  private reflector = new Reflector();
 
   canActivate(context: ExecutionContext): boolean {
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(

@@ -7,7 +7,7 @@ x-pg-common: &pg-common
     POSTGRES_USER: ${PG_USER:-logistics}
     POSTGRES_PASSWORD: ${PG_PASSWORD:-logistics_secret}
   healthcheck:
-    test: ['CMD-SHELL', 'pg_isready -U ${PG_USER:-logistics}']
+    test: ["CMD-SHELL", "pg_isready -U logistics"]
     interval: 10s
     timeout: 5s
     retries: 5
@@ -301,6 +301,7 @@ services:
       - '--web.enable-lifecycle'
     volumes:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus-data:/prometheus
     networks:
       - logistics-net
