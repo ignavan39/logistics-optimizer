@@ -71,7 +71,7 @@ import { S3StorageService } from './s3-storage.service';
           password: process.env.PG_PASSWORD || 'logistics_secret',
           database: process.env.INVOICE_DB_NAME || 'logistics_invoices',
           entities: [InvoiceEntity],
-          synchronize: !isProduction,
+          synchronize: false,
           logging: !isProduction,
         });
 

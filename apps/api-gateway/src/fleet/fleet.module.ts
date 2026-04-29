@@ -14,7 +14,7 @@ import { FleetService } from './fleet.service'
           options: {
             package: 'fleet',
             protoPath: process.env.PROTO_ROOT ? `${process.env.PROTO_ROOT}/fleet.proto` : '/home/ivan/programming/pets/logistics-optimizer/libs/proto/src/fleet.proto',
-            url: configService.get('GRPC_FLEET_HOST', 'fleet-service:50052'),
+            url: configService.get('GRPC_FLEET_HOST', 'fleet-service:50053'),
           },
         }),
         inject: [ConfigService],

@@ -16,15 +16,15 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { RoutingModule } from './routing/routing.module';
 import { TrackingModule } from './tracking/tracking.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    DatabaseModule.forRoot(),
     ThrottlerModule.forRoot({ throttlers: [{ ttl: 60000, limit: 10000 }] }),
-    // Auth (JWT only, no DB)
     AuthModule,
     GuardsModule,
-    // Feature modules
     OrdersModule,
     FleetModule,
     SettingsModule,

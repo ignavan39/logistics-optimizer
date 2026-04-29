@@ -1,21 +1,11 @@
 import { Module } from '@nestjs/common';
-import { DataSource } from 'typeorm';
-import { User, Session, RefreshToken } from './entities';
+import { ConfigModule } from '@nestjs/config';
 import { UsersService } from './users.service';
+import { DatabaseModule } from '../database/database.module';
 
 @Module({
-  providers: [
-    {
-      provide: UsersService,
-      useFactory: (dataSource: DataSource) => new UsersService(
-        dataSource.getRepository(User),
-        dataSource.getRepository(Session),
-        dataSource.getRepository(RefreshToken),
-        dataSource,
-      ),
-      inject: ['AUTH_DATA_SOURCE'],
-    },
-  ],
+  imports: [ConfigModule, DatabaseModule.forRoot()],
+  providers: [UsersService],
   exports: [UsersService],
 })
 export class UsersModule {}

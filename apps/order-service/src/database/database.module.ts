@@ -39,7 +39,7 @@ export class DatabaseModule {
               entities: ENTITIES,
               migrations: [__dirname + '/migrations/*.{ts,js}'],
               migrationsRun: true,
-              synchronize: configService.get('NODE_ENV') !== 'production',
+              synchronize: false,
               logging: configService.get('NODE_ENV') === 'development',
               extra: {
                 max: 10,

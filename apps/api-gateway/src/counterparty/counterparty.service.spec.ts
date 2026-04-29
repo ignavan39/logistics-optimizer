@@ -28,7 +28,6 @@ describe('CounterpartyService', () => {
     jest.clearAllMocks();
     
     service = new CounterpartyService(
-      mockConfigService as any,
       mockGrpcClient as any,
     );
     service.onModuleInit();

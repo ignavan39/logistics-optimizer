@@ -21,7 +21,6 @@ describe('RoutingService', () => {
     jest.clearAllMocks();
 
     service = new RoutingService(
-      mockConfigService as any,
       mockClientGrpc as any,
     );
     service.onModuleInit();

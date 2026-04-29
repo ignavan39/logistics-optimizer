@@ -1,30 +1,24 @@
 import { Module } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { GuardsModule } from '../auth/guards/guards.module';
-import { Role, Permission, UserRole } from './entities';
 import { RolesService, PermissionsService } from './roles.service';
 import { RolesController } from './roles.controller';
 import { PermissionsController } from './permissions.controller';
+import { DatabaseModule } from '../database/database.module';
 
 @Module({
-  imports: [GuardsModule],
+  imports: [GuardsModule, DatabaseModule.forRoot()],
   controllers: [RolesController, PermissionsController],
   providers: [
     {
       provide: RolesService,
-      useFactory: (dataSource: DataSource) => new RolesService(
-        dataSource.getRepository(Role),
-        dataSource.getRepository(Permission),
-        dataSource.getRepository(UserRole),
-      ),
-      inject: ['AUTH_DATA_SOURCE'],
+      useFactory: (dataSource: DataSource) => new RolesService(dataSource),
+      inject: [DataSource],
     },
     {
       provide: PermissionsService,
-      useFactory: (dataSource: DataSource) => new PermissionsService(
-        dataSource.getRepository(Permission),
-      ),
-      inject: ['AUTH_DATA_SOURCE'],
+      useFactory: (dataSource: DataSource) => new PermissionsService(dataSource),
+      inject: [DataSource],
     },
   ],
   exports: [RolesService, PermissionsService],

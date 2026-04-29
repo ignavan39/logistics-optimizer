@@ -21,7 +21,6 @@ describe('TrackingService', () => {
     jest.clearAllMocks();
 
     service = new TrackingService(
-      mockConfigService as any,
       mockClientGrpc as any,
     );
     service.onModuleInit();

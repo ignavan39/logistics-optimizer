@@ -4,7 +4,6 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Inject } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
@@ -22,7 +21,7 @@ export class OutboxProcessor implements OnApplicationBootstrap, OnApplicationShu
   private isShuttingDown = false;
 
   constructor(
-    @InjectDataSource() private readonly ds: DataSource,
+    private readonly ds: DataSource,
     @Inject('KAFKA_CLIENT') private readonly kafka: ClientKafka,
   ) {}
 

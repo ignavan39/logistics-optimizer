@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { ApiKey } from '../../users/entities/api-key.entity';
 
@@ -19,8 +19,7 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private configService: ConfigService,
-    private userRepository: Repository<User>,
-    private apiKeyRepository: Repository<ApiKey>,
+    private dataSource: DataSource,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -31,7 +30,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload): Promise<RequestUser> {
     if (payload.type === 'api-key') {
-      const apiKey = await this.apiKeyRepository.findOne({
+      const apiKey = await this.dataSource.getRepository(ApiKey).findOne({
         where: { id: payload.apiKeyId, isActive: true },
       });
 
@@ -40,7 +39,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
 
       apiKey.lastUsedAt = new Date();
-      await this.apiKeyRepository.save(apiKey);
+      await this.dataSource.getRepository(ApiKey).save(apiKey);
 
       return {
         userId: payload.sub,
@@ -51,7 +50,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       };
     }
 
-    const user = await this.userRepository.findOne({
+    const user = await this.dataSource.getRepository(User).findOne({
       where: { id: payload.sub, isActive: true },
     });
 

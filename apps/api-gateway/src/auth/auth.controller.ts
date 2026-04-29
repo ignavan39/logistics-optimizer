@@ -12,15 +12,15 @@ import {
 import type { Request } from 'express';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { type AuthService } from './auth.service';
-import { type UsersService } from '../users/users.service';
+import { AuthService } from './auth.service';
+import { UsersService } from '../users/users.service';
 import {
-  type RegisterDto,
-  type LoginDto,
-  type RefreshTokenDto,
-  type ChangePasswordDto,
-  type CreateApiKeyDto,
-  type CreateUserDto,
+  RegisterDto,
+  LoginDto,
+  RefreshTokenDto,
+  ChangePasswordDto,
+  CreateApiKeyDto,
+  CreateUserDto,
 } from './dto/user-auth.dto';
 import { JwtAuthGuard, CurrentUser } from './guards/jwt-auth.guard';
 import { Public } from './decorators/public.decorator';

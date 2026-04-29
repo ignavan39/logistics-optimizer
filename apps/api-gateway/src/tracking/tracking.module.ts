@@ -3,6 +3,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices'
 import { ConfigService } from '@nestjs/config'
 import { TrackingController } from './tracking.controller'
 import { TrackingService } from './tracking.service'
+import { join } from 'path'
 
 @Module({
   imports: [
@@ -13,8 +14,8 @@ import { TrackingService } from './tracking.service'
           transport: Transport.GRPC,
           options: {
             package: 'tracking',
-            protoPath: process.env.PROTO_ROOT ? `${process.env.PROTO_ROOT}/tracking.proto` : '/app/libs/proto/src/tracking.proto',
-            url: configService.get('GRPC_TRACKING_HOST', 'tracking-service:50054'),
+            protoPath: process.env.PROTO_ROOT ? `${process.env.PROTO_ROOT}/tracking.proto` : join(__dirname, '../../../../libs/proto/src/tracking.proto'),
+            url: configService.get('GRPC_TRACKING_HOST', 'tracking-service:50055'),
           },
         }),
         inject: [ConfigService],

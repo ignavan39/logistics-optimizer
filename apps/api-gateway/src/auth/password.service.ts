@@ -1,5 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from '../users/entities/user.entity';
 import { Session } from '../users/entities/session.entity';
@@ -9,12 +9,11 @@ export class PasswordService {
   private readonly SALT_ROUNDS = 12;
 
   constructor(
-    private userRepository: Repository<User>,
-    private sessionRepository: Repository<Session>,
+    private dataSource: DataSource,
   ) {}
 
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
-    const user = await this.userRepository.findOne({
+    const user = await this.dataSource.getRepository(User).findOne({
       where: { id: userId },
     });
 
@@ -29,9 +28,9 @@ export class PasswordService {
 
     user.passwordHash = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
     user.passwordChangedAt = new Date();
-    await this.userRepository.save(user);
+    await this.dataSource.getRepository(User).save(user);
 
-    await this.sessionRepository.delete({ userId });
+    await this.dataSource.getRepository(Session).delete({ userId });
 
     return { message: 'Password changed successfully' };
   }
@@ -48,7 +47,7 @@ export class PasswordService {
       user.lockedUntil = new Date(Date.now() + lockDuration);
     }
 
-    await this.userRepository.save(user);
+    await this.dataSource.getRepository(User).save(user);
     await onLoginAttempt(user.email, ipAddress, false, 'invalid_password');
   }
 
@@ -59,7 +58,7 @@ export class PasswordService {
     user.failedLoginAttempts = 0;
     user.lockedUntil = undefined;
     user.lastLoginAt = new Date();
-    await this.userRepository.save(user);
+    await this.dataSource.getRepository(User).save(user);
   }
 
   hashPassword(password: string): Promise<string> {

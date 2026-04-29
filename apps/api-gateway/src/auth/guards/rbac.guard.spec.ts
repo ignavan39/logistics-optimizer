@@ -4,11 +4,12 @@ import { RbacGuard } from './rbac.guard';
 
 describe('RbacGuard', () => {
   let guard: RbacGuard;
-  let reflector: Reflector;
+  let mockReflector: { getAllAndOverride: jest.Mock };
 
   beforeEach(() => {
-    reflector = new Reflector();
-    guard = new RbacGuard(reflector);
+    mockReflector = { getAllAndOverride: jest.fn() };
+    guard = new RbacGuard();
+    (guard as any).reflector = mockReflector;
   });
 
   const createMockContext = (user: any, permissions: string[] = []): ExecutionContext => {
@@ -25,13 +26,13 @@ describe('RbacGuard', () => {
 
   describe('canActivate', () => {
     it('should allow when no permissions required', () => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(null);
+      mockReflector.getAllAndOverride.mockReturnValue(null);
       const context = createMockContext({ userId: 'user-1', permissions: [] });
       expect(guard.canActivate(context)).toBe(true);
     });
 
     it('should throw when no user in request', () => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['orders.read']);
+      mockReflector.getAllAndOverride.mockReturnValue(['orders.read']);
       const context = {
         switchToHttp: () => ({
           getRequest: () => ({}),
@@ -43,31 +44,31 @@ describe('RbacGuard', () => {
     });
 
     it('should allow when user has required permission', () => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['orders.read']);
+      mockReflector.getAllAndOverride.mockReturnValue(['orders.read']);
       const context = createMockContext({ userId: 'user-1' }, ['orders.read', 'orders.create']);
       expect(guard.canActivate(context)).toBe(true);
     });
 
     it('should throw when user lacks required permission', () => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['orders.read']);
+      mockReflector.getAllAndOverride.mockReturnValue(['orders.read']);
       const context = createMockContext({ userId: 'user-1' }, ['orders.create']);
       expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
     });
 
     it('should allow when user has wildcard permission orders.*', () => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['orders.read']);
+      mockReflector.getAllAndOverride.mockReturnValue(['orders.read']);
       const context = createMockContext({ userId: 'user-1' }, ['orders.*']);
       expect(guard.canActivate(context)).toBe(true);
     });
 
     it('should allow when user has wildcard permission resource.*', () => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['vehicles.read']);
+      mockReflector.getAllAndOverride.mockReturnValue(['vehicles.read']);
       const context = createMockContext({ userId: 'user-1' }, ['vehicles.*']);
       expect(guard.canActivate(context)).toBe(true);
     });
 
     it('should check api-key type permissions', () => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['orders.read']);
+      mockReflector.getAllAndOverride.mockReturnValue(['orders.read']);
       const context = createMockContext(
         { userId: 'user-1', type: 'api-key' },
         ['orders.read'],
@@ -76,7 +77,7 @@ describe('RbacGuard', () => {
     });
 
     it('should support multiple required permissions (some match)', () => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['orders.read', 'vehicles.read']);
+      mockReflector.getAllAndOverride.mockReturnValue(['orders.read', 'vehicles.read']);
       const context = createMockContext({ userId: 'user-1' }, ['orders.read']);
       expect(guard.canActivate(context)).toBe(true);
     });

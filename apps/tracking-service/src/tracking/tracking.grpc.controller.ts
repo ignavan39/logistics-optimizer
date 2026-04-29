@@ -3,7 +3,6 @@ import { GrpcMethod, GrpcStreamMethod } from '@nestjs/microservices';
 import { Observable, Subject } from 'rxjs';
 import { TrackingBatchWriter } from './batch/tracking-batch-writer';
 import { TrackingMetrics } from '../metrics/tracking.metrics';
-import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 
 interface TelemetryPoint {
@@ -44,7 +43,7 @@ export class TrackingGrpcController {
   constructor(
     private readonly batchWriter: TrackingBatchWriter,
     private readonly metrics: TrackingMetrics,
-    @InjectDataSource() private readonly ds: DataSource,
+    private readonly ds: DataSource,
   ) {}
 
   /**

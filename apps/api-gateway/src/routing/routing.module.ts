@@ -3,6 +3,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices'
 import { ConfigService } from '@nestjs/config'
 import { RoutingController } from './routing.controller'
 import { RoutingService } from './routing.service'
+import { join } from 'path'
 
 @Module({
   imports: [
@@ -13,8 +14,8 @@ import { RoutingService } from './routing.service'
           transport: Transport.GRPC,
           options: {
             package: 'routing',
-            protoPath: process.env.PROTO_ROOT ? `${process.env.PROTO_ROOT}/routing.proto` : '/app/libs/proto/src/routing.proto',
-            url: configService.get('GRPC_ROUTING_HOST', 'routing-service:50053'),
+            protoPath: process.env.PROTO_ROOT ? `${process.env.PROTO_ROOT}/routing.proto` : join(__dirname, '../../../../libs/proto/src/routing.proto'),
+            url: configService.get('GRPC_ROUTING_HOST', 'routing-service:50054'),
           },
         }),
         inject: [ConfigService],

@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { type DataSource } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { TokenService } from './token.service';
@@ -12,10 +12,6 @@ import { ApiKeyService } from './api-key.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RbacGuard } from './guards/rbac.guard';
-import { User } from '../users/entities/user.entity';
-import { Session } from '../users/entities/session.entity';
-import { ApiKey } from '../users/entities/api-key.entity';
-import { RefreshToken } from '../users/entities/refresh-token.entity';
 import { UsersModule } from '../users/users.module';
 import { RolesModule } from '../roles/roles.module';
 import { UsersService } from '../users/users.service';
@@ -48,72 +44,45 @@ import { UsersService } from '../users/users.service';
         passwordService: PasswordService,
         apiKeyService: ApiKeyService,
       ) => new AuthService(
-        dataSource.getRepository(User),
-        dataSource.getRepository(Session),
+        dataSource,
         usersService,
         tokenService,
         sessionService,
         passwordService,
         apiKeyService,
-        dataSource,
       ),
-      inject: [
-        'AUTH_DATA_SOURCE',
-        UsersService,
-        TokenService,
-        SessionService,
-        PasswordService,
-        ApiKeyService,
-      ],
+      inject: [DataSource, UsersService, TokenService, SessionService, PasswordService, ApiKeyService],
     },
     {
       provide: SessionService,
-      useFactory: (dataSource: DataSource) => new SessionService(
-        dataSource.getRepository(Session),
-        dataSource,
-      ),
-      inject: ['AUTH_DATA_SOURCE'],
+      useFactory: (dataSource: DataSource) => new SessionService(dataSource),
+      inject: [DataSource],
     },
     {
       provide: TokenService,
       useFactory: (
         dataSource: DataSource,
         jwtService: JwtService,
-      ) => new TokenService(
-        dataSource.getRepository(User),
-        dataSource.getRepository(RefreshToken),
-        jwtService,
-        dataSource,
-      ),
-      inject: ['AUTH_DATA_SOURCE', JwtService],
+      ) => new TokenService(dataSource, jwtService),
+      inject: [DataSource, JwtService],
     },
     {
       provide: PasswordService,
-      useFactory: (dataSource: DataSource) => new PasswordService(
-        dataSource.getRepository(User),
-        dataSource.getRepository(Session),
-      ),
-      inject: ['AUTH_DATA_SOURCE'],
+      useFactory: (dataSource: DataSource) => new PasswordService(dataSource),
+      inject: [DataSource],
     },
     {
       provide: ApiKeyService,
-      useFactory: (dataSource: DataSource) => new ApiKeyService(
-        dataSource.getRepository(ApiKey),
-        dataSource.getRepository(User),
-      ),
-      inject: ['AUTH_DATA_SOURCE'],
+      useFactory: (dataSource: DataSource) => new ApiKeyService(dataSource),
+      inject: [DataSource],
     },
     {
       provide: JwtStrategy,
       useFactory: (
         configService: ConfigService,
         dataSource: DataSource,
-      ) => new JwtStrategy(
-        configService,
-        dataSource.getRepository(User),
-        dataSource.getRepository(ApiKey),
-      ),
-      inject: [ConfigService, 'AUTH_DATA_SOURCE'],
+      ) => new JwtStrategy(configService, dataSource),
+      inject: [ConfigService, DataSource],
     },
     JwtAuthGuard,
     RbacGuard,

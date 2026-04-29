@@ -4,7 +4,6 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { TrackingMetrics } from '../../metrics/tracking.metrics';
 
@@ -46,7 +45,7 @@ export class TrackingBatchWriter implements OnApplicationBootstrap, OnApplicatio
   private readonly latestPositions = new Map<string, TelemetryRecord>();
 
   constructor(
-    @InjectDataSource() private readonly ds: DataSource,
+    private readonly ds: DataSource,
     private readonly metrics: TrackingMetrics,
   ) {}
 

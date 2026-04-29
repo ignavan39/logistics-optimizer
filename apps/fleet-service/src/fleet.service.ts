@@ -1,7 +1,6 @@
 import type { Logger } from '@nestjs/common'
 import { Logger as NestLogger, ConflictException, Injectable, NotFoundException } from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, DataSource } from 'typeorm'
+import { DataSource } from 'typeorm'
 import { VehicleEntity } from './entities/vehicle.entity'
 
 interface DriverRow {
@@ -103,8 +102,6 @@ export class FleetService {
   private readonly logger: Logger
 
   constructor(
-    @InjectRepository(VehicleEntity)
-    private readonly vehicleRepo: Repository<VehicleEntity>,
     private readonly dataSource: DataSource,
   ) {
     this.logger = new NestLogger(FleetService.name)
@@ -137,7 +134,7 @@ export class FleetService {
   }
 
   async getVehicle(id: string): Promise<VehicleEntity | null> {
-    return this.vehicleRepo.findOne({ where: { id } })
+    return this.dataSource.getRepository(VehicleEntity).findOne({ where: { id } })
   }
 
   async getVehicleDetails(id: string): Promise<GetVehicleDetailsResult> {
@@ -217,7 +214,7 @@ export class FleetService {
   }
 
   async assignVehicle(vehicleId: string, driverId: string, orderId: string): Promise<VehicleEntity> {
-    const vehicle = await this.vehicleRepo.findOne({ where: { id: vehicleId } })
+    const vehicle = await this.dataSource.getRepository(VehicleEntity).findOne({ where: { id: vehicleId } })
     if (!vehicle) {
       throw new NotFoundException(`Vehicle ${vehicleId} not found`)
     }
@@ -225,11 +222,11 @@ export class FleetService {
     vehicle.status = 'assigned'
     vehicle.currentDriverId = driverId
     vehicle.currentOrderId = orderId
-    return this.vehicleRepo.save(vehicle)
+    return this.dataSource.getRepository(VehicleEntity).save(vehicle)
   }
 
   async releaseVehicle(vehicleId: string, _reason?: string): Promise<void> {
-    const vehicle = await this.vehicleRepo.findOne({ where: { id: vehicleId } })
+    const vehicle = await this.dataSource.getRepository(VehicleEntity).findOne({ where: { id: vehicleId } })
     if (!vehicle) {
       throw new NotFoundException(`Vehicle ${vehicleId} not found`)
     }
@@ -237,7 +234,7 @@ export class FleetService {
     vehicle.status = 'available'
     vehicle.currentDriverId = undefined
     vehicle.currentOrderId = undefined
-    await this.vehicleRepo.save(vehicle)
+    await this.dataSource.getRepository(VehicleEntity).save(vehicle)
   }
 
   async updateVehicle(
@@ -251,7 +248,7 @@ export class FleetService {
     },
     expectedVersion?: number,
   ): Promise<UpdateVehicleResult> {
-    const vehicle = await this.vehicleRepo.findOne({ where: { id: vehicleId } })
+    const vehicle = await this.dataSource.getRepository(VehicleEntity).findOne({ where: { id: vehicleId } })
     if (!vehicle) {
       throw new NotFoundException(`Vehicle ${vehicleId} not found`)
     }
@@ -264,12 +261,12 @@ export class FleetService {
     if (data.capacityKg) vehicle.capacityKg = data.capacityKg
     if (data.capacityM3) vehicle.capacityM3 = data.capacityM3
     if (data.currentLat !== undefined && data.currentLng !== undefined) {
-      vehicle.currentLocation = data.currentLat !== null && data.currentLng !== null
-        ? `SRID=4326;POINT(${data.currentLng} ${data.currentLat})`
+      vehicle.currentLocation = data.currentLat !== null && data.currentLng !== null?
+        `SRID=4326;POINT(${data.currentLng} ${data.currentLat})`
         : null
     }
 
-    await this.vehicleRepo.save(vehicle)
+    await this.dataSource.getRepository(VehicleEntity).save(vehicle)
 
     return {
       success: true,
