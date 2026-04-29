@@ -26,6 +26,7 @@
 |--------------|-------------------|-------------|
 | `@nestjs/typeorm` + pnpm + Docker | Conflict hoisting → `Nest can't resolve TypeOrmCoreModule` | `new DataSource()` как `@Global()` provider |
 | `synchronize: true` в prod | TypeORM может дропнуть колонки | `synchronize: NODE_ENV !== 'production'` |
+| TypeORM DataSource в конструкторе сервиса | `EntityMetadataNotFoundError` — getRepository() до инициализации DataSource | Создать DataSource в модуле с async factory + инжектировать репозиторий через строковый токен |
 | `process.env.VAR` напрямую | Не работает в Docker до инициализации, не тестируемо | `configService.get<T>('VAR', default)` |
 | Одинаковые порты test/prod | `docker compose up` → port conflict | Тестовые БД на 6400+ (ADR-004) |
 | Init SQL при restart | `docker-entrypoint-initdb.d` — только первый запуск | `docker compose down -v && up` при schema errors |
