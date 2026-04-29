@@ -2,6 +2,41 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- Core tables
+CREATE TABLE IF NOT EXISTS orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id UUID NOT NULL,
+    origin_lat NUMERIC(10,7) NOT NULL,
+    origin_lng NUMERIC(10,7) NOT NULL,
+    origin_address VARCHAR(500),
+    destination_lat NUMERIC(10,7) NOT NULL,
+    destination_lng NUMERIC(10,7) NOT NULL,
+    destination_address VARCHAR(500),
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    priority VARCHAR(50) NOT NULL DEFAULT 'normal',
+    weight_kg NUMERIC(8,2) DEFAULT 0,
+    volume_m3 NUMERIC(8,3) DEFAULT 0,
+    notes TEXT,
+    vehicle_id UUID,
+    driver_id UUID,
+    route_id UUID,
+    counterparty_id UUID,
+    sender_counterparty_id UUID,
+    receiver_counterparty_id UUID,
+    contract_id UUID,
+    estimated_price NUMERIC(12,2),
+    currency VARCHAR(3) DEFAULT 'RUB',
+    tariff_snapshot_id UUID,
+    sla_deadline TIMESTAMPTZ,
+    version INT NOT NULL DEFAULT 1,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_orders_status_created ON orders(status, created_at);
+CREATE INDEX idx_orders_customer_status ON orders(customer_id, status);
+CREATE INDEX idx_orders_customer ON orders(customer_id);
+
 CREATE TABLE IF NOT EXISTS outbox_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
     aggregate_type VARCHAR(100) NOT NULL,
@@ -107,13 +142,6 @@ CREATE TABLE IF NOT EXISTS invoice (
 CREATE INDEX IF NOT EXISTS idx_invoice_order ON invoice(order_id);
 CREATE INDEX IF NOT EXISTS idx_invoice_order_status ON invoice(order_id, status);
 CREATE INDEX IF NOT EXISTS idx_invoice_due_date ON invoice(due_date);
-
--- Add estimated_price and currency to orders (v3)
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS estimated_price DECIMAL(12,2);
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS currency VARCHAR(3) DEFAULT 'RUB';
-
--- Tariff snapshot (v4 - separate table instead of JSONB)
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS tariff_snapshot_id UUID REFERENCES order_tariff_snapshots(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS order_tariff_snapshots (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

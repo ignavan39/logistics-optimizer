@@ -14,11 +14,11 @@ export class DatabaseModule {
           useFactory: async (cfg: ConfigService): Promise<DataSource> => {
             const dataSource = new DataSource({
               type: 'postgres',
-              host: cfg.get('DISPATCHER_DB_HOST', 'pg-dispatcher'),
+              host: cfg.get('TRACKING_DB_HOST', 'pg-tracking'),
               port: cfg.get<number>('PG_PORT_BASE', 5432),
               username: cfg.get('PG_USER', 'logistics'),
               password: cfg.get('PG_PASSWORD', 'logistics_secret'),
-              database: cfg.get('DISPATCHER_DB_NAME', 'dispatcher_db'),
+              database: cfg.get('TRACKING_DB_NAME', 'tracking_db'),
               entities: [__dirname + '/**/*.entity{.ts,.js}'],
               synchronize: false,
               logging: cfg.get('NODE_ENV') === 'development',

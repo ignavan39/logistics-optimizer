@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common'
-import { ConfigModule, ConfigService } from '@nestjs/config'
-import {OrmModule } from '@nestjs/typeorm'
-import { ScheduleModule } from '@nestjs/schedule'
+import { ConfigModule } from '@nestjs/config'
 import { Registry } from 'prom-client'
 import { TrackingGrpcController } from './tracking/tracking.grpc.controller'
 import { TelemetryConsumer } from './tracking/telemetry.consumer'
 import { TrackingBatchWriter } from './tracking/batch/tracking-batch-writer'
 import { TrackingMetrics } from './metrics/tracking.metrics'
 import { RetentionService } from './tracking/retention.service'
+import { DatabaseModule } from './database/database.module'
+
+const PROMETHEUS_REGISTRY = new Registry()
 
 @Module({
   imports: [
@@ -15,32 +16,15 @@ import { RetentionService } from './tracking/retention.service'
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
     }),
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (cfg: ConfigService) => ({
-        type: 'postgres',
-        host: cfg.get('TRACKING_DB_HOST', 'pg-tracking'),
-        port: cfg.get<number>('PG_PORT_BASE', 5432),
-        username: cfg.get('PG_USER', 'logistics'),
-        password: cfg.get('PG_PASSWORD', 'logistics_secret'),
-        database: cfg.get('TRACKING_DB_NAME', 'tracking_db'),
-        synchronize: false,
-        logging: cfg.get('NODE_ENV') === 'development',
-        extra: {
-          max: 10,
-          connectionTimeoutMillis: 5000,
-        },
-      }),
-    }),
-    ScheduleModule.forRoot(),
+    DatabaseModule.forRoot(),
   ],
   controllers: [TrackingGrpcController],
   providers: [
     TelemetryConsumer,
     TrackingBatchWriter,
-    TrackingMetrics,
+    { provide: TrackingMetrics, useValue: new TrackingMetrics(PROMETHEUS_REGISTRY) },
     RetentionService,
-    { provide: Registry, useValue: new Registry() },
+    { provide: Registry, useValue: PROMETHEUS_REGISTRY },
   ],
 })
 export class AppModule {}

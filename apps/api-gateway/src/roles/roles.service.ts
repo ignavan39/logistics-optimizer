@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
 import { UserRole } from './entities/user-role.entity';
@@ -12,44 +12,42 @@ import {
 @Injectable()
 export class RolesService {
   constructor(
-    private roleRepository: Repository<Role>,
-    private permissionRepository: Repository<Permission>,
-    private userRoleRepository: Repository<UserRole>,
+    private dataSource: DataSource,
   ) {}
 
   async listRoles() {
-    return this.roleRepository.find({
+    return this.dataSource.getRepository(Role).find({
       relations: ['rolePermissions'],
       order: { name: 'ASC' },
     });
   }
 
   async getRole(id: string) {
-    return this.roleRepository.findOne({
+    return this.dataSource.getRepository(Role).findOne({
       where: { id },
       relations: ['rolePermissions'],
     });
   }
 
   async createRole(dto: CreateRoleDto) {
-    const role = this.roleRepository.create({
+    const role = this.dataSource.getRepository(Role).create({
       name: dto.name,
       description: dto.description,
     });
-    const savedRole = await this.roleRepository.save(role);
+    const savedRole = await this.dataSource.getRepository(Role).save(role);
 
-    if (dto.permissions.length) {
-      const permissions = await this.permissionRepository.findBy({
+    if (dto.permissions?.length) {
+      const permissions = await this.dataSource.getRepository(Permission).findBy({
         name: dto.permissions as any,
       });
       const rolePermissions = permissions.map((p) =>
-        this.userRoleRepository.manager.create('role_permission', {
+        this.dataSource.getRepository(UserRole).manager.create('role_permission', {
           roleId: savedRole.id,
           permissionId: p.id,
         }),
       );
       if (rolePermissions.length) {
-        await this.userRoleRepository.manager.save('role_permission', rolePermissions);
+        await this.dataSource.getRepository(UserRole).manager.save('role_permission', rolePermissions);
       }
     }
 
@@ -57,7 +55,7 @@ export class RolesService {
   }
 
   async updateRole(id: string, dto: UpdateRoleDto) {
-    const role = await this.roleRepository.findOne({ where: { id } });
+    const role = await this.dataSource.getRepository(Role).findOne({ where: { id } });
     if (!role) {
       return { error: 'Role not found' };
     }
@@ -66,52 +64,52 @@ export class RolesService {
       role.description = dto.description;
     }
 
-    await this.roleRepository.save(role);
+    await this.dataSource.getRepository(Role).save(role);
 
     if (dto.permissions) {
-      await this.userRoleRepository.manager.query(
+      await this.dataSource.getRepository(Role).manager.query(
         'DELETE FROM role_permission WHERE role_id = $1',
         [id],
       );
 
-      const permissions = await this.permissionRepository.findBy({
+      const permissions = await this.dataSource.getRepository(Permission).findBy({
         name: dto.permissions as any,
       });
       const rolePermissions = permissions.map((p) =>
-        this.userRoleRepository.manager.create('role_permission', {
+        this.dataSource.getRepository(Role).manager.create('role_permission', {
           roleId: id,
           permissionId: p.id,
         }),
       );
       if (rolePermissions.length) {
-        await this.userRoleRepository.manager.save('role_permission', rolePermissions);
+        await this.dataSource.getRepository(Role).manager.save('role_permission', rolePermissions);
       }
     }
 
-    return this.roleRepository.findOne({ where: { id }, relations: ['rolePermissions'] });
+    return this.dataSource.getRepository(Role).findOne({ where: { id }, relations: ['rolePermissions'] });
   }
 
   async deleteRole(id: string) {
-    await this.userRoleRepository.manager.query(
+    await this.dataSource.getRepository(Role).manager.query(
       'DELETE FROM role_permission WHERE role_id = $1',
       [id],
     );
-    await this.userRoleRepository.manager.query(
+    await this.dataSource.getRepository(Role).manager.query(
       'DELETE FROM user_roles WHERE role_id = $1',
       [id],
     );
-    await this.roleRepository.delete({ id });
+    await this.dataSource.getRepository(Role).delete({ id });
   }
 
   async assignRoleToUser(roleId: string, dto: { userId: string }) {
-    const exists = await this.userRoleRepository.findOne({
+    const exists = await this.dataSource.getRepository(UserRole).findOne({
       where: { userId: dto.userId, roleId },
     });
     if (exists) {
       return { message: 'Role already assigned' };
     }
 
-    await this.userRoleRepository.save({
+    await this.dataSource.getRepository(UserRole).save({
       userId: dto.userId,
       roleId,
     });
@@ -120,20 +118,20 @@ export class RolesService {
   }
 
   async removeRoleFromUser(roleId: string, userId: string) {
-    await this.userRoleRepository.delete({ userId, roleId });
+    await this.dataSource.getRepository(UserRole).delete({ userId, roleId });
   }
 
   async bulkAssignRoles(userId: string, roleIds: string[]) {
     const results = [];
     for (const roleId of roleIds) {
-      const exists = await this.userRoleRepository.findOne({
+      const exists = await this.dataSource.getRepository(UserRole).findOne({
         where: { userId, roleId },
       });
       if (exists) {
         results.push({ roleId, status: 'already_assigned' });
         continue;
       }
-      await this.userRoleRepository.save({ userId, roleId });
+      await this.dataSource.getRepository(UserRole).save({ userId, roleId });
       results.push({ roleId, status: 'assigned' });
     }
     return results;
@@ -143,33 +141,33 @@ export class RolesService {
 @Injectable()
 export class PermissionsService {
   constructor(
-    private permissionRepository: Repository<Permission>,
+    private dataSource: DataSource,
   ) {}
 
   async listPermissions() {
-    return this.permissionRepository.find({
+    return this.dataSource.getRepository(Permission).find({
       order: { name: 'ASC' },
     });
   }
 
   async getPermission(id: string) {
-    return this.permissionRepository.findOne({ where: { id } });
+    return this.dataSource.getRepository(Permission).findOne({ where: { id } });
   }
 
   async createPermission(dto: CreatePermissionDto) {
-    const permission = this.permissionRepository.create({
+    const permission = this.dataSource.getRepository(Permission).create({
       name: dto.name,
       description: dto.description,
       resource: dto.resource,
     });
-    return this.permissionRepository.save(permission);
+    return this.dataSource.getRepository(Permission).save(permission);
   }
 
   async deletePermission(id: string) {
-    await this.permissionRepository.manager.query(
+    await this.dataSource.getRepository(Permission).manager.query(
       'DELETE FROM role_permission WHERE permission_id = $1',
       [id],
     );
-    await this.permissionRepository.delete({ id });
+    await this.dataSource.getRepository(Permission).delete({ id });
   }
 }

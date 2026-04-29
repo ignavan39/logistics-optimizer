@@ -1,5 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { ApiKey } from '../users/entities/api-key.entity';
@@ -12,12 +12,11 @@ export class ApiKeyService {
   private readonly SALT_ROUNDS = 12;
 
   constructor(
-    private apiKeyRepository: Repository<ApiKey>,
-    private userRepository: Repository<User>,
+    private dataSource: DataSource,
   ) {}
 
   async createApiKey(userId: string, dto: CreateApiKeyDto) {
-    const user = await this.userRepository.findOne({
+    const user = await this.dataSource.getRepository(User).findOne({
       where: { id: userId },
     });
 
@@ -29,7 +28,7 @@ export class ApiKeyService {
     const keyHash = await bcrypt.hash(rawKey, this.SALT_ROUNDS);
     const keyPrefix = rawKey.substring(0, 8);
 
-    const apiKey = this.apiKeyRepository.create({
+    const apiKey = this.dataSource.getRepository(ApiKey).create({
       userId,
       name: dto.name,
       keyHash,
@@ -40,7 +39,7 @@ export class ApiKeyService {
       isActive: true,
     });
 
-    await this.apiKeyRepository.save(apiKey);
+    await this.dataSource.getRepository(ApiKey).save(apiKey);
 
     return {
       id: apiKey.id,
@@ -55,7 +54,7 @@ export class ApiKeyService {
 
   async validateApiKey(apiKey: string): Promise<JwtPayload | null> {
     const keyPrefix = apiKey.substring(0, 8);
-    const apiKeys = await this.apiKeyRepository.find({
+    const apiKeys = await this.dataSource.getRepository(ApiKey).find({
       where: { keyPrefix, isActive: true },
       relations: ['user'],
     });
@@ -81,11 +80,11 @@ export class ApiKeyService {
   }
 
   async deleteApiKey(userId: string, keyId: string): Promise<void> {
-    await this.apiKeyRepository.delete({ id: keyId, userId });
+    await this.dataSource.getRepository(ApiKey).delete({ id: keyId, userId });
   }
 
   async getUserApiKeys(userId: string): Promise<ApiKey[]> {
-    return this.apiKeyRepository.find({
+    return this.dataSource.getRepository(ApiKey).find({
       where: { userId },
       order: { createdAt: 'DESC' },
     });

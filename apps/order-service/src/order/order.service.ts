@@ -4,7 +4,6 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { OrderEntity, OrderStatus, OrderPriority } from './entities/order.entity';
@@ -42,7 +41,6 @@ export class OrderService {
   private readonly logger = new Logger(OrderService.name);
 
   constructor(
-    @InjectDataSource()
     private readonly dataSource: DataSource,
 
     private readonly counterpartyService: CounterpartyService,

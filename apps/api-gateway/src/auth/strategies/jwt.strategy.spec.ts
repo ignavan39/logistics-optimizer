@@ -1,15 +1,12 @@
 import { JwtStrategy } from './jwt.strategy';
 import { ConfigService } from '@nestjs/config';
-import { Repository } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
-import { ApiKey } from '../../users/entities/api-key.entity';
+import { DataSource } from 'typeorm';
 import { UnauthorizedException } from '@nestjs/common';
 
 describe('JwtStrategy', () => {
   let strategy: JwtStrategy;
   let configService: ConfigService;
-  let userRepository: Repository<User>;
-  let apiKeyRepository: Repository<ApiKey>;
+  let dataSource: DataSource;
 
   beforeEach(() => {
     configService = {
@@ -21,13 +18,13 @@ describe('JwtStrategy', () => {
       }),
     } as Partial<ConfigService> as ConfigService;
 
-    userRepository = {} as Partial<Repository<User>> as Repository<User>;
-    apiKeyRepository = {} as Partial<Repository<ApiKey>> as Repository<ApiKey>;
+    dataSource = {
+      getRepository: jest.fn(),
+    } as Partial<DataSource> as DataSource;
 
     strategy = new JwtStrategy(
       configService as ConfigService,
-      userRepository as Repository<User>,
-      apiKeyRepository as Repository<ApiKey>,
+      dataSource as DataSource,
     );
   });
 
@@ -37,7 +34,6 @@ describe('JwtStrategy', () => {
 
   describe('constructor', () => {
     it('should call ConfigService.get for JWT_SECRET without default value', () => {
-      // Пересоздаем стратегию с шпионом на configService.get
       const configServiceSpy = {
         get: jest.fn(key => {
           if (key === 'JWT_SECRET') {
@@ -47,18 +43,18 @@ describe('JwtStrategy', () => {
         }),
       } as Partial<ConfigService> as ConfigService;
 
-      new JwtStrategy(configServiceSpy, userRepository, apiKeyRepository);
+      new JwtStrategy(configServiceSpy, dataSource);
       expect(configServiceSpy.get).toHaveBeenCalledWith('JWT_SECRET');
     });
   });
 
   describe('validate', () => {
     it('should throw UnauthorizedException for invalid API key', async () => {
-      // Мокируем репозитории
-      apiKeyRepository.findOne = jest.fn().mockResolvedValue(null);
+      const apiKeyRepo = { findOne: jest.fn().mockResolvedValue(null) };
+      (dataSource.getRepository as jest.Mock).mockReturnValue(apiKeyRepo);
 
       const payload = {
-        sub: 'api-key-id',
+        sub: 'user-id',
         email: 'test@example.com',
         type: 'api-key' as const,
         apiKeyId: 'some-id',
@@ -70,12 +66,8 @@ describe('JwtStrategy', () => {
     });
 
     it('should throw UnauthorizedException for inactive user', async () => {
-      userRepository.findOne = jest.fn().mockResolvedValue(null);
-      apiKeyRepository.findOne = jest.fn().mockResolvedValue({
-        id: 'api-key-id',
-        isActive: true,
-        user: { id: 'user-id', isActive: false },
-      } as any);
+      const userRepo = { findOne: jest.fn().mockResolvedValue(null) };
+      (dataSource.getRepository as jest.Mock).mockReturnValue(userRepo);
 
       const payload = {
         sub: 'user-id',

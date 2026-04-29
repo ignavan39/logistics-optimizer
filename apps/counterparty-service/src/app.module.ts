@@ -24,8 +24,8 @@ import {
     ContractService,
     {
       provide: DataSource,
-      useFactory: (cfg: ConfigService) => {
-        return new DataSource({
+      useFactory: async (cfg: ConfigService): Promise<DataSource> => {
+        const dataSource = new DataSource({
           type: 'postgres',
           host: cfg.get('COUNTERPARTY_DB_HOST', 'pg-counterparty'),
           port: cfg.get<number>('PG_PORT_BASE', 5432),
@@ -39,7 +39,9 @@ import {
             max: 10,
             connectionTimeoutMillis: 5000,
           },
-        })
+        });
+        await dataSource.initialize();
+        return dataSource;
       },
       inject: [ConfigService],
     },

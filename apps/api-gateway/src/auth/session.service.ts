@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Repository, type DataSource } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Session } from '../users/entities/session.entity';
 
 @Injectable()
 export class SessionService {
   constructor(
-    private sessionRepository: Repository<Session>,
     private dataSource: DataSource,
   ) {}
 
@@ -18,7 +17,7 @@ export class SessionService {
     refreshTokenHash: string;
     expiresAt: Date;
   }): Promise<Session> {
-    return this.sessionRepository.save({
+    return this.dataSource.getRepository(Session).save({
       userId: params.userId,
       deviceId: params.deviceId,
       deviceName: params.deviceName,
@@ -30,11 +29,11 @@ export class SessionService {
   }
 
   async deleteSession(sessionId: string): Promise<void> {
-    await this.sessionRepository.delete({ id: sessionId });
+    await this.dataSource.getRepository(Session).delete({ id: sessionId });
   }
 
   async deleteUserSessions(userId: string): Promise<void> {
-    await this.sessionRepository.delete({ userId });
+    await this.dataSource.getRepository(Session).delete({ userId });
   }
 
   async recordLoginAttempt(

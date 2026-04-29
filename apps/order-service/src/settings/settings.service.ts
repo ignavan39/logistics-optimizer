@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, In } from 'typeorm';
 import { SettingEntity, SettingKey } from './entities/setting.entity';
 
@@ -19,7 +18,6 @@ export class SettingsService {
   private readonly logger = new Logger(SettingsService.name);
 
   constructor(
-    @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
 

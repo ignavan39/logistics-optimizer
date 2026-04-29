@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Repository, type DataSource } from 'typeorm';
+import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
@@ -14,10 +14,8 @@ export class TokenService {
   private readonly REFRESH_TOKEN_EXPIRY_DAYS = 7;
 
   constructor(
-    private userRepository: Repository<User>,
-    private refreshTokenRepository: Repository<RefreshToken>,
-    private jwtService: JwtService,
     private dataSource: DataSource,
+    private jwtService: JwtService,
   ) {}
 
   async generateTokens(
@@ -45,7 +43,7 @@ export class TokenService {
     const refreshTokenHash = await this.hashToken(refreshToken);
     const family = uuidv4();
 
-    await this.refreshTokenRepository.save({
+    await this.dataSource.getRepository(RefreshToken).save({
       userId: user.id,
       tokenHash: refreshTokenHash,
       family,
@@ -78,7 +76,7 @@ export class TokenService {
   }
 
   async validateRefreshToken(token: string): Promise<{ userId: string; tokenId: string } | null> {
-    const tokens = await this.refreshTokenRepository.find({
+    const tokens = await this.dataSource.getRepository(RefreshToken).find({
       where: { revokedAt: undefined },
       order: { createdAt: 'DESC' },
     });
@@ -94,7 +92,7 @@ export class TokenService {
   }
 
   async rotateRefreshToken(oldTokenId: string): Promise<string> {
-    const oldToken = await this.refreshTokenRepository.findOne({
+    const oldToken = await this.dataSource.getRepository(RefreshToken).findOne({
       where: { id: oldTokenId },
     });
 
@@ -103,12 +101,12 @@ export class TokenService {
     }
 
     oldToken.revokedAt = new Date();
-    await this.refreshTokenRepository.save(oldToken);
+    await this.dataSource.getRepository(RefreshToken).save(oldToken);
 
     const newToken = crypto.randomBytes(64).toString('hex');
     const newTokenHash = await this.hashToken(newToken);
 
-    await this.refreshTokenRepository.save({
+    await this.dataSource.getRepository(RefreshToken).save({
       userId: oldToken.userId,
       tokenHash: newTokenHash,
       family: oldToken.family,

@@ -39,6 +39,8 @@ services:
       HTTP_PORT: 3000
       HTTP_METRICS_PORT: 9414
       PROTO_ROOT: /app/libs/proto/src
+      AUTH_DB_HOST: pg-auth
+      AUTH_DB_PORT: 5432
       GRPC_INVOICE_HOST: invoice-service:50052
       GRPC_ORDER_HOST: order-service:50051
       GRPC_FLEET_HOST: fleet-service:50053

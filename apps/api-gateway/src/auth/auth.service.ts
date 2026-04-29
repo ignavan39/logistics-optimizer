@@ -3,16 +3,15 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { type Repository, type DataSource } from 'typeorm';
-import { type User } from '../users/entities/user.entity';
-import { type Session } from '../users/entities/session.entity';
-import { type LoginDto, type CreateApiKeyDto, type CreateUserDto } from './dto/user-auth.dto';
-import { type RegisterDto } from '../users/dto/user.dto';
-import { type UsersService } from '../users/users.service';
-import { type TokenService } from './token.service';
-import { type SessionService } from './session.service';
-import { type PasswordService } from './password.service';
-import { type ApiKeyService } from './api-key.service';
+import { DataSource } from 'typeorm';
+import { User } from '../users/entities/user.entity';
+import { LoginDto, CreateApiKeyDto, CreateUserDto } from './dto/user-auth.dto';
+import { RegisterDto } from '../users/dto/user.dto';
+import { UsersService } from '../users/users.service';
+import { TokenService } from './token.service';
+import { SessionService } from './session.service';
+import { PasswordService } from './password.service';
+import { ApiKeyService } from './api-key.service';
 
 @Injectable()
 export class AuthService {
@@ -20,24 +19,22 @@ export class AuthService {
   private readonly SESSION_EXPIRY_DAYS = 7;
 
   constructor(
-    private userRepository: Repository<User>,
-    private sessionRepository: Repository<Session>,
+    private dataSource: DataSource,
     private usersService: UsersService,
     private tokenService: TokenService,
     private sessionService: SessionService,
     private passwordService: PasswordService,
     private apiKeyService: ApiKeyService,
-    private dataSource: DataSource,
   ) {}
 
   async register(dto: RegisterDto) {
     const user = await this.usersService.register(dto);
-    const fullUser = await this.userRepository.findOne({ where: { id: user.userId } });
+    const fullUser = await this.dataSource.getRepository(User).findOne({ where: { id: user.userId } });
     return this.tokenService.generateTokens(fullUser);
   }
 
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
-    const user = await this.userRepository.findOne({
+    const user = await this.dataSource.getRepository(User).findOne({
       where: { email: dto.email },
     });
 
@@ -114,7 +111,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    const user = await this.userRepository.findOne({
+    const user = await this.dataSource.getRepository(User).findOne({
       where: { id: tokenData.userId, isActive: true },
     });
 
@@ -139,7 +136,7 @@ export class AuthService {
   }
 
   async verifyEmail(token: string) {
-    const user = await this.userRepository.findOne({
+    const user = await this.dataSource.getRepository(User).findOne({
       where: { verificationToken: token },
     });
 
@@ -154,7 +151,7 @@ export class AuthService {
     user.isVerified = true;
     user.verificationToken = undefined;
     user.verificationExpiresAt = undefined;
-    await this.userRepository.save(user);
+    await this.dataSource.getRepository(User).save(user);
 
     return { message: 'Email verified successfully' };
   }
@@ -220,7 +217,7 @@ export class AuthService {
   }
 
   async createUser(dto: CreateUserDto) {
-    const existing = await this.userRepository.findOne({
+    const existing = await this.dataSource.getRepository(User).findOne({
       where: { email: dto.email },
     });
 
@@ -230,7 +227,7 @@ export class AuthService {
 
     const passwordHash = await this.passwordService.hashPassword(dto.password);
 
-    const user = this.userRepository.create({
+    const user = this.dataSource.getRepository(User).create({
       email: dto.email,
       passwordHash,
       firstName: dto.firstName,
@@ -239,7 +236,7 @@ export class AuthService {
       isVerified: true,
     });
 
-    await this.userRepository.save(user);
+    await this.dataSource.getRepository(User).save(user);
 
     await this.assignDefaultRole(user.id);
 

@@ -26,7 +26,6 @@ describe('InvoicesService', () => {
     };
 
     service = new InvoicesService(
-      mockConfigService as any,
       mockGrpcClient as any,
     );
     service.onModuleInit();

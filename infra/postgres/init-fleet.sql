@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS vehicles (
     status VARCHAR(50) NOT NULL DEFAULT 'VEHICLE_STATUS_IDLE',
     version INTEGER NOT NULL DEFAULT 1,
     current_location geography(POINT, 4326),
+    current_driver_id UUID,
+    current_order_id UUID,
+    license_plate VARCHAR(20),
     last_update TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

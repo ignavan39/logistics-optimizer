@@ -1,5 +1,4 @@
 import { Injectable, Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Kafka, type Admin } from 'kafkajs';
@@ -14,6 +13,7 @@ export class RetentionService implements OnApplicationBootstrap, OnApplicationSh
   private readonly logger = new Logger(RetentionService.name);
   private kafka: Kafka;
   private admin: Admin;
+  private cleanupTimer: NodeJS.Timeout | null = null;
   private readonly TOPIC = 'vehicle.telemetry';
   private readonly LAG_THRESHOLD = 1000;
   private readonly RETENTION_DAYS = 7;
@@ -34,13 +34,17 @@ export class RetentionService implements OnApplicationBootstrap, OnApplicationSh
     try {
       await this.admin.connect();
       this.logger.log('RetentionService started');
+      // Run cleanup daily at ~3AM (every 24 hours)
+      const MS_PER_DAY = 24 * 60 * 60 * 1000;
+      this.cleanupTimer = setInterval(() => { void this.cleanupOldPartitions(); }, MS_PER_DAY);
     } catch (e) {
       this.logger.warn(`Failed to connect Kafka admin: ${e}`);
     }
   }
 
-  onApplicationShutdown(): Promise<void> {
-    return this.admin.disconnect();
+  onApplicationShutdown(): void {
+    if (this.cleanupTimer) clearInterval(this.cleanupTimer);
+    void this.admin.disconnect();
   }
 
   private async getTopicLag(): Promise<number> {
@@ -105,7 +109,6 @@ export class RetentionService implements OnApplicationBootstrap, OnApplicationSh
     return this.configService.get('RETENTION_ENABLED', 'false') === 'true';
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanupOldPartitions(): Promise<void> {
     await this.runCleanup();
   }

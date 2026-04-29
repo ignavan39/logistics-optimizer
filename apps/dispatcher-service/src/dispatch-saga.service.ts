@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ClientGrpc } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
@@ -60,7 +59,7 @@ export class DispatchSagaService {
   private readonly sagas = new Map<string, DispatchSaga>(); // in-memory state
 
   constructor(
-    @InjectDataSource() private readonly ds: DataSource,
+    private readonly ds: DataSource,
     @Inject('FLEET_SERVICE') private readonly fleetClient: ClientGrpc,
     @Inject('ROUTING_SERVICE') private readonly routingClient: ClientGrpc,
     @Inject('ORDER_SERVICE') private readonly orderClient: ClientGrpc,
