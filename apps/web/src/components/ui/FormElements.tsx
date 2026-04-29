@@ -1,4 +1,4 @@
-import { type ReactNode, forwardRef } from 'react'
+import { ReactNode, forwardRef } from 'react'
 import { cn } from '@/lib/utils'
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {

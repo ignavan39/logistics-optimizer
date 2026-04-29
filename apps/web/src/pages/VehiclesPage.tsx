@@ -2,14 +2,23 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetchWithAuth as apiFetch } from '@/lib/auth'
 import { apiPatch } from '@/lib/api'
+import { vehiclesApi } from '@/lib/api.clients'
 import { PageLoader, Badge, Modal, Button, Input } from '@/components/ui'
-import { type Vehicle, type VehicleStatus, VEHICLE_TYPE_LABELS, VEHICLE_STATUS_COLORS, VEHICLE_STATUS_LABELS, type Order } from '@/types'
-import { Truck, Package, RefreshCw, User, MapPin, Calendar } from 'lucide-react'
+import { Vehicle, type VehicleStatus, type VehicleType, VEHICLE_TYPE_LABELS, VEHICLE_STATUS_COLORS, VEHICLE_STATUS_LABELS, type Order } from '@/types'
+import { Truck, Package, RefreshCw, User, MapPin, Calendar, Plus } from 'lucide-react'
 
 export function VehiclesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showAssign, setShowAssign] = useState(false)
   const [selectedOrderId, setSelectedOrderId] = useState('')
+  const [showCreate, setShowCreate] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    type: 1 as VehicleType,
+    licensePlate: '',
+    model: '',
+    capacityKg: 1000,
+    capacityM3: 2,
+  })
   const queryClient = useQueryClient()
 
   const { data, isLoading, error } = useQuery<{ vehicles: Vehicle[] }>({
@@ -49,6 +58,15 @@ export function VehiclesPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vehicles'] }),
   })
 
+  const createMutation = useMutation({
+    mutationFn: () => vehiclesApi.create(createForm),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] })
+      setShowCreate(false)
+      setCreateForm({ type: 1 as VehicleType, licensePlate: '', model: '', capacityKg: 1000, capacityM3: 2 })
+    },
+  })
+
   const vehicle = data?.vehicles.find(v => v.id === selectedId)
 
   const handleStatusChange = (newStatus: VehicleStatus) => {
@@ -77,6 +95,10 @@ export function VehiclesPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-text-primary">Автопарк</h1>
+        <Button onClick={() => setShowCreate(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Добавить машину
+        </Button>
       </div>
 
       {!data?.vehicles.length ? (
@@ -272,6 +294,69 @@ export function VehiclesPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Create Vehicle Modal */}
+      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Добавить машину">
+        <form
+          onSubmit={(e) => { e.preventDefault(); createMutation.mutate() }}
+          className="space-y-4"
+        >
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1">Тип ТС</label>
+            <select
+              className="w-full px-3 py-2 bg-surface-hover border border-border rounded-lg text-text-primary"
+              value={createForm.type}
+              onChange={e => setCreateForm(f => ({ ...f, type: Number(e.target.value) as VehicleType }))}
+              required
+            >
+              {Object.entries(VEHICLE_TYPE_LABELS).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          <Input
+            label="Номерной знак"
+            value={createForm.licensePlate}
+            onChange={e => setCreateForm(f => ({ ...f, licensePlate: e.target.value }))}
+            placeholder="А123БВ77"
+            required
+          />
+
+          <Input
+            label="Модель (опционально)"
+            value={createForm.model}
+            onChange={e => setCreateForm(f => ({ ...f, model: e.target.value }))}
+            placeholder="Volvo FH16"
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Грузоподъемность (кг)"
+              type="number"
+              value={createForm.capacityKg}
+              onChange={e => setCreateForm(f => ({ ...f, capacityKg: Number(e.target.value) || 0 }))}
+              required
+            />
+            <Input
+              label="Объем (м³)"
+              type="number"
+              value={createForm.capacityM3}
+              onChange={e => setCreateForm(f => ({ ...f, capacityM3: Number(e.target.value) || 0 }))}
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t border-border">
+            <Button variant="secondary" onClick={() => setShowCreate(false)}>
+              Отмена
+            </Button>
+            <Button type="submit" disabled={createMutation.isPending || !createForm.licensePlate}>
+              {createMutation.isPending ? 'Создание...' : 'Создать'}
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   )
