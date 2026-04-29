@@ -1,5 +1,5 @@
-import { type ExceptionFilter, Catch, type ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common'
-import { type Response } from 'express'
+import { ExceptionFilter, Catch, type ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common'
+import { Response } from 'express'
 import { RpcException } from '@nestjs/microservices'
 
 @Catch()

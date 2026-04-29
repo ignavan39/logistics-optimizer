@@ -2,7 +2,7 @@ import type { Logger } from '@nestjs/common'
 import { Logger as NestLogger, Controller } from '@nestjs/common'
 import { GrpcMethod, RpcException as RpcExceptionOrig } from '@nestjs/microservices'
 import { status as GrpcStatus } from '@grpc/grpc-js'
-import { type FleetService } from './fleet.service'
+import { FleetService } from './fleet.service'
 
 interface GetAvailableVehiclesRequest {
   near_point?: { lat: number; lng: number }
@@ -144,10 +144,10 @@ export class FleetGrpcController {
         capacity_m3: Number(v.capacityM3),
         status: v.status,
         version: v.version,
-        current_location: v.currentLat && v.currentLng
-          ? { lat: v.currentLat, lng: v.currentLng }
+        current_location: v.current_lat && v.current_lng
+          ? { lat: v.current_lat, lng: v.current_lng }
           : null,
-        last_update: v.lastUpdate.getTime(),
+        last_update: v.lastUpdate ? new Date(v.lastUpdate).getTime() : Date.now(),
       })),
     }
   }

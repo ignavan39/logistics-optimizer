@@ -9,7 +9,7 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { type CounterpartyService } from './counterparty.service';
+import { CounterpartyService } from './counterparty.service';
 import {
   type CreateCounterpartyDto,
   type CreateContractDto,

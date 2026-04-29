@@ -12,7 +12,7 @@ import {
   HttpStatus,
 } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
-import { type OrdersService } from './orders.service'
+import { OrdersService } from './orders.service'
 import {
   type CreateOrderDto,
   type UpdateOrderStatusDto,
@@ -21,7 +21,7 @@ import {
 import { JwtAuthGuard, CurrentUser } from '../auth/guards/jwt-auth.guard'
 import { RbacGuard } from '../auth/guards/rbac.guard'
 import { Permissions } from '../auth/decorators/permissions.decorator'
-import { type RequestUser } from '../auth/strategies/jwt.strategy'
+import { RequestUser } from '../auth/strategies/jwt.strategy'
 
 @ApiTags('orders')
 @Controller('orders')

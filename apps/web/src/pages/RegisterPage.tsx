@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { apiPost } from '@/lib/api'
 import { Truck, Loader2, Mail, Lock, User, UserPlus } from 'lucide-react'
-import { type RegisterDto } from '@/types'
+import { RegisterDto } from '@/types'
 
 export function RegisterPage() {
   const navigate = useNavigate()

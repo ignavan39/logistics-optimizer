@@ -1,8 +1,8 @@
 import { Injectable, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common'
-import { type ConfigService } from '@nestjs/config'
-import { type ClientGrpc } from '@nestjs/microservices'
+import { ConfigService } from '@nestjs/config'
+import { ClientGrpc } from '@nestjs/microservices'
 import { Inject } from '@nestjs/common'
-import { type Metadata } from '@grpc/grpc-js'
+import { Metadata } from '@grpc/grpc-js'
 import {
   type GetAvailableVehiclesDto,
   type AssignVehicleDto,

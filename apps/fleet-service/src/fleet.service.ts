@@ -55,6 +55,39 @@ interface VehicleDetails {
   order: OrderInfo | null
 }
 
+// Интерфейс для строки из БД (с полями current_lat/current_lng от PostGIS)
+interface VehicleDetailsRow {
+  id: string
+  type: string
+  capacity_kg: number
+  capacity_m3: number
+  status: string
+  current_lat: number | null
+  current_lng: number | null
+  current_driver_id: string | null
+  current_order_id: string | null
+  last_update: Date
+  created_at: Date
+  updated_at: Date
+  version: number
+}
+
+interface VehicleRow {
+  id: string
+  type: string
+  capacity_kg: number
+  capacity_m3: number
+  status: string
+  current_lat: number
+  current_lng: number
+  current_driver_id: string | null
+  current_order_id: string | null
+  last_update: Date
+  created_at: Date
+  updated_at: Date
+  version: number
+}
+
 interface GetVehicleDetailsResult {
   vehicle: VehicleDetails | null
 }
@@ -80,24 +113,27 @@ export class FleetService {
   async getAvailableVehicles(
     nearPoint?: { lat: number; lng: number },
     radiusM = 5000,
-  ): Promise<VehicleEntity[]> {
-    const qb = this.vehicleRepo
-      .createQueryBuilder('v')
-      .where('v.status = :status', { status: 'available' })
+  ): Promise<Array<VehicleEntity & { current_lat?: number; current_lng?: number }>> {
+    let query = `
+      SELECT
+        v.id, v.type, v.capacity_kg, v.capacity_m3, v.status, v.version,
+        v.current_driver_id, v.current_order_id, v.last_update, v.created_at, v.updated_at,
+        ST_Y(v.current_location::geometry) as current_lat,
+        ST_X(v.current_location::geometry) as current_lng
+      FROM vehicles v
+      WHERE v.status = 'VEHICLE_STATUS_IDLE'
+    `
+    const params: unknown[] = []
 
     if (nearPoint) {
-      qb.andWhere('v.current_lat BETWEEN :minLat AND :maxLat', {
-        minLat: nearPoint.lat - 0.1,
-        maxLat: nearPoint.lat + 0.1,
-      })
-      qb.andWhere('v.current_lng BETWEEN :minLng AND :maxLng', {
-        minLng: nearPoint.lng - 0.1,
-        maxLng: nearPoint.lng + 0.1,
-      })
+      query += ` AND ST_DWithin(v.current_location::geometry, ST_SetSRID(ST_MakePoint($1, $2), 4326), $3)`
+      params.push(nearPoint.lng, nearPoint.lat, radiusM)
     }
 
-    void radiusM
-    return qb.take(20).getMany()
+    query += ` LIMIT 20`
+
+    const rows = await this.dataSource.query<Array<VehicleEntity & { current_lat?: number; current_lng?: number }>>(query, params)
+    return rows
   }
 
   async getVehicle(id: string): Promise<VehicleEntity | null> {
@@ -105,16 +141,28 @@ export class FleetService {
   }
 
   async getVehicleDetails(id: string): Promise<GetVehicleDetailsResult> {
-    const vehicle = await this.vehicleRepo.findOne({ where: { id } })
-    if (!vehicle) {
+    const vehicleRows = await this.dataSource.query<VehicleRow[]>(
+      `SELECT
+        v.id, v.type, v.capacity_kg, v.capacity_m3, v.status,
+        v.current_driver_id, v.current_order_id, v.last_update, v.created_at, v.updated_at, v.version,
+        ST_Y(v.current_location::geometry) as current_lat,
+        ST_X(v.current_location::geometry) as current_lng
+      FROM vehicles v
+      WHERE v.id = $1`,
+      [id]
+    )
+
+    if (vehicleRows.length === 0) {
       throw new NotFoundException(`Vehicle ${id} not found`)
     }
 
+    const vehicleRow = vehicleRows[0]
+
     let driver: DriverInfo | null = null
-    if (vehicle.currentDriverId) {
+    if (vehicleRow.current_driver_id) {
       const driverRows = await this.dataSource.query<DriverRow[]>(
         `SELECT id, email, first_name, last_name, phone FROM users WHERE id = $1`,
-        [vehicle.currentDriverId],
+        [vehicleRow.current_driver_id],
       )
       if (driverRows.length > 0) {
         const driverRow = driverRows[0]
@@ -129,11 +177,11 @@ export class FleetService {
     }
 
     let order: OrderInfo | null = null
-    if (vehicle.currentOrderId) {
+    if (vehicleRow.current_order_id) {
       const orderRows = await this.dataSource.query<OrderRow[]>(
         `SELECT id, status, priority, pickup_address, delivery_address, created_at
          FROM orders WHERE id = $1`,
-        [vehicle.currentOrderId],
+        [vehicleRow.current_order_id],
       )
       if (orderRows.length > 0) {
         const orderRow = orderRows[0]
@@ -150,18 +198,18 @@ export class FleetService {
 
     return {
       vehicle: {
-        id: vehicle.id,
-        type: vehicle.type,
-        capacityKg: vehicle.capacityKg,
-        capacityM3: vehicle.capacityM3,
-        status: vehicle.status,
-        currentLat: vehicle.currentLat,
-        currentLng: vehicle.currentLng,
-        currentDriverId: vehicle.currentDriverId,
-        currentOrderId: vehicle.currentOrderId,
-        lastUpdate: vehicle.lastUpdate,
-        createdAt: vehicle.createdAt,
-        version: vehicle.version,
+        id: vehicleRow.id,
+        type: vehicleRow.type,
+        capacityKg: vehicleRow.capacity_kg,
+        capacityM3: Number(vehicleRow.capacity_m3),
+        status: vehicleRow.status,
+        currentLat: vehicleRow.current_lat,
+        currentLng: vehicleRow.current_lng,
+        currentDriverId: vehicleRow.current_driver_id || undefined,
+        currentOrderId: vehicleRow.current_order_id || undefined,
+        lastUpdate: vehicleRow.last_update,
+        createdAt: vehicleRow.created_at,
+        version: vehicleRow.version,
         driver,
         order,
       },
@@ -215,8 +263,11 @@ export class FleetService {
     if (data.type) vehicle.type = data.type
     if (data.capacityKg) vehicle.capacityKg = data.capacityKg
     if (data.capacityM3) vehicle.capacityM3 = data.capacityM3
-    if (data.currentLat !== undefined) vehicle.currentLat = data.currentLat ?? undefined
-    if (data.currentLng !== undefined) vehicle.currentLng = data.currentLng ?? undefined
+    if (data.currentLat !== undefined && data.currentLng !== undefined) {
+      vehicle.currentLocation = data.currentLat !== null && data.currentLng !== null
+        ? `SRID=4326;POINT(${data.currentLng} ${data.currentLat})`
+        : null
+    }
 
     await this.vehicleRepo.save(vehicle)
 

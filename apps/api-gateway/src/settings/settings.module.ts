@@ -16,7 +16,7 @@ import { SettingsService } from './settings.service';
           },
           options: {
             package: 'order',
-            protoPath: '/app/libs/proto/src/order.proto',
+            protoPath: process.env.PROTO_ROOT ? `${process.env.PROTO_ROOT}/order.proto` : '/home/ivan/programming/pets/logistics-optimizer/libs/proto/src/order.proto',
             url: configService.get('GRPC_ORDER_HOST', 'order-service:50051'),
           },
         }),

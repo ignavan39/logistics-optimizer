@@ -1,8 +1,8 @@
 import { Injectable, Logger, type OnModuleInit, type OnModuleDestroy, Inject } from '@nestjs/common';
-import { type ConfigService } from '@nestjs/config';
-import { type ClientGrpc } from '@nestjs/microservices';
-import { type Observable } from 'rxjs';
-import { type CompanySettings, type SettingResponse, type UpdateCompanySettingsDto } from './settings.dto';
+import { ConfigService } from '@nestjs/config';
+import { ClientGrpc } from '@nestjs/microservices';
+import { Observable } from 'rxjs';
+import { CompanySettings, type SettingResponse, type UpdateCompanySettingsDto } from './settings.dto';
 
 interface OrderGrpcClient {
   getCompanySettings(options?: unknown): Observable<unknown>;

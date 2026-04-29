@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetchWithAuth as apiFetch } from '@/lib/auth'
 import { Users, Shield, Key, Plus, Loader2, Trash2, X, Mail, Lock, User, FileText } from 'lucide-react'
-import { type AuditLogsResponse } from '@/types'
+import { AuditLogsResponse } from '@/types'
 
 interface User {
   userId: string
@@ -342,7 +342,7 @@ function RolesTab() {
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {roles.map((role) => {
-          const rolePerms = role.rolePermissions?.map(rp => rp.permission.name).filter(Boolean) || []
+          const rolePerms = role.rolePermissions?.map(rp => rp.permission?.name).filter(Boolean) as string[] || []
           return (
             <div key={role.id} className="bg-surface rounded-xl border border-border p-4">
               <div className="flex items-center justify-between mb-3">

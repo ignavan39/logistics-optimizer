@@ -1,5 +1,5 @@
 import { IsString, IsNumber, IsOptional, ValidateNested } from 'class-validator'
-import { Type } from 'class-transformer'
+import { } from 'class-transformer'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class GeoPointDto {

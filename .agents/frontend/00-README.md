@@ -1,161 +1,162 @@
-# Frontend Agent — Архитектурный справочник
+# 📄 apps/web/.agents/frontend/00-README.md
 
-> React 18 · TypeScript · Vite · Tailwind · React Query · Zustand · react-leaflet · Socket.io
+```markdown
+# Frontend Agent — Справочник (00-README)
 
----
-
-## ⚡ Когда обновлять ЭТОТ файл
-
-Обнови если:
-- Добавилась новая страница или роут
-- Изменился стек (новая библиотека)
-- Изменились правила архитектуры
+> React 18 · TypeScript · Vite · Tailwind · React Query · Zustand · react-leaflet · Socket.io  
+> 🗺️=Map 📡=WebSocket 🎨=UI 📦=State 🧪=Test
 
 ---
 
-## Страницы приложения
+## ⚡ Золотые правила (одним взглядом)
 
-| Страница | Роут | Основные компоненты | Данные |
-|---------|------|--------------------|----|
-| Login | `/login` | LoginForm | POST /auth/login |
-| Orders | `/orders` | OrdersList, OrderFilters | GET /api/v1/orders |
-| Order Detail | `/orders/:id` | OrderCard, OrderMap, StatusHistory | GET /api/v1/orders/:id |
-| Create Order | `/orders/new` | OrderForm (RHF+Zod) | POST /api/v1/orders |
-| Vehicles | `/vehicles` | VehiclesTable, VehicleMap | GET /api/v1/vehicles |
-| Tracking | `/tracking/:vehicleId` | FullScreenMap, TrackPolyline | GET /tracking/:id + WS |
-| Counterparties | `/counterparties` | CounterpartiesList, ContractsList | GET /api/v1/counterparties |
-| Invoices | `/invoices` | InvoicesList, PDF-download | GET /api/v1/invoices |
-| Settings | `/settings` | CompanySettingsForm (admin) | GET/PUT /settings/company |
-| Admin | `/admin` | UsersList, AuditLogsList | GET /admin/users |
-
----
-
-## Правила архитектуры
-
-### R1: Server State vs Client State
 ```
-Server State (React Query):  всё что приходит с API
-Client State (Zustand):      UI-состояние — выбранный заказ, открытый модал, фильтры, sidebar
-
-Граница чёткая:
-✅ useQuery(['orders'])               → список заказов
-✅ useStore((s) => s.selectedOrderId) → какой заказ выбран в UI
-❌ useState для данных с API          → race conditions, нет кеша
+✅ Server state → React Query (кеш, retry, инвалидация)
+✅ Client state → Zustand (UI: фильтры, модалы, выбранный заказ)
+✅ Формы → RHF + Zod (никаких useState для полей)
+✅ Карта >50 маркеров → MarkerClusterGroup
+✅ Real-time → единый socket.ts + useWebSocket хук
+✅ Компонент = [loading] + [error] + [data] + [empty]
+✅ Auth: accessToken в памяти, refreshToken в httpOnly cookie
 ```
 
-### R2: Компонент = loading + error + data
+---
+
+## 🗺️ Страницы и роуты
+
+| Страница | Роут | Ключевые компоненты | Источник данных |
+|----------|------|---------------------|-----------------|
+| 🔑 Login | `/login` | LoginForm | POST `/auth/login` |
+| 📦 Orders | `/orders` | OrdersList, OrderFilters | `useQuery(['orders'])` |
+| 🔍 Order Detail | `/orders/:id` | OrderCard, OrderMap, StatusHistory | `useQuery(['orders', id])` + WS |
+| ➕ Create Order | `/orders/new` | OrderForm (RHF+Zod) | `useMutation` |
+| 🚚 Vehicles | `/vehicles` | VehiclesTable, VehicleMap (Cluster) | `useQuery(['vehicles'])` |
+| 📍 Tracking | `/tracking/:vehicleId` | FullScreenMap, TrackPolyline | `useQuery` + WS `vehicle:update` |
+| 🤝 Counterparties | `/counterparties` | CounterpartiesList, ContractsList | `useQuery(['counterparties'])` |
+| 🧾 Invoices | `/invoices` | InvoicesList, PDF-download | `useQuery(['invoices'])` |
+| ⚙️ Settings | `/settings` | CompanySettingsForm (admin) | `useQuery` + `useMutation` |
+| 👮 Admin | `/admin` | UsersList, AuditLogsList | `useQuery(['admin/users'])` |
+
+---
+
+## 🏗️ Архитектурные правила (R1-R5)
+
+### R1: Server vs Client State 📦
 ```typescript
-// Каждый компонент с данными обязан обрабатывать все 3 состояния
+✅ useQuery(['orders'])               // серверные данные
+✅ useStore((s) => s.selectedOrderId) // UI-выбор
+❌ useState для данных с API          // race conditions, нет кеша, нет retry
+```
+
+### R2: Компонент = 4 состояния 🎨
+```typescript
 if (isLoading) return <Skeleton />;
-if (error) return <ErrorMessage error={error} />;
-if (!data?.length) return <EmptyState />;
+if (error) return <ErrorMessage error={error} onRetry={refetch} />;
+if (!data?.length) return <EmptyState action={createNew} />;
 return <ActualComponent data={data} />;
 ```
 
-### R3: Формы = React Hook Form + Zod
+### R3: Формы = RHF + Zod ✍️
 ```
-Любая форма → RHF + Zod схема
-Никаких useState для управления полями формы
-```
-
-### R4: Карты — производительность обязательна
-```
-<50 маркеров  → простые Marker
->50 маркеров  → MarkerClusterGroup
-Real-time    → обновлять только изменившийся маркер, не весь список
+Любая форма → useForm({ resolver: zodResolver(schema) })
+Никаких useState для управления полями формы. Валидация на клиенте + дублирование на сервере.
 ```
 
-### R5: WebSocket через единый socket.ts
-```typescript
-// lib/socket.ts — один инстанс на приложение
-// Подключение при логине, дисконнект при логауте
-// Все компоненты подписываются через useWebSocket хук
+### R4: Карты — производительность 🗺️
+| Маркеров | Решение |
+|----------|---------|
+| <50 | Простые `Marker` |
+| 50-500 | `MarkerClusterGroup` |
+| >500 | Виртуализация + кластеризация |
+Real-time → обновлять только изменившийся маркер (`React.memo` + stable `key`)
+
+### R5: WebSocket — единая точка 📡
+`lib/socket.ts` — один инстанс на приложение. Подключение при логине, отключение при логауте.  
+Все компоненты подписываются через `useWebSocket` хук. Обязательно: обработка `reconnect`, `reconnect_error`, `disconnect`.
+
+---
+
+## 🔄 Поток данных (кратко)
+```
+API Response → React Query (кеш) → useQuery() / useMutation()
+                                      ↓
+Component render ← User Action → Zustand (UI state) или invalidateQueries
 ```
 
 ---
 
-## Архитектура стейта
-
-```
-API Response
-    ↓
-React Query (кеш + sync)
-    ↓                    ↓
- useQuery()           useMutation() + onSuccess → invalidateQueries
-    ↓
- Component render
-    ↓
-User Action → Zustand (UI state) или useMutation (server mutation)
-```
+## 🔑 Auth Flow
+1. `POST /auth/login` → `{ accessToken, refreshToken }`
+2. `accessToken` → Zustand (memory), `refreshToken` → httpOnly cookie
+3. axios interceptor: `Authorization: Bearer <token>`
+4. При 401 → `POST /auth/refresh` → новый token
+5. При logout → `POST /auth/logout` + `clearStore` + `socket.disconnect()`
 
 ---
 
-## Auth Flow
-
-```
-1. POST /auth/login → { accessToken, refreshToken }
-2. Сохранить accessToken в memory (Zustand), refreshToken в httpOnly cookie
-3. axios interceptor добавляет Authorization: Bearer <token>
-4. При 401 → POST /auth/refresh → новый accessToken
-5. При logout → POST /auth/logout + clearStore
-```
-
----
-
-## WebSocket Events (Socket.io)
+## 📡 WebSocket Events (Socket.io)
 
 | Event | Payload | Где использовать |
-|-------|---------|-----------------|
-| `order:update` | `{ orderId, status, ... }` | Orders list, Order detail |
-| `vehicle:update` | `{ vehicleId, lat, lng, ... }` | Vehicles map, Tracking |
-| `order:assigned` | `{ orderId, vehicleId }` | Order detail notification |
-| `order:completed` | `{ orderId }` | Orders list badge |
-| `order:failed` | `{ orderId, reason }` | Toast notification |
-| `vehicle:near-destination` | `{ vehicleId, orderId }` | Toast notification |
+|-------|---------|------------------|
+| `order:update` | `{ orderId, status, ... }` | Orders list, Detail |
+| `vehicle:update` | `{ vehicleId, lat, lng, speed }` | Vehicles map, Tracking |
+| `order:assigned` | `{ orderId, vehicleId }` | Detail + toast |
+| `order:completed` | `{ orderId }` | List badge update |
+| `order:failed` | `{ orderId, reason }` | Toast |
+| `vehicle:near-destination` | `{ vehicleId, orderId }` | Toast + map highlight |
 
 ---
 
-## Структура хука с React Query
+## 🧪 Тестирование
 
-```typescript
-// hooks/use-orders.ts
-export function useOrders(filters?: OrderFilters) {
-  return useQuery({
-    queryKey: ['orders', filters],
-    queryFn: () => apiClient.getOrders(filters),
-    staleTime: 30_000,
-  });
-}
+| Тип | Инструмент | Правило |
+|-----|-----------|---------|
+| Unit | Vitest | Мокай API, тестируй логику/хуки |
+| Component | Testing Library | Тестируй как пользователь (текст, роль, label) |
+| E2E | Playwright | Полные сценарии: логин → действие → результат |
 
-export function useOrder(id: string) {
-  return useQuery({
-    queryKey: ['orders', id],
-    queryFn: () => apiClient.getOrder(id),
-    enabled: !!id,
-  });
-}
-
-export function useCreateOrder() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: apiClient.createOrder,
-    onSuccess: (newOrder) => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      // Optimistic: добавляем в кеш сразу
-      queryClient.setQueryData(['orders', newOrder.id], newOrder);
-    },
-  });
-}
+**Запуск:**
+```bash
+pnpm test           # Unit + Component (watch)
+pnpm test:e2e       # Playwright (нужен запущенный dev-сервер)
 ```
 
 ---
 
-## Роли и доступ к страницам
+## 🚀 Команды & Pre-commit
 
-| Роль | Доступные страницы |
-|------|-------------------|
-| admin | Все |
-| dispatcher | orders, vehicles, tracking, counterparties, invoices |
-| driver | orders (только свои), tracking |
-| viewer | orders (read), vehicles (read), tracking (read) |
-| api_client | Нет UI (только API) |
+```bash
+cd apps/web
+
+pnpm dev            # http://localhost:5173 (HMR)
+pnpm build          # production build → dist/
+pnpm preview        # Превью production
+
+pnpm test           # Vitest
+pnpm test:e2e       # Playwright
+
+pnpm lint && pnpm typecheck && pnpm build  # Pre-commit (обязательно)
+```
+
+---
+
+## 🔍 Observability
+
+| Инструмент | Как открыть | Что смотреть |
+|-----------|-------------|-------------|
+| React DevTools | F12 → Components | Дерево компонентов, пропсы, ре-рендеры |
+| React Query DevTools | F12 → Query | Кеш, статус запросов, инвалидация |
+| Network / WS | F12 → Network | API вызовы, WebSocket frames |
+| Grafana | http://localhost:3001 | Frontend метрики (если подключено) |
+
+---
+
+## 💡 Как обновлять этот файл
+
+1. **Добавляй** только при изменении стека, новой странице, новом архитектурном правиле
+2. **Формат**: таблица > параграф, код > описание
+3. **Не дублируй** `AGENTS.md` (протокол работы) и `MEMORY.md` (live state / баги)
+4. **Используй эмодзи-якоря**: 🗺️ 📡 🎨 📦 🧪 🔍 для быстрого сканирования
+
+> 🎯 Цель: новый агент или разработчик за 2 минуты понимает: как устроено, что можно, что нельзя.
+```

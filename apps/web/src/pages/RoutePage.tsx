@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { MapContainer, TileLayer, Marker, Polyline, Popup } from 'react-leaflet'
 import { Loader2, Navigation, MapPin } from 'lucide-react'
 import { apiPost } from '@/lib/api'
-import { type Route, type GeoPoint, type CalculateRouteDto } from '@/types'
+import { Route, type GeoPoint, type CalculateRouteDto } from '@/types'
 import { Button, PageLoader, Input } from '@/components/ui'
 import L from 'leaflet'
 
@@ -91,20 +91,24 @@ export function RoutePage() {
             {route && (
               <>
                 <Polyline positions={waypoints} color="#a8d8ea" weight={4} opacity={0.8} />
-                <Marker position={[route.origin.lat, route.origin.lng]} icon={markerIcon}>
-                  <Popup>
-                    <div className="text-background">
-                      <p className="font-medium">Точка отправления</p>
-                    </div>
-                  </Popup>
-                </Marker>
-                <Marker position={[route.destination.lat, route.destination.lng]} icon={destinationIcon}>
-                  <Popup>
-                    <div className="text-background">
-                      <p className="font-medium">Пункт назначения</p>
-                    </div>
-                  </Popup>
-                </Marker>
+                {route.origin && (
+                  <Marker position={[route.origin.lat, route.origin.lng]} icon={markerIcon}>
+                    <Popup>
+                      <div className="text-background">
+                        <p className="font-medium">Точка отправления</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                )}
+                {route.destination && (
+                  <Marker position={[route.destination.lat, route.destination.lng]} icon={destinationIcon}>
+                    <Popup>
+                      <div className="text-background">
+                        <p className="font-medium">Пункт назначения</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                )}
               </>
             )}
           </MapContainer>
@@ -212,12 +216,12 @@ export function RoutePage() {
               </div>
 
               <div className="pt-2 border-t border-border">
-                <div className="text-sm text-text-muted">Координаты</div>
-                <div className="text-xs text-text-muted mt-1 space-y-1">
-                  <p>От: {route.origin.lat.toFixed(4)}, {route.origin.lng.toFixed(4)}</p>
-                  <p>До: {route.destination.lat.toFixed(4)}, {route.destination.lng.toFixed(4)}</p>
-                </div>
-              </div>
+                 <div className="text-sm text-text-muted">Координаты</div>
+                 <div className="text-xs text-text-muted mt-1 space-y-1">
+                   {route.origin?.lat != null && <p>От: {route.origin.lat.toFixed(4)}, {route.origin.lng.toFixed(4)}</p>}
+                   {route.destination?.lat != null && <p>До: {route.destination.lat.toFixed(4)}, {route.destination.lng.toFixed(4)}</p>}
+                 </div>
+               </div>
             </div>
           ) : null}
         </div>

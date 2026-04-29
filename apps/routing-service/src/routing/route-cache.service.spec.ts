@@ -1,5 +1,5 @@
 import { RouteCacheService } from './route-cache.service';
-import { type Route } from '../routing.service';
+import { Route } from '../routing.service';
 
 describe('RouteCacheService', () => {
   let service: RouteCacheService;

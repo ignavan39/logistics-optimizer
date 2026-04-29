@@ -1,5 +1,5 @@
 import { FleetGrpcController } from './fleet.grpc.controller'
-import { type FleetService } from './fleet.service'
+import { FleetService } from './fleet.service'
 
 describe('FleetGrpcController', () => {
   let controller: FleetGrpcController
@@ -25,10 +25,10 @@ describe('FleetGrpcController', () => {
           type: 'VAN',
           capacityKg: 1500,
           capacityM3: 8,
-          status: 'available',
+          status: 'VEHICLE_STATUS_IDLE',
           version: 1,
-          currentLat: 55.7558,
-          currentLng: 37.6173,
+          current_lat: 55.7558,
+          current_lng: 37.6173,
           lastUpdate: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -84,7 +84,7 @@ describe('FleetGrpcController', () => {
           type: 'VAN',
           capacityKg: 1500,
           capacityM3: 8,
-          status: 'available',
+          status: 'VEHICLE_STATUS_IDLE',
           version: 1,
           currentLat: 55.7558,
           currentLng: 37.6173,

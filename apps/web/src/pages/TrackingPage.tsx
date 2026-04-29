@@ -4,7 +4,7 @@ import { Loader2, Navigation, History } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import L from 'leaflet'
 import { apiFetchWithAuth as apiFetch } from '@/lib/auth'
-import { type TrackingPoint } from '@/types'
+import { TrackingPoint } from '@/types'
 import { Button, Input } from '@/components/ui'
 
 interface Vehicle {

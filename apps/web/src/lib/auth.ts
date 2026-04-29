@@ -116,6 +116,10 @@ export const useAuthStore = create<AuthState>()(
   )
 )
 
+export function getAuthState() {
+  return useAuthStore.getState()
+}
+
 export async function apiFetchWithAuth<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const headers = getAuthHeader()
   const res = await fetch(`/api${endpoint}`, {

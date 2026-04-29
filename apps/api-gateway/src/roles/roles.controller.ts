@@ -14,8 +14,8 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../auth/guards/rbac.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { type RolesService } from './roles.service';
-import { type AssignRoleDto } from './dto/role.dto';
+import { RolesService } from './roles.service';
+import { AssignRoleDto } from './dto/role.dto';
 
 @ApiTags('roles')
 @Controller('roles')

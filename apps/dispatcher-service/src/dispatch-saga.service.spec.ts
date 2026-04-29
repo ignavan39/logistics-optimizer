@@ -1,6 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { DispatchSagaService, SagaStatus } from './dispatch-saga.service';
-import { type ClientGrpc } from '@nestjs/microservices';
+import { ClientGrpc } from '@nestjs/microservices';
 import { getDataSourceToken } from '@nestjs/typeorm';
 
 describe('DispatchSagaService', () => {

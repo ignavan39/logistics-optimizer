@@ -13,7 +13,7 @@ import { InvoicesService } from './invoices.service';
           transport: Transport.GRPC,
           options: {
             package: 'invoice',
-            protoPath: '/app/libs/proto/src/invoice.proto',
+            protoPath: process.env.PROTO_ROOT ? `${process.env.PROTO_ROOT}/invoice.proto` : '/app/libs/proto/src/invoice.proto',
             url: configService.get('GRPC_INVOICE_HOST', 'invoice-service:50052'),
           },
         }),

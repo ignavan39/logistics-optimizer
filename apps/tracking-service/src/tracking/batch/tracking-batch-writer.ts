@@ -5,8 +5,8 @@ import {
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { type DataSource } from 'typeorm';
-import { type TrackingMetrics } from '../../metrics/tracking.metrics';
+import { DataSource } from 'typeorm';
+import { TrackingMetrics } from '../../metrics/tracking.metrics';
 
 export interface TelemetryRecord {
   vehicleId: string;

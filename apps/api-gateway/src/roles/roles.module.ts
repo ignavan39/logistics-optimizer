@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
-import { type DataSource } from 'typeorm';
+import { DataSource } from 'typeorm';
+import { GuardsModule } from '../auth/guards/guards.module';
 import { Role, Permission, UserRole } from './entities';
 import { RolesService, PermissionsService } from './roles.service';
 import { RolesController } from './roles.controller';
 import { PermissionsController } from './permissions.controller';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RbacGuard } from '../auth/guards/rbac.guard';
 
 @Module({
+  imports: [GuardsModule],
   controllers: [RolesController, PermissionsController],
   providers: [
     {
@@ -26,8 +26,6 @@ import { RbacGuard } from '../auth/guards/rbac.guard';
       ),
       inject: ['AUTH_DATA_SOURCE'],
     },
-    JwtAuthGuard,
-    RbacGuard,
   ],
   exports: [RolesService, PermissionsService],
 })

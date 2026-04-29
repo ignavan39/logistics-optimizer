@@ -1,8 +1,8 @@
 import { Injectable, type OnModuleInit, type OnModuleDestroy, Logger } from '@nestjs/common';
-import { type ConfigService } from '@nestjs/config';
-import { type ClientGrpc } from '@nestjs/microservices';
+import { ConfigService } from '@nestjs/config';
+import { ClientGrpc } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
-import { type CalculateRouteDto, type GetRouteDto } from './dto/routing.dto';
+import { CalculateRouteDto, type GetRouteDto } from './dto/routing.dto';
 
 interface RoutingGrpcClient {
   calculateRoute(data: CalculateRouteDto): Promise<any>;
@@ -14,7 +14,6 @@ export class RoutingService implements OnModuleInit, OnModuleDestroy {
   private routingClient!: RoutingGrpcClient;
 
   constructor(
-    private configService: ConfigService,
     @Inject('ROUTING_PACKAGE') private client: ClientGrpc,
   ) {}
 

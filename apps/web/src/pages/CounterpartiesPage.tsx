@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Building2, Edit, Plus, FileText, FilePlus } from 'lucide-react'
+import { Building2, Edit, Plus, FileText, FilePlus, Trash2 } from 'lucide-react'
 import { Button, PageLoader, Badge, Modal, Input } from '@/components/ui'
 import { counterpartiesApi, contractsApi } from '@/lib/api.clients'
 import { COUNTERPARTY_TYPE_LABELS, COUNTERPARTY_STATUS_LABELS, CONTRACT_STATUS_LABELS } from '@/types'
@@ -39,6 +39,9 @@ export function CounterpartiesPage() {
   const [editForm, setEditForm] = useState<CounterpartyFormData>(getEmptyForm())
   const [activeTab, setActiveTab] = useState<'details' | 'contracts'>('details')
   const [search, setSearch] = useState('')
+  const [editingContractId, setEditingContractId] = useState<string | null>(null)
+  const [editingTariffId, setEditingTariffId] = useState<string | null>(null)
+  const [editTariffForm, setEditTariffForm] = useState({ zoneFrom: '', zoneTo: '', pricePerKm: 0, minPrice: 0, pricePerKg: 0, minWeight: 0 })
   const queryClient = useQueryClient()
 
   const { data, isLoading, error } = useQuery({
@@ -78,6 +81,46 @@ export function CounterpartiesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tariffs'] })
       setShowTariff(null)
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => counterpartiesApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['counterparties'] })
+      setSelectedId(null)
+    },
+  })
+
+  const updateContractMutation = useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: any }) => contractsApi.update(id, dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contracts'] })
+      setEditingContractId(null)
+    },
+  })
+
+  const deleteContractMutation = useMutation({
+    mutationFn: (id: string) => contractsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contracts'] })
+    },
+  })
+
+  const updateTariffMutation = useMutation({
+    mutationFn: ({ contractId, tariffId, dto }: { contractId: string; tariffId: string; dto: any }) => 
+      contractsApi.updateTariff(contractId, tariffId, dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tariffs'] })
+      setEditingTariffId(null)
+    },
+  })
+
+  const deleteTariffMutation = useMutation({
+    mutationFn: ({ contractId, tariffId }: { contractId: string; tariffId: string }) => 
+      contractsApi.deleteTariff(contractId, tariffId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tariffs'] })
     },
   })
 
@@ -151,17 +194,36 @@ export function CounterpartiesPage() {
     e.preventDefault()
     if (!showTariff) return
     const formData = new FormData(e.currentTarget)
-    createTariffMutation.mutate({
-      contractId: showTariff,
-      dto: {
-        zoneFrom: formData.get('zoneFrom') as string,
-        zoneTo: formData.get('zoneTo') as string,
-        pricePerKm: Number(formData.get('pricePerKm')),
-        pricePerKg: Number(formData.get('pricePerKg')),
-        minPrice: Number(formData.get('minPrice')),
-        minWeight: Number(formData.get('minWeight')),
-      },
+    const dto = {
+      zoneFrom: formData.get('zoneFrom') as string,
+      zoneTo: formData.get('zoneTo') as string,
+      pricePerKm: Number(formData.get('pricePerKm')),
+      pricePerKg: Number(formData.get('pricePerKg')),
+      minPrice: Number(formData.get('minPrice')),
+      minWeight: Number(formData.get('minWeight')),
+    }
+    if (editingTariffId && editingTariffId !== 'create-tariff') {
+      updateTariffMutation.mutate({ contractId: showTariff, tariffId: editingTariffId, dto })
+    } else {
+      createTariffMutation.mutate({ contractId: showTariff, dto })
+    }
+  }
+
+  const startEditTariff = (tariff: ContractTariff) => {
+    setEditingTariffId(tariff.id)
+    setEditTariffForm({
+      zoneFrom: tariff.zoneFrom,
+      zoneTo: tariff.zoneTo,
+      pricePerKm: tariff.pricePerKm,
+      minPrice: tariff.minPrice,
+      pricePerKg: tariff.pricePerKg,
+      minWeight: tariff.minWeight || 0
     })
+  }
+
+  const cancelEditTariff = () => {
+    setEditingTariffId(null)
+    setEditTariffForm({ zoneFrom: '', zoneTo: '', pricePerKm: 0, minPrice: 0, pricePerKg: 0, minWeight: 0 })
   }
 
   const startEdit = (cp: Counterparty) => {
@@ -260,35 +322,38 @@ export function CounterpartiesPage() {
     if (!selected) return null
 
     return (
-      <div className="space-y-4">
-        <div className="flex justify-end">
-          <Button onClick={() => { setShowContract(selected.id); }}>
-            <FilePlus className="w-4 h-4 mr-2" />Добавить контракт
-          </Button>
-        </div>
-        {counterpartyContracts.length === 0 ? (
-          <p className="text-text-muted text-center py-4">Нет контрактов</p>
-        ) : (
-          <div className="space-y-2">
-            {counterpartyContracts.map(contract => (
-              <div key={contract.id} className="p-3 bg-surface-hover rounded-lg flex justify-between items-center">
-                <div>
-                  <div className="font-medium">{contract.number}</div>
-                  <div className="text-sm text-text-muted">
-                    {contract.validFromUnix ? new Date(contract.validFromUnix * 1000).toLocaleDateString('ru-RU') : '—'} — {contract.validToUnix ? new Date(contract.validToUnix * 1000).toLocaleDateString('ru-RU') : 'бессрочно'}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Badge label={CONTRACT_STATUS_LABELS[contract.status]} color={contract.status === 'ACTIVE' ? 'success' : 'muted'} />
-                  <button onClick={() => { setShowTariff(contract.id); }} className="p-1 hover:bg-surface rounded" title="Тарифы">
-                    <FileText className="w-4 h-4 text-text-muted" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+       <div className="space-y-4">
+         <div className="flex justify-end">
+           <Button onClick={() => { setShowContract(selected.id); }}>
+             <FilePlus className="w-4 h-4 mr-2" />Добавить контракт
+           </Button>
+         </div>
+         {counterpartyContracts.length === 0 ? (
+           <p className="text-text-muted text-center py-4">Нет контрактов</p>
+         ) : (
+           <div className="space-y-2">
+             {counterpartyContracts.map(contract => (
+               <div key={contract.id} className="p-3 bg-surface-hover rounded-lg flex justify-between items-center">
+                 <div>
+                   <div className="font-medium">{contract.number}</div>
+                   <div className="text-sm text-text-muted">
+                     {contract.validFromUnix ? new Date(contract.validFromUnix * 1000).toLocaleDateString('ru-RU') : '—'} — {contract.validToUnix ? new Date(contract.validToUnix * 1000).toLocaleDateString('ru-RU') : 'бессрочно'}
+                   </div>
+                 </div>
+                 <div className="flex gap-2">
+                   <Badge label={CONTRACT_STATUS_LABELS[contract.status]} color={contract.status === 'ACTIVE' ? 'success' : 'muted'} />
+                   <button onClick={() => { setEditingContractId(contract.id); setShowTariff(contract.id); }} className="p-1 hover:bg-surface rounded" title="Тарифы">
+                     <FileText className="w-4 h-4 text-text-muted" />
+                   </button>
+                   <button onClick={() => { if (confirm('Удалить контракт?')) deleteContractMutation.mutate(contract.id) }} className="p-1 hover:bg-status-error/10 rounded" title="Удалить">
+                     <Trash2 className="w-4 h-4 text-status-error" />
+                   </button>
+                 </div>
+               </div>
+             ))}
+           </div>
+         )}
+       </div>
     )
   }
 
@@ -342,6 +407,9 @@ export function CounterpartiesPage() {
                       </button>
                       <button onClick={() => { setSelectedId(cp.id); setActiveTab('contracts') }} className="p-1 hover:bg-surface rounded">
                         <FileText className="w-4 h-4 text-text-muted" />
+                      </button>
+                      <button onClick={() => { if (confirm('Удалить контрагента?')) deleteMutation.mutate(cp.id) }} className="p-1 hover:bg-status-error/10 rounded">
+                        <Trash2 className="w-4 h-4 text-status-error" />
                       </button>
                     </div>
                   </td>
@@ -416,45 +484,135 @@ export function CounterpartiesPage() {
         </form>
       </Modal>
 
-      {/* Tariffs Modal */}
-      <Modal isOpen={!!showTariff} onClose={() => { setShowTariff(null); }} title="Тарифы контракта" size="lg">
-        <div className="space-y-4">
-          <div className="flex justify-end">
-            <Button onClick={() => { setShowTariff(showTariff); }}>
-              <FilePlus className="w-4 h-4 mr-2" />Добавить тариф
-            </Button>
-          </div>
-          <div className="space-y-3">
-            {tariffs?.length === 0 && <p className="text-text-muted">Нет тарифов</p>}
-            {tariffs?.map((tariff: ContractTariff) => (
-              <div key={tariff.id} className="p-3 bg-surface-hover rounded-lg">
-                <div className="font-medium">{tariff.zone}</div>
-                <div className="text-sm text-text-muted space-y-1">
-                  <div>Цена за км: {tariff.pricePerKm} ₽</div>
-                  <div>Цена за кг: {tariff.pricePerKg} ₽</div>
-                  <div>Мин. сумма: {tariff.minPrice} ₽</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Modal>
+       {/* Tariffs Modal */}
+       <Modal isOpen={!!showTariff} onClose={() => { setShowTariff(null); setEditingTariffId(null) }} title="Тарифы контракта" size="lg">
+         <div className="space-y-4">
+           <div className="flex justify-end">
+             <Button onClick={() => { setEditingTariffId('create-tariff'); setEditTariffForm({ zoneFrom: '', zoneTo: '', pricePerKm: 0, minPrice: 0, pricePerKg: 0, minWeight: 0 }) }}>
+               <FilePlus className="w-4 h-4 mr-2" />Добавить тариф
+             </Button>
+           </div>
+           <div className="space-y-3">
+             {tariffs?.length === 0 && <p className="text-text-muted">Нет тарифов</p>}
+             {tariffs?.map((tariff: ContractTariff) => (
+               <div key={tariff.id} className="p-3 bg-surface-hover rounded-lg flex justify-between items-start">
+                 <div>
+                   <div className="font-medium">{tariff.zoneFrom} → {tariff.zoneTo}</div>
+                   <div className="text-sm text-text-muted space-y-1 mt-1">
+                     <div>Цена за км: {tariff.pricePerKm} ₽</div>
+                     <div>Цена за кг: {tariff.pricePerKg} ₽</div>
+                     <div>Мин. сумма: {tariff.minPrice} ₽</div>
+                     {tariff.zone && <div>Зона: {tariff.zone}</div>}
+                   </div>
+                 </div>
+                 <div className="flex gap-2">
+                   <button 
+                     onClick={() => { 
+                       setEditingTariffId(tariff.id)
+                       setEditTariffForm({
+                         zoneFrom: tariff.zoneFrom,
+                         zoneTo: tariff.zoneTo,
+                         pricePerKm: tariff.pricePerKm,
+                         minPrice: tariff.minPrice,
+                         pricePerKg: tariff.pricePerKg,
+                         minWeight: tariff.minWeight || 0
+                       })
+                     }} 
+                     className="p-1 hover:bg-surface rounded"
+                   >
+                     <Edit className="w-4 h-4 text-text-muted" />
+                   </button>
+                   <button 
+                     onClick={() => { if (confirm('Удалить тариф?')) deleteTariffMutation.mutate({ contractId: showTariff!, tariffId: tariff.id }) }} 
+                     className="p-1 hover:bg-status-error/10 rounded"
+                   >
+                     <Trash2 className="w-4 h-4 text-status-error" />
+                   </button>
+                 </div>
+               </div>
+             ))}
+           </div>
+         </div>
+       </Modal>
 
-      {/* Create Tariff Modal */}
-      <Modal isOpen={showTariff === 'create-tariff'} onClose={() => { setShowTariff(null); }} title="Новый тариф">
-        <form onSubmit={handleTariffSubmit} className="space-y-4">
-          <Input name="zone" label="Зона" required />
-          <Input name="pricePerKm" label="Цена за км" type="number" required />
-          <Input name="pricePerKg" label="Цена за кг" type="number" required />
-          <Input name="minPrice" label="Мин. сумма" type="number" required />
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={() => { setShowTariff(null); }}>Отмена</Button>
-            <Button type="submit" disabled={createTariffMutation.isPending}>
-              {createTariffMutation.isPending ? 'Создание...' : 'Создать'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+       {/* Create/Edit Tariff Modal */}
+       <Modal isOpen={!!editingTariffId} onClose={() => { setEditingTariffId(null); cancelEditTariff() }} title={editingTariffId === 'create-tariff' ? "Новый тариф" : "Редактировать тариф"}>
+         <form onSubmit={(e) => {
+           e.preventDefault()
+           if (!showTariff) return
+           if (editingTariffId && editingTariffId !== 'create-tariff') {
+             updateTariffMutation.mutate({
+               contractId: showTariff,
+               tariffId: editingTariffId,
+               dto: editTariffForm
+             })
+           } else {
+             createTariffMutation.mutate({
+               contractId: showTariff,
+               dto: editTariffForm
+             })
+           }
+         }} className="space-y-4">
+           <Input 
+             name="zoneFrom" 
+             label="Зона от" 
+             value={editTariffForm.zoneFrom}
+             onChange={e => setEditTariffForm(f => ({ ...f, zoneFrom: e.target.value }))}
+             required 
+           />
+           <Input 
+             name="zoneTo" 
+             label="Зона до" 
+             value={editTariffForm.zoneTo}
+             onChange={e => setEditTariffForm(f => ({ ...f, zoneTo: e.target.value }))}
+             required 
+           />
+           <div className="grid grid-cols-2 gap-4">
+             <Input 
+               name="pricePerKm" 
+               label="Цена за км" 
+               type="number" 
+               value={editTariffForm.pricePerKm}
+               onChange={e => setEditTariffForm(f => ({ ...f, pricePerKm: Number(e.target.value) }))}
+               required 
+             />
+             <Input 
+               name="pricePerKg" 
+               label="Цена за кг" 
+               type="number" 
+               value={editTariffForm.pricePerKg}
+               onChange={e => setEditTariffForm(f => ({ ...f, pricePerKg: Number(e.target.value) }))}
+               required 
+             />
+           </div>
+           <div className="grid grid-cols-2 gap-4">
+             <Input 
+               name="minPrice" 
+               label="Мин. сумма" 
+               type="number" 
+               value={editTariffForm.minPrice}
+               onChange={e => setEditTariffForm(f => ({ ...f, minPrice: Number(e.target.value) }))}
+               required 
+             />
+             <Input 
+               name="minWeight" 
+               label="Мин. вес" 
+               type="number" 
+               value={editTariffForm.minWeight}
+               onChange={e => setEditTariffForm(f => ({ ...f, minWeight: Number(e.target.value) }))}
+             />
+           </div>
+           <div className="flex justify-end gap-2 pt-2">
+             <Button type="button" variant="secondary" onClick={() => { setEditingTariffId(null); cancelEditTariff() }}>Отмена</Button>
+             <Button type="submit" disabled={createTariffMutation.isPending || updateTariffMutation.isPending}>
+               {editingTariffId === 'create-tariff' 
+                 ? (createTariffMutation.isPending ? 'Создание...' : 'Создать')
+                 : (updateTariffMutation.isPending ? 'Сохранение...' : 'Сохранить')
+               }
+             </Button>
+           </div>
+         </form>
+       </Modal>
     </div>
   )
 }

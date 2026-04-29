@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
-import { TypeOrmModule } from '@nestjs/typeorm'
+import {OrmModule } from '@nestjs/typeorm'
 import { FleetGrpcController } from './fleet.grpc.controller'
 import { FleetService } from './fleet.service'
 import { VehicleEntity } from './entities/vehicle.entity'

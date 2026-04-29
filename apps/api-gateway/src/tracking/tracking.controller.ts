@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
-import { type TrackingService } from './tracking.service'
+import { TrackingService } from './tracking.service'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RbacGuard } from '../auth/guards/rbac.guard'
 import { Permissions } from '../auth/decorators/permissions.decorator'

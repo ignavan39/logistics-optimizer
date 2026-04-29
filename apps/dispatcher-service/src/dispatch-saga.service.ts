@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { type DataSource } from 'typeorm';
-import { type ClientGrpc } from '@nestjs/microservices';
+import { DataSource } from 'typeorm';
+import { ClientGrpc } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
 import { firstValueFrom, timeout, catchError, throwError } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';

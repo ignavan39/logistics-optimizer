@@ -134,6 +134,6 @@ pnpm lint && pnpm typecheck && pnpm build    # Pre-commit чеклист
 | `docs/DATABASE.md` | Схемы всех БД |
 | `docs/API.md` | REST API reference |
 | `docs/FEATURES.md` | Ключевые паттерны с кодом |
-| `.agents/MEMORY.md` | Накопленные знания о проекте |
+| `.agents/backend/MEMORY.md` | Накопленные знания о проекте |
 | `.agents/backend/` | Правила и паттерны для backend |
 | `.agents/frontend/` | Правила и паттерны для frontend |

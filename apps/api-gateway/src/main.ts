@@ -13,6 +13,9 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get('PORT', 3000);
 
+  // Global prefix /api
+  app.setGlobalPrefix('api');
+
   // Security headers
   app.use(helmet());
 

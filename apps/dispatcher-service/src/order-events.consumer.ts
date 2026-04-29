@@ -1,6 +1,6 @@
 import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, type KafkaContext } from '@nestjs/microservices';
-import { type DispatchSagaService } from './dispatch-saga.service';
+import { DispatchSagaService } from './dispatch-saga.service';
 
 interface OrderCreatedPayload {
   eventId: string;

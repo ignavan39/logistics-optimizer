@@ -2,12 +2,24 @@ export interface Vehicle {
   id: string
   type: VehicleType
   status: VehicleStatus
+  licensePlate: string
+  model?: string
   capacityKg: number
   capacityM3: number
   currentLocation?: { lat: number; lng: number }
   currentDriverId?: string
   currentOrderId?: string
   version: number
+  createdAtUnix?: number
+  updatedAtUnix?: number
+}
+
+export interface CreateVehicleDto {
+  type: VehicleType
+  licensePlate: string
+  model?: string
+  capacityKg: number
+  capacityM3: number
 }
 
 export type VehicleType = 1 | 2 | 3

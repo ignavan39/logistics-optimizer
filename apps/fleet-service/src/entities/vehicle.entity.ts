@@ -20,11 +20,8 @@ export class VehicleEntity {
   @VersionColumn()
   version!: number
 
-  @Column({ name: 'current_lat', type: 'decimal', precision: 9, scale: 6, nullable: true })
-  currentLat?: number
-
-  @Column({ name: 'current_lng', type: 'decimal', precision: 9, scale: 6, nullable: true })
-  currentLng?: number
+  @Column({ name: 'current_location', type: 'geography', nullable: true })
+  currentLocation?: unknown
 
   @Column({ name: 'current_driver_id', type: 'uuid', nullable: true })
   currentDriverId?: string

@@ -1,4 +1,4 @@
-import { type DataSource } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 export class PgAdvisoryLock {
   constructor(private readonly dataSource: DataSource) {}
