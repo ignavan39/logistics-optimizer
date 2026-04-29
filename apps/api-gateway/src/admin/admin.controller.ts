@@ -13,17 +13,17 @@ import {
   Inject,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { type Repository } from 'typeorm';
-import { type UsersService } from '../users/users.service';
-import { type RolesService } from '../roles/roles.service';
+import { Repository } from 'typeorm';
+import { UsersService } from '../users/users.service';
+import { RolesService } from '../roles/roles.service';
 import { AuditLog } from '../auth/entities/audit-log.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../auth/guards/rbac.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { type ListAuditLogsQueryDto } from './dto/audit-log.dto';
-import { type AssignRolesDto } from './dto/assign-roles.dto';
-import { type ListUsersQueryDto } from '../users/dto/user.dto';
-import { type UpdateUserDto } from '../users/dto/user.dto';
+import { ListAuditLogsQueryDto } from './dto/audit-log.dto';
+import { AssignRolesDto } from './dto/assign-roles.dto';
+import { ListUsersQueryDto } from '../users/dto/user.dto';
+import { UpdateUserDto } from '../users/dto/user.dto';
 
 @ApiTags('admin')
 @Controller('admin')

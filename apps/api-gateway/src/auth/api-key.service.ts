@@ -1,11 +1,11 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { type Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
-import { type ApiKey } from '../users/entities/api-key.entity';
-import { type User } from '../users/entities/user.entity';
-import { type CreateApiKeyDto } from './dto/user-auth.dto';
-import { type JwtPayload } from './strategies/jwt.strategy';
+import { ApiKey } from '../users/entities/api-key.entity';
+import { User } from '../users/entities/user.entity';
+import { CreateApiKeyDto } from './dto/user-auth.dto';
+import { JwtPayload } from './strategies/jwt.strategy';
 
 @Injectable()
 export class ApiKeyService {

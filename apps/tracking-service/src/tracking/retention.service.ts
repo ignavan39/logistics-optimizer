@@ -1,7 +1,7 @@
 import { Injectable, Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { type DataSource } from 'typeorm';
-import { type ConfigService } from '@nestjs/config';
+import { DataSource } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { Kafka, type Admin } from 'kafkajs';
 
 interface PartitionInfo {

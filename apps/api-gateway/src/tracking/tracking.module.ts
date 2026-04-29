@@ -13,7 +13,7 @@ import { TrackingService } from './tracking.service'
           transport: Transport.GRPC,
           options: {
             package: 'tracking',
-            protoPath: '/app/libs/proto/src/tracking.proto',
+            protoPath: process.env.PROTO_ROOT ? `${process.env.PROTO_ROOT}/tracking.proto` : '/app/libs/proto/src/tracking.proto',
             url: configService.get('GRPC_TRACKING_HOST', 'tracking-service:50054'),
           },
         }),

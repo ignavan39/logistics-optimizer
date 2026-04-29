@@ -1,8 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { type User } from '../users/entities/user.entity';
-import { type Session } from '../users/entities/session.entity';
+import { User } from '../users/entities/user.entity';
+import { Session } from '../users/entities/session.entity';
 
 @Injectable()
 export class PasswordService {

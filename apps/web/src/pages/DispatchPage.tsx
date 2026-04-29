@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiGet } from '@/lib/api'
 import { PageLoader, Modal, Badge } from '@/components/ui'
-import { type DispatchSaga, SAGA_STATUS_LABELS, SAGA_STATUS_COLORS } from '@/types'
+import { DispatchSaga, SAGA_STATUS_LABELS, SAGA_STATUS_COLORS } from '@/types'
 import { Activity } from 'lucide-react'
 
 export function DispatchPage() {

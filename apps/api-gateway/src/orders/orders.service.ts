@@ -1,6 +1,6 @@
 import { Injectable, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common'
-import { type ConfigService } from '@nestjs/config'
-import { type ClientGrpc } from '@nestjs/microservices'
+import { ConfigService } from '@nestjs/config'
+import { ClientGrpc } from '@nestjs/microservices'
 import { Inject } from '@nestjs/common'
 import {
   type CreateOrderDto,

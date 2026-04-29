@@ -1,5 +1,5 @@
 import { Card } from '@/components/ui'
-import { type Order } from '@/types'
+import { Order } from '@/types'
 import { Package } from 'lucide-react'
 import { OrderStatusBadge } from './OrderStatusBadge'
 

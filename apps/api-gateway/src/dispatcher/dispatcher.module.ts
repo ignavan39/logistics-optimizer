@@ -14,7 +14,7 @@ import { join } from 'path'
           transport: Transport.GRPC,
           options: {
             package: 'dispatcher',
-            protoPath: join(process.cwd(), 'libs', 'proto', 'src', 'dispatcher.proto'),
+            protoPath: process.env.PROTO_ROOT ? `${process.env.PROTO_ROOT}/dispatcher.proto` : join(process.cwd(), 'libs', 'proto', 'src', 'dispatcher.proto'),
             url: configService.get('GRPC_DISPATCHER_HOST', 'dispatcher-service:50055'),
           },
         }),

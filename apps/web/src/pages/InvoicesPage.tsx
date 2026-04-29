@@ -42,9 +42,12 @@ export function InvoicesPage() {
     setDownloadingPdf(invoiceId)
     try {
       const pollPdf = async (): Promise<string> => {
-        const result = await apiGet<{ url: string }>(`/invoices/${invoiceId}/pdf`)
+        const result = await apiGet<{ url?: string; status?: string }>(`/invoices/${invoiceId}/pdf`)
         if (result.url) {
           return result.url
+        }
+        if (result.status === 'error') {
+          throw new Error('PDF generation failed')
         }
         await new Promise(resolve => setTimeout(resolve, 2000))
         return pollPdf()
@@ -53,6 +56,7 @@ export function InvoicesPage() {
       window.open(pdfUrl, '_blank')
     } catch (err) {
       console.error('PDF download error:', err)
+      alert('Ошибка при генерации PDF')
     } finally {
       setDownloadingPdf(null)
     }

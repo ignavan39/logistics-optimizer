@@ -4,8 +4,14 @@ export interface Invoice {
   counterpartyId: string
   counterpartyName?: string
   amount: number
+  vatRate?: number
+  vatAmount?: number
   status: InvoiceStatus
   createdAtUnix: number
+  dueDateUnix?: number
+  paidAtUnix?: number
+  pdfUrl?: string
+  pdfStatus?: 'pending' | 'generating' | 'ready' | 'error'
 }
 
 export type InvoiceStatus = 0 | 1 | 2 | 3 | 4

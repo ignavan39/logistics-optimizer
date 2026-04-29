@@ -1,6 +1,6 @@
 import { Injectable, type OnModuleInit, type OnModuleDestroy, Logger, Inject } from '@nestjs/common';
-import { type ConfigService } from '@nestjs/config';
-import { type ClientGrpc } from '@nestjs/microservices';
+import { ConfigService } from '@nestjs/config';
+import { ClientGrpc } from '@nestjs/microservices';
 
 export interface InvoiceResponse {
   id: string;
@@ -52,7 +52,6 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
   private invoiceClient?: InvoiceGrpcClient;
 
   constructor(
-    private configService: ConfigService,
     @Inject('INVOICE_PACKAGE') private invoiceGrpc: ClientGrpc,
   ) {}
 

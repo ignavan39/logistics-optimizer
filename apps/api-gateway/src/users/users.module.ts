@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { type DataSource } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { User, Session, RefreshToken } from './entities';
 import { UsersService } from './users.service';
 

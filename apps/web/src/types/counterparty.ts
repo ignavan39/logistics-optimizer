@@ -7,6 +7,8 @@ export interface Counterparty {
   contactPhone?: string
   inn?: string
   kpp?: string
+  ogrn?: string
+  address?: string
 }
 
 export interface CreateCounterpartyDto {

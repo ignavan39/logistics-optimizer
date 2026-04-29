@@ -13,7 +13,7 @@ import { RoutingService } from './routing.service'
           transport: Transport.GRPC,
           options: {
             package: 'routing',
-            protoPath: '/app/libs/proto/src/routing.proto',
+            protoPath: process.env.PROTO_ROOT ? `${process.env.PROTO_ROOT}/routing.proto` : '/app/libs/proto/src/routing.proto',
             url: configService.get('GRPC_ROUTING_HOST', 'routing-service:50053'),
           },
         }),

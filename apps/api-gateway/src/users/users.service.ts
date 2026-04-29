@@ -1,10 +1,10 @@
 import { Injectable, ConflictException } from '@nestjs/common';
-import { type Repository, type DataSource } from 'typeorm';
+import { Repository, type DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { type User, UserStatus } from './entities/user.entity';
-import { type Session } from './entities/session.entity';
-import { type RefreshToken } from './entities/refresh-token.entity';
-import { type CreateUserDto, type RegisterDto, type ListUsersQueryDto, type UpdateUserDto } from './dto/user.dto';
+import { User, UserStatus } from './entities/user.entity';
+import { Session } from './entities/session.entity';
+import { RefreshToken } from './entities/refresh-token.entity';
+import { CreateUserDto, type RegisterDto, type ListUsersQueryDto, type UpdateUserDto } from './dto/user.dto';
 
 
 @Injectable()

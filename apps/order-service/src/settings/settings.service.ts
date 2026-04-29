@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { type DataSource, In } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { SettingEntity, SettingKey } from './entities/setting.entity';
 
 export interface CompanySettings {

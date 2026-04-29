@@ -5,9 +5,9 @@ import {
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { type DataSource } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Inject } from '@nestjs/common';
-import { type ClientKafka } from '@nestjs/microservices';
+import { ClientKafka } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 
 const POLL_INTERVAL_MS = 1_000;

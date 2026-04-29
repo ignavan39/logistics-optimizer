@@ -1,8 +1,8 @@
 import { Injectable, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common'
-import { type ConfigService } from '@nestjs/config'
-import { type ClientGrpc } from '@nestjs/microservices'
+import { ConfigService } from '@nestjs/config'
+import { ClientGrpc } from '@nestjs/microservices'
 import { Inject } from '@nestjs/common'
-import { type DispatchOrderDto, type GetDispatchStateDto, type CancelDispatchDto } from './dto/dispatcher.dto'
+import { DispatchOrderDto, type GetDispatchStateDto, type CancelDispatchDto } from './dto/dispatcher.dto'
 
 interface DispatcherGrpcClient {
   dispatchOrder(data: DispatchOrderDto): Promise<any>
@@ -16,7 +16,6 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   private dispatcherClient!: DispatcherGrpcClient
 
   constructor(
-    private configService: ConfigService,
     @Inject('DISPATCHER_PACKAGE') private client: ClientGrpc,
   ) {}
 

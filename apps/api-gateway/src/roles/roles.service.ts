@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { type Repository } from 'typeorm';
-import { type Role } from './entities/role.entity';
-import { type Permission } from './entities/permission.entity';
-import { type UserRole } from './entities/user-role.entity';
+import { Repository } from 'typeorm';
+import { Role } from './entities/role.entity';
+import { Permission } from './entities/permission.entity';
+import { UserRole } from './entities/user-role.entity';
 import {
   type CreateRoleDto,
   type UpdateRoleDto,

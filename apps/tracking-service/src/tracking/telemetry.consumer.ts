@@ -1,7 +1,7 @@
 import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, type KafkaContext } from '@nestjs/microservices';
-import { type TrackingBatchWriter } from './batch/tracking-batch-writer';
-import { type TrackingMetrics } from '../metrics/tracking.metrics';
+import { TrackingBatchWriter } from './batch/tracking-batch-writer';
+import { TrackingMetrics } from '../metrics/tracking.metrics';
 
 export interface TelemetryMessage {
   vehicle_id: string;

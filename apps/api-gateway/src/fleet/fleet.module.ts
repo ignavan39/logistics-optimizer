@@ -13,7 +13,7 @@ import { FleetService } from './fleet.service'
           transport: Transport.GRPC,
           options: {
             package: 'fleet',
-            protoPath: '/app/libs/proto/src/fleet.proto',
+            protoPath: process.env.PROTO_ROOT ? `${process.env.PROTO_ROOT}/fleet.proto` : '/home/ivan/programming/pets/logistics-optimizer/libs/proto/src/fleet.proto',
             url: configService.get('GRPC_FLEET_HOST', 'fleet-service:50052'),
           },
         }),
