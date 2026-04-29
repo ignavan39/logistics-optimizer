@@ -1,7 +1,9 @@
 import { Module, Inject } from '@nestjs/common';
 import { ClientsModule, Transport, ClientGrpc, ClientKafka } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import { InvoiceEntity } from './entities/invoice.entity';
 import { InvoiceService } from './invoice.service';
 import { InvoiceGrpcController } from './invoice.grpc.controller';
 import { InvoiceEventHandler } from './invoice-event-handler';
@@ -11,6 +13,7 @@ import { S3StorageService } from './s3-storage.service';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([InvoiceEntity]),
     ClientsModule.registerAsync([
       {
         name: 'ORDER_PACKAGE',
@@ -56,6 +59,33 @@ import { S3StorageService } from './s3-storage.service';
   ],
   controllers: [InvoiceGrpcController, PdfController],
   providers: [
+    {
+      provide: DataSource,
+      useFactory: async () => {
+        const isProduction = process.env.NODE_ENV === 'production';
+        const dataSource = new DataSource({
+          type: 'postgres',
+          host: process.env.INVOICE_DB_HOST || 'pg-invoice',
+          port: parseInt(process.env.PG_PORT_BASE || '5432'),
+          username: process.env.PG_USER || 'logistics',
+          password: process.env.PG_PASSWORD || 'logistics_secret',
+          database: process.env.INVOICE_DB_NAME || 'logistics_invoices',
+          entities: [InvoiceEntity],
+          synchronize: !isProduction,
+          logging: !isProduction,
+        });
+
+        await dataSource.initialize();
+        return dataSource;
+      },
+    },
+    {
+      provide: 'INVOICE_REPOSITORY',
+      useFactory: (dataSource: DataSource) => {
+        return dataSource.getRepository(InvoiceEntity);
+      },
+      inject: [DataSource],
+    },
     InvoiceService,
     {
       provide: S3StorageService,
