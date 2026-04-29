@@ -1,18 +1,15 @@
 import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
-import { DataSource, type Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Inject } from '@nestjs/common';
 import { InvoiceEntity, InvoiceStatus, type InvoiceType } from './entities/invoice.entity';
 
 @Injectable()
 export class InvoiceService {
   private readonly logger = new Logger(InvoiceService.name);
-  private invoiceRepo: Repository<InvoiceEntity>;
 
   constructor(
-    @Inject(DataSource) private readonly dataSource: DataSource,
-  ) {
-    this.invoiceRepo = dataSource.getRepository(InvoiceEntity);
-  }
+    @Inject('INVOICE_REPOSITORY') private invoiceRepo: Repository<InvoiceEntity>,
+  ) {}
 
   async getInvoiceById(id: string): Promise<InvoiceEntity | null> {
     return this.invoiceRepo.findOne({ where: { id } });
