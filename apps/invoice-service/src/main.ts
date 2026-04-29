@@ -3,7 +3,7 @@ import './tracing';
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { Logger, ValidationPipe } from '@nestjs/common';
-import { AppModule } from './app/app.module';
+import { AppModule } from './app.module';
 
 const logger = new Logger('Bootstrap');
 
