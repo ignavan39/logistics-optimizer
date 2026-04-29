@@ -16,6 +16,7 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { RoutingModule } from './routing/routing.module';
 import { TrackingModule } from './tracking/tracking.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AdminModule } from './admin/admin.module';
 import { DatabaseModule } from './database/database.module';
 
 @Module({
@@ -35,6 +36,8 @@ import { DatabaseModule } from './database/database.module';
     TrackingModule,
     // Notifications (WebSocket + Kafka)
     NotificationsModule,
+    // Admin (users management)
+    AdminModule,
   ],
   providers: [],
 })
