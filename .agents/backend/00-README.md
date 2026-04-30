@@ -33,7 +33,10 @@
 
 ## 🎯 СТАРТ СЕССИИ (обязательно)
 
-- [ ] Прочитал MEMORY.md (особенно "критические факты")
+### 1. READ — перед любой задачей
+- [ ] Graphify → `graphify-out/GRAPH_REPORT.md` (архитектура + зависимости)
+- [ ] MEMORY.md (критические факты)
+- [ ] 00-README.md (архитектура + правила)
 - [ ] Проверил статус тестов: `pnpm test 2>&1 | grep -E "(failed|passed)"`
 - [ ] Убедился что infra жива: `docker compose ps | grep -E "(Up|healthy)"`
 - [ ] Скачал последние изменения: `git pull --rebase`
