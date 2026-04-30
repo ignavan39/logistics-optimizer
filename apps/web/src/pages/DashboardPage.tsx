@@ -113,7 +113,7 @@ export function DashboardPage() {
   const vehiclesWithLocation = vehicles.filter(v => v.current_location?.lat && v.current_location?.lng)
 
   const totalPages = ordersListData ? Math.ceil(ordersListData.total / 20) : 0
-  const order = ordersListData?.orders.find(o => o.id === selectedId)
+  const order = ordersListData?.orders?.find(o => o.id === selectedId)
 
   const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -275,12 +275,13 @@ export function DashboardPage() {
         <div className="p-4 border-b border-border">
           <h3 className="font-medium text-text-primary">Карта активности</h3>
         </div>
-        <div className="h-80">
+        <div className="h-80 relative" style={{ zIndex: 0 }}>
           <MapContainer
             center={defaultCenter}
             zoom={10}
             className="h-full w-full"
-            style={{ background: '#1a1a2e' }}
+            style={{ background: '#1a1a2e', zIndex: 0 }}
+            preferCanvas
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -323,14 +324,14 @@ export function DashboardPage() {
           </Button>
         </div>
 
-        {!ordersListData?.orders.length ? (
+        {!ordersListData?.orders?.length ? (
           <div className="text-center py-12 text-text-muted">
             <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
             <p>Нет заказов</p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {ordersListData.orders.map(orderItem => (
+            {ordersListData?.orders?.map(orderItem => (
               <OrderCard key={orderItem.id} order={orderItem} onClick={() => { setSelectedId(orderItem.id); setActiveTab('details') }} />
             ))}
           </div>

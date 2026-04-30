@@ -214,7 +214,13 @@ services:
       GRPC_INVOICE_PORT: 50052
       INVOICE_DB_HOST: pg-invoice
       GRPC_ORDER_HOST: order-service:50051
-      GRPC_COUNTERPARTY_HOST: counterparty-service:50056
+      GRPC_COUNTERPARTY_HOST: counterparty-service:50057
+      INVOICE_S3_ENDPOINT: http://minio:9000
+      INVOICE_S3_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minio}
+      INVOICE_S3_SECRET_KEY: ${MINIO_SECRET_KEY:-minio123}
+      INVOICE_S3_BUCKET: invoices
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minio123}
     depends_on:
       kafka:
         condition: service_healthy

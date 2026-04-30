@@ -25,7 +25,10 @@ export function InvoicesPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['invoices', page, statusFilter],
-    queryFn: () => invoicesApi.list({ page, limit: 20, status: statusFilter ? String(statusFilter) : undefined }),
+    queryFn: async () => {
+      const result = await invoicesApi.list({ page, limit: 20, status: statusFilter ? String(statusFilter) : undefined })
+      return result
+    },
     retry: 1,
   })
 
@@ -64,7 +67,7 @@ export function InvoicesPage() {
 
   const filteredData = data?.items ?? []
   const totalPages = data ? Math.ceil(data.total / 20) : 0
-  const selected = data?.items.find(i => i.id === selectedId)
+  const selected = data?.items?.find(i => i.id === selectedId)
 
   if (isLoading) return <PageLoader />
   if (error) {
@@ -99,7 +102,7 @@ export function InvoicesPage() {
         </select>
       </div>
 
-      {!data?.items.length ? (
+      {!data?.items?.length ? (
         <div className="text-center py-12 text-text-muted">
           <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
           <p>Нет счетов</p>
