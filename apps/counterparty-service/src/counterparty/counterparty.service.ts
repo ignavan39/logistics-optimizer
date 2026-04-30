@@ -1,5 +1,5 @@
-import { Injectable, Inject } from '@nestjs/common'
-import { DataSource, Repository } from 'typeorm'
+import { Injectable, Inject, Logger } from '@nestjs/common'
+import { Repository } from 'typeorm'
 import { CounterpartyEntity, CounterpartyType } from '../entities/counterparty.entity'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -30,11 +30,11 @@ interface FindAllCounterpartyData {
 
 @Injectable()
 export class CounterpartyService {
-  private readonly repo: Repository<CounterpartyEntity>
+  private readonly logger = new Logger(CounterpartyService.name)
 
-  constructor(@Inject(DataSource) dataSource: DataSource) {
-    this.repo = dataSource.getRepository(CounterpartyEntity)
-  }
+  constructor(
+    @Inject('COUNTERPARTY_REPOSITORY') private repo: Repository<CounterpartyEntity>,
+  ) {}
 
   async create(data: CreateCounterpartyData): Promise<CounterpartyEntity> {
     const entity = this.repo.create({
@@ -61,6 +61,7 @@ export class CounterpartyService {
   }
 
   async findAll(data: FindAllCounterpartyData): Promise<CounterpartyEntity[]> {
+    this.logger.debug(`findAll called with: ${JSON.stringify(data)}`)
     const qb = this.repo.createQueryBuilder('c')
 
     if (data.type) {
@@ -82,7 +83,8 @@ export class CounterpartyService {
       qb.skip(data.offset)
     }
 
-    return qb.getMany()
+    const result = await qb.getMany()
+    return result
   }
 
   async update(data: UpdateCounterpartyData): Promise<CounterpartyEntity> {

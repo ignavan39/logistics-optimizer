@@ -20,6 +20,21 @@ import {
   ],
   controllers: [CounterpartyGrpcController],
   providers: [
+    {
+      provide: 'COUNTERPARTY_REPOSITORY',
+      useFactory: (dataSource: DataSource) => dataSource.getRepository(CounterpartyEntity),
+      inject: [DataSource],
+    },
+    {
+      provide: 'CONTRACT_REPOSITORY',
+      useFactory: (dataSource: DataSource) => dataSource.getRepository(ContractEntity),
+      inject: [DataSource],
+    },
+    {
+      provide: 'CONTRACT_TARIFF_REPOSITORY',
+      useFactory: (dataSource: DataSource) => dataSource.getRepository(ContractTariffEntity),
+      inject: [DataSource],
+    },
     CounterpartyService,
     ContractService,
     {

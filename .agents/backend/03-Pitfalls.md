@@ -182,3 +182,28 @@ service.onModuleInit();
 - [ ] Тесты мокают только реальные методы  
 - [ ] Новые паттерны добавлены в `04-Good-Practices.md`  
 - [ ] Конфиги (`jest`, `tsconfig`) синхронизированы между app/test
+---
+
+## 🔌 gRPC (01.05.2026)
+
+| ❌ Антипаттерн | 💥 Почему ломается | ✅ Как правильно |
+|--------------|-------------------|-----------------|
+| gRPC метод не вызывается без видимых ошибок | Метод зарегистрирован, но не резолвится на сервере | Проверить: 1) точное совпадение имени метода, 2) proto definition, 3) loader options (keepCase) |
+| GetInvoice работает, GetInvoicePdfUrl нет | Неизвестный баг NestJS gRPC | Проверить разницу: @GrpcMethod декораторы, интерфейсы, proto package |
+
+---
+
+## 📝 Known Issues
+
+### GetInvoicePdfUrl gRPC (01.05.2026)
+- **Состояние**: РАБОТАЕТ с 02.05.2026
+- **Потрачено**: 3+ часа отладки
+- **Причина**: Два бага:
+  1. NestJS gRPC НЕ преобразует snake_case → camelCase автоматически для @GrpcMethod
+  2. PdfService передавал `{ orderId: id }` вместо `{ order_id: id }` в gRPC вызов к order-service
+- **Решение**: 
+  1. Добавить `keepCase: true` в grpc loader для invoice-service (main.ts)
+  2. Добавить `keepCase: true` в ClientsModule для ORDER_PACKAGE и COUNTERPARTY_PACKAGE (invoice.module.ts)
+  3. Использовать fallback: `(data as any).invoice_id || data.invoiceId` в контроллере
+  4. Исправить gRPC вызов: `{ order_id: orderId }` вместо `{ orderId: orderId }`
+- **Следующее**: Если S3/MinIO upload падает — проверить network connectivity

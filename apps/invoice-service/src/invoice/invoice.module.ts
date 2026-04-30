@@ -19,6 +19,7 @@ import { S3StorageService } from './s3-storage.service';
         useFactory: (configService: ConfigService) => ({
           transport: Transport.GRPC,
           options: {
+            loader: { keepCase: true },
             package: 'order',
             protoPath: '/app/libs/proto/src/order.proto',
             url: configService.get('GRPC_ORDER_HOST', 'order-service:50051'),
@@ -47,6 +48,7 @@ import { S3StorageService } from './s3-storage.service';
         useFactory: (configService: ConfigService) => ({
           transport: Transport.GRPC,
           options: {
+            loader: { keepCase: true },
             package: 'counterparty',
             protoPath: '/app/libs/proto/src/counterparty.proto',
             url: configService.get('GRPC_COUNTERPARTY_HOST', 'counterparty-service:50056'),

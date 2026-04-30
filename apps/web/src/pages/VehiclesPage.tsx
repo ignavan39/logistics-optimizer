@@ -67,7 +67,7 @@ export function VehiclesPage() {
     },
   })
 
-  const vehicle = data?.vehicles.find(v => v.id === selectedId)
+  const vehicle = data?.vehicles?.find(v => v.id === selectedId)
 
   const handleStatusChange = (newStatus: VehicleStatus) => {
     if (!selectedId) return
@@ -101,14 +101,14 @@ export function VehiclesPage() {
         </Button>
       </div>
 
-      {!data?.vehicles.length ? (
+      {!data?.vehicles?.length ? (
         <div className="text-center py-12 text-text-muted">
           <Truck className="w-12 h-12 mx-auto mb-2 opacity-50" />
           <p>Нет транспорта</p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {data.vehicles.map(vehicle => (
+          {data?.vehicles?.map(vehicle => (
             <button 
               key={vehicle.id} 
               onClick={() => { setSelectedId(vehicle.id); }} 
@@ -256,11 +256,11 @@ export function VehiclesPage() {
         <div className="space-y-4">
           <p className="text-text-muted text-sm">Выберите заказ:</p>
           
-          {!pendingOrders?.orders.length ? (
+          {!pendingOrders?.orders?.length ? (
             <p className="text-text-muted text-center py-4">Нет доступных заказов</p>
           ) : (
             <div className="max-h-60 overflow-y-auto space-y-2">
-              {pendingOrders.orders.map(order => (
+              {pendingOrders?.orders?.map(order => (
                 <button
                   key={order.id}
                   onClick={() => setSelectedOrderId(order.id)}
