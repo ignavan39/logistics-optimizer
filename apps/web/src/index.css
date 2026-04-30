@@ -26,3 +26,7 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-text-muted;
 }
+
+.leaflet-container {
+  z-index: 1 !important;
+}

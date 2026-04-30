@@ -66,7 +66,8 @@ export class InvoiceGrpcController {
 
   @GrpcMethod('InvoiceService', 'GetInvoice')
   async getInvoice(data: GetInvoiceRequest) {
-    const invoice = await this.invoiceService.getInvoiceById(data.invoiceId);
+    const invoiceId = (data as any).invoice_id || data.invoiceId;
+    const invoice = await this.invoiceService.getInvoiceById(invoiceId);
     if (!invoice) {
       throw new RpcException({
         code: GrpcStatus.NOT_FOUND,
@@ -154,8 +155,9 @@ export class InvoiceGrpcController {
 
   @GrpcMethod('InvoiceService', 'GetInvoicePdfUrl')
   async getInvoicePdfUrl(data: GetInvoicePdfUrlRequest) {
+    const invoiceId = (data as any).invoice_id || data.invoiceId;
     try {
-      const url = await this.pdfService.getOrGeneratePdf(data.invoiceId);
+      const url = await this.pdfService.getOrGeneratePdf(invoiceId);
       return { url };
     } catch (e) {
       if (e instanceof Error) {

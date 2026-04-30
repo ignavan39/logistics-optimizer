@@ -18,18 +18,18 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
+  const grpcPort = process.env['GRPC_INVOICE_PORT'] ?? 50052;
+
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
     options: {
       package: 'invoice',
       protoPath: '/app/libs/proto/src/invoice.proto',
-      url: `0.0.0.0:${process.env['GRPC_INVOICE_PORT'] ?? 50052}`,
+      url: `0.0.0.0:${grpcPort}`,
       loader: {
-        keepCase: true,
-        longs: String,
-        enums: String,
         defaults: true,
         oneofs: true,
+        keepCase: true,
       },
     },
   });
@@ -64,7 +64,7 @@ async function bootstrap(): Promise<void> {
   await app.listen(httpPort, httpHost);
 
   logger.log(`Invoice Service started`);
-  logger.log(`gRPC listening on :${process.env['GRPC_INVOICE_PORT'] ?? 50052}`);
+  logger.log(`gRPC listening on :${grpcPort}`);
   logger.log(`Metrics on http://0.0.0.0:${httpPort}/metrics`);
 }
 

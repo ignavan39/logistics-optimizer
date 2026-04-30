@@ -44,6 +44,7 @@ interface InvoiceGrpcClient {
   listInvoices(data: ListInvoicesParams): Promise<ListInvoicesResult>;
   updateInvoiceStatus(data: { invoiceId: string; status: string; expectedVersion?: number }): Promise<InvoiceResponse>;
   getInvoicePdfUrl(data: { invoiceId: string }): Promise<PdfUrlResponse>;
+  
 }
 
 @Injectable()
@@ -57,7 +58,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     this.invoiceClient = this.invoiceGrpc.getService<InvoiceGrpcClient>('InvoiceService');
-    this.logger.log('InvoicesService initialized');
+    this.logger.log('InvoicesService initialized, invoiceClient methods:', Object.keys(this.invoiceClient));
   }
 
   onModuleDestroy() {
@@ -84,12 +85,14 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
 
   async listInvoices(params: ListInvoicesParams = {}): Promise<ListInvoicesResult> {
     try {
+      this.logger.debug(`listInvoices called with params: ${JSON.stringify(params)}`);
       const response = await this.invoiceClient.listInvoices({
         counterpartyId: params.counterpartyId,
         status: params.status,
         page: params.page ?? 1,
         limit: params.limit ?? 20,
       });
+      this.logger.debug(`listInvoices gRPC response first item keys: ${response.invoices?.[0] ? Object.keys(response.invoices[0]) : 'no data'}`);
       return response;
     } catch (e) {
       this.logger.error(`Failed to list invoices: ${e}`);
@@ -114,9 +117,12 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
 
   async generateInvoicePdfUrl(invoiceId: string): Promise<PdfUrlResponse | null> {
     try {
-      return await this.invoiceClient.getInvoicePdfUrl({ invoiceId });
+      this.logger.log(`generateInvoicePdfUrl called for ${invoiceId}`);
+      const result = await this.invoiceClient!.getInvoicePdfUrl({ invoiceId: invoiceId });
+      return result;
     } catch (e) {
-      this.logger.error(`Failed to get PDF URL for invoice ${invoiceId}: ${e}`);
+      const err = e as Error;
+      this.logger.error(`Error: ${err.message}`, err.stack);
       return null;
     }
   }

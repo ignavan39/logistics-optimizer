@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { InvoicesService } from './invoices.service';
@@ -20,6 +21,8 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 @Controller('invoices')
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class InvoicesController {
+  private readonly logger = new Logger(InvoicesController.name);
+
   constructor(private readonly service: InvoicesService) {}
 
   @Get()
@@ -57,9 +60,11 @@ export class InvoicesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get invoice PDF URL' })
   async getInvoicePdf(@Param('id') id: string) {
+    this.logger.log(`PDF endpoint called for id: ${id}`);
     const result = await this.service.generateInvoicePdfUrl(id);
+    this.logger.log(`PDF result: ${JSON.stringify(result)}`);
     
-    if (!result) {
+    if (!result || !result.url) {
       return { statusCode: 404, message: 'Invoice not found or PDF not available' };
     }
 

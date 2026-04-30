@@ -136,8 +136,6 @@ export class PdfService {
         [PdfStatus.GENERATING, invoiceId],
       );
 
-      await queryRunner.commitTransaction();
-
       const [order, companySettings, counterparty] = await Promise.all([
         this.getOrderData(invoice.order_id),
         this.getCompanySettings(),
@@ -150,10 +148,12 @@ export class PdfService {
       const s3Key = this.s3Storage.generateKey(invoiceId);
       const url = await this.s3Storage.upload(s3Key, pdfBuffer);
 
-      await this.dataSource.query(
+      await queryRunner.query(
         `UPDATE invoice SET pdf_url = $1, pdf_status = $2, pdf_generated_at = NOW(), updated_at = NOW() WHERE id = $3`,
         [url, PdfStatus.READY, invoiceId],
       );
+
+      await queryRunner.commitTransaction();
 
       this.logger.log(`PDF generated for invoice ${invoiceId}: ${url}`);
       return url;
@@ -161,7 +161,7 @@ export class PdfService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      await this.dataSource.query(
+      await queryRunner.query(
         `UPDATE invoice SET pdf_status = $1, updated_at = NOW() WHERE id = $2`,
         [PdfStatus.FAILED, invoiceId],
       );
@@ -173,7 +173,7 @@ export class PdfService {
     }
   }
 
-  private async getOrderData(orderId: string): Promise<any> {
+private async getOrderData(orderId: string): Promise<any> {
     try {
       const order = await firstValueFrom(this.orderClient.GetOrder({ order_id: orderId }));
       return order;

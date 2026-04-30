@@ -31,7 +31,8 @@ export const invoicesApi = {
     if (params?.limit) searchParams.set('limit', String(params.limit))
     if (params?.status) searchParams.set('status', params.status)
     const query = searchParams.toString()
-    return apiGet<{ items: any[]; total: number }>(query ? `/invoices?${query}` : '/invoices')
+    return apiGet<{ invoices: any[]; total: number; page: number }>(query ? `/invoices?${query}` : '/invoices')
+      .then(res => ({ items: res.invoices, total: res.total, page: res.page }))
   },
   get: (id: string) => apiGet<any>(`/invoices/${id}`),
   pdf: (id: string) => apiDownload(`/invoices/${id}/pdf`, `invoice-${id}.pdf`),
