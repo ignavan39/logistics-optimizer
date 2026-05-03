@@ -44,7 +44,6 @@ export class InvoiceService {
       .take(limit)
       .getManyAndCount();
     
-    this.logger.debug(`findAll: first item amount_rub type = ${typeof items[0]?.amountRub}, value = ${items[0]?.amountRub}`);
     return { items, total };
   }
 

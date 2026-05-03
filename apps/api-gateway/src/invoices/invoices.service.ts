@@ -85,14 +85,12 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
 
   async listInvoices(params: ListInvoicesParams = {}): Promise<ListInvoicesResult> {
     try {
-      this.logger.debug(`listInvoices called with params: ${JSON.stringify(params)}`);
       const response = await this.invoiceClient.listInvoices({
         counterpartyId: params.counterpartyId,
         status: params.status,
         page: params.page ?? 1,
         limit: params.limit ?? 20,
       });
-      this.logger.debug(`listInvoices gRPC response: ${JSON.stringify(response.invoices?.[0])}`);
       return response;
     } catch (e) {
       this.logger.error(`Failed to list invoices: ${e}`);

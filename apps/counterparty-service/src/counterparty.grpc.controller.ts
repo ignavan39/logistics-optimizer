@@ -76,10 +76,8 @@ export class CounterpartyGrpcController {
 
   @GrpcMethod('CounterpartyService', 'listCounterparties')
   async listCounterparties(data: { type?: string; inn?: string; nameLike?: string; limit?: number; offset?: number }) {
-    this.logger.debug(`listCounterparties called with: ${JSON.stringify(data)}`)
     try {
       const entities = await this.counterpartyService.findAll(data)
-      this.logger.debug(`listCounterparties entities: ${entities.length}`)
       return {
         items: entities.map(e => this.toResponse(e)),
       }
@@ -91,7 +89,6 @@ export class CounterpartyGrpcController {
 
   @GrpcMethod('CounterpartyService', 'ListCounterparties')
   async listCounterpartiesUpper(data: any) {
-    this.logger.debug(`ListCounterparties called with: ${JSON.stringify(data)}`)
     return this.listCounterparties(data)
   }
 
