@@ -49,7 +49,6 @@ export class CounterpartyService implements OnModuleInit, OnModuleDestroy {
   async createCounterparty(data: any): Promise<CounterpartyResponse> {
     const typeValue = this.typeMap[data.type] || data.type;
     const transformed = { ...data, type: typeValue };
-    this.logger.debug(`createCounterparty input: ${JSON.stringify(transformed)}`);
     return this.client.createCounterparty(transformed);
   }
 
@@ -67,7 +66,6 @@ export class CounterpartyService implements OnModuleInit, OnModuleDestroy {
   }
 
   async listCounterparties(data: any = {}): Promise<CounterpartyResponse[]> {
-    this.logger.debug(`listCounterparties input: ${JSON.stringify(data)}`);
     const response = await this.client.listCounterparties(data);
     return response.items || [];
   }

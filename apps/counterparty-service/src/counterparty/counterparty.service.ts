@@ -61,7 +61,6 @@ export class CounterpartyService {
   }
 
   async findAll(data: FindAllCounterpartyData): Promise<CounterpartyEntity[]> {
-    this.logger.debug(`findAll called with: ${JSON.stringify(data)}`)
     const qb = this.repo.createQueryBuilder('c')
 
     if (data.type) {
