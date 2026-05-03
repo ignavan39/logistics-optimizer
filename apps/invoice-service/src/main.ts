@@ -31,6 +31,7 @@ async function bootstrap(): Promise<void> {
         oneofs: true,
         keepCase: true,
       },
+      protoLoader: '@grpc/proto-loader',
     },
   });
 
