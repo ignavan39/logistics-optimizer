@@ -92,7 +92,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
         page: params.page ?? 1,
         limit: params.limit ?? 20,
       });
-      this.logger.debug(`listInvoices gRPC response first item keys: ${response.invoices?.[0] ? Object.keys(response.invoices[0]) : 'no data'}`);
+      this.logger.debug(`listInvoices gRPC response: ${JSON.stringify(response.invoices?.[0])}`);
       return response;
     } catch (e) {
       this.logger.error(`Failed to list invoices: ${e}`);

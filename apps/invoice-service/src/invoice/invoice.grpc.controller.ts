@@ -65,7 +65,7 @@ export class InvoiceGrpcController {
   }
 
   @GrpcMethod('InvoiceService', 'GetInvoice')
-  async getInvoice(data: GetInvoiceRequest) {
+  async getInvoice(data: GetInvoiceRequest): Promise<any> {
     const invoiceId = (data as any).invoice_id || data.invoiceId;
     const invoice = await this.invoiceService.getInvoiceById(invoiceId);
     if (!invoice) {
@@ -74,7 +74,21 @@ export class InvoiceGrpcController {
         message: 'Invoice not found',
       });
     }
-    return this.toResponse(invoice);
+
+    return {
+      id: invoice.id,
+      order_id: invoice.orderId,
+      number: invoice.number,
+      amount_rub: String(invoice.amountRub),
+      vat_rate: String(invoice.vatRate),
+      vat_amount: String(invoice.vatAmount),
+      status: String(invoice.status),
+      due_date: String(invoice.dueDate),
+      counterparty_id: invoice.counterpartyId || '',
+      contract_id: invoice.contractId || '',
+      description: invoice.description || '',
+      version: invoice.version,
+    };
   }
 
   @GrpcMethod('InvoiceService', 'GetInvoiceByOrder')
@@ -86,7 +100,7 @@ export class InvoiceGrpcController {
         message: 'Invoice not found for this order',
       });
     }
-    return this.toResponse(invoice);
+    return this.mapInvoice(invoice);
   }
 
   @GrpcMethod('InvoiceService', 'ListInvoices')
@@ -98,8 +112,9 @@ export class InvoiceGrpcController {
       page: data.page,
       limit: data.limit,
     });
+
     return {
-      invoices: items.map(this.toResponse),
+      invoices: items.map(inv => this.mapInvoice(inv)),
       total,
       page: data.page || 1,
     };
@@ -120,7 +135,7 @@ export class InvoiceGrpcController {
         contractId: data.contractId,
         description: data.description,
       });
-      return this.toResponse(invoice);
+      return this.mapInvoice(invoice);
     } catch (e) {
       if (e instanceof Error) {
         throw new RpcException({
@@ -141,7 +156,7 @@ export class InvoiceGrpcController {
         status,
         data.expectedVersion,
       );
-      return this.toResponse(invoice);
+      return this.mapInvoice(invoice);
     } catch (e) {
       if (e instanceof Error) {
         throw new RpcException({
@@ -173,20 +188,39 @@ export class InvoiceGrpcController {
   private toResponse(invoice: InvoiceEntity) {
     return {
       id: invoice.id,
-      orderId: invoice.orderId,
+      order_id: invoice.orderId,
       number: invoice.number,
-      type: invoice.type,
-      amountRub: Number(invoice.amountRub) * 100,
-      vatRate: Number(invoice.vatRate),
-      vatAmount: Number(invoice.vatAmount) * 100,
-      status: invoice.status,
-      dueDate: invoice.dueDate ? new Date(invoice.dueDate).getTime() : 0,
-      paidAt: invoice.paidAt ? new Date(invoice.paidAt).getTime() : 0,
-      counterpartyId: invoice.counterpartyId ?? '',
-      contractId: invoice.contractId ?? '',
+      type: InvoiceType[invoice.type] ?? 0,
+      amount_rub: String(Math.round(Number(invoice.amountRub) * 100)),
+      vat_rate: String(Math.round(Number(invoice.vatRate) * 100)),
+      vat_amount: String(Math.round(Number(invoice.vatAmount) * 100)),
+      status: InvoiceStatus[invoice.status] ?? 0,
+      due_date: invoice.dueDate ? String(new Date(invoice.dueDate).getTime()) : '0',
+      paid_at: invoice.paidAt ? String(new Date(invoice.paidAt).getTime()) : '0',
+      counterparty_id: invoice.counterpartyId ?? '',
+      contract_id: invoice.contractId ?? '',
       description: invoice.description ?? '',
-      createdAt: invoice.createdAt ? new Date(invoice.createdAt).getTime() : 0,
-      version: invoice.version,
+      created_at: invoice.createdAt ? String(new Date(invoice.createdAt).getTime()) : '0',
+      version: invoice.version ?? 0,
+};
+  }
+
+  private mapInvoice(invoice: InvoiceEntity) {
+    return {
+      id: invoice.id || '',
+      order_id: invoice.orderId || '',
+      number: invoice.number || '',
+      amount_rub: String(invoice.amountRub || 0),
+      vat_rate: String(invoice.vatRate || 0),
+      vat_amount: String(invoice.vatAmount || 0),
+      status: String(invoice.status || ''),
+      due_date: String(invoice.dueDate || ''),
+      paid_at: String(invoice.paidAt || ''),
+      counterparty_id: invoice.counterpartyId || '',
+      contract_id: invoice.contractId || '',
+      description: invoice.description || '',
+      created_at: String(invoice.createdAt || ''),
+      version: invoice.version || 0,
     };
   }
 }
