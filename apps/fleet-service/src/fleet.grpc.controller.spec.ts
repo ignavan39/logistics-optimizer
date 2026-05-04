@@ -109,7 +109,7 @@ describe('FleetGrpcController', () => {
         phone: '+1234567890',
       })
       expect(result.vehicle!.order).toBeDefined()
-      expect(result.vehicle!.order.id).toBe('order-1')
+      expect(result.vehicle!.order!.id).toBe('order-1')
     })
   })
 

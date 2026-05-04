@@ -15,7 +15,8 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { InvoicesService } from './invoices.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../auth/guards/rbac.guard';
-import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Permissions as PermissionDecorator } from '../auth/decorators/permissions.decorator'
+import { Permissions } from '../auth/permissions/permissions';
 
 @ApiTags('invoices')
 @Controller('invoices')
@@ -26,7 +27,7 @@ export class InvoicesController {
   constructor(private readonly service: InvoicesService) {}
 
   @Get()
-  @Permissions('invoices.read')
+  @PermissionDecorator(Permissions.INVOICES_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List invoices with pagination' })
   @ApiQuery({ name: 'status', required: false, enum: ['draft', 'sent', 'paid', 'overdue', 'cancelled'] })
@@ -48,7 +49,7 @@ export class InvoicesController {
   }
 
   @Get(':id')
-  @Permissions('invoices.read')
+  @PermissionDecorator(Permissions.INVOICES_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get invoice by ID' })
   async getInvoice(@Param('id') id: string) {
@@ -56,7 +57,7 @@ export class InvoicesController {
   }
 
   @Get(':id/pdf')
-  @Permissions('invoices.read')
+  @PermissionDecorator(Permissions.INVOICES_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get invoice PDF URL' })
   async getInvoicePdf(@Param('id') id: string) {
@@ -73,7 +74,7 @@ export class InvoicesController {
 
   @Patch(':id/status')
   @HttpCode(HttpStatus.OK)
-  @Permissions('invoices.update')
+  @PermissionDecorator(Permissions.INVOICES_UPDATE)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update invoice status' })
   async updateStatus(

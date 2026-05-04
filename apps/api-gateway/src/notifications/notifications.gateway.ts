@@ -44,7 +44,7 @@ export class NotificationsGateway
   ) {
     this.allowedOrigins = (configService.get('CORS_ORIGIN', '*'))
       .split(',')
-      .map((o) => o.trim());
+      .map((o: string) => o.trim());
   }
 
   afterInit(server: Server): void {
@@ -61,9 +61,10 @@ export class NotificationsGateway
     }
 
     try {
+      const authHeader = client.handshake.headers.authorization;
       const token =
-        client.handshake.auth.token ||
-        client.handshake.headers.authorization.split(' ')[1];
+        (client.handshake.auth as Record<string, string>).token ||
+        (authHeader?.split(' ')[1] ?? '');
 
       if (!token) {
         this.logger.warn(`Client ${client.id} — no token`);
