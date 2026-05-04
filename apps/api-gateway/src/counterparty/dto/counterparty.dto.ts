@@ -1,3 +1,18 @@
+export interface Address {
+  full: string;
+  lat?: number;
+  lng?: number;
+  city?: string;
+  region?: string;
+}
+
+export interface Contact {
+  name: string;
+  phone: string;
+  email?: string;
+  position?: string;
+}
+
 export interface CounterpartyResponse {
   id: string;
   name: string;
@@ -5,8 +20,8 @@ export interface CounterpartyResponse {
   inn: string;
   kpp?: string;
   ogrn?: string;
-  address?: any;
-  contacts?: any[];
+  address?: Address;
+  contacts?: Contact[];
   phone?: string;
   email?: string;
   createdAt?: number;
@@ -45,11 +60,11 @@ export interface ContractTariffResponse {
 export interface CreateCounterpartyDto {
   name: string;
   type?: 'carrier' | 'warehouse' | 'individual';
-  inn: string;
+  inn?: string;
   kpp?: string;
   ogrn?: string;
-  address?: any;
-  contacts?: any[];
+  address?: Address;
+  contacts?: Contact[];
   phone?: string;
   email?: string;
 }
@@ -57,8 +72,8 @@ export interface CreateCounterpartyDto {
 export interface CreateContractDto {
   counterpartyId: string;
   number: string;
-  validFrom?: string;
-  validTo?: string;
+  validFrom?: number;
+  validTo?: number;
   totalLimitRub?: number;
   paymentTermsDays?: number;
   description?: string;
@@ -76,3 +91,15 @@ export interface CreateContractTariffDto {
   waitingRate?: number;
   additionalInsurance?: number;
 }
+
+export type UpdateCounterpartyDto = Partial<CreateCounterpartyDto> & { id: string; expectedVersion?: number };
+
+export type UpdateContractDto = Partial<CreateContractDto> & { id: string; status?: string; expectedVersion?: number };
+
+export type ListQuery = {
+  type?: string;
+  inn?: string;
+  nameLike?: string;
+  limit?: number;
+  offset?: number;
+};

@@ -7,19 +7,25 @@ import {
   type CounterpartyResponse,
   type ContractResponse,
   type ContractTariffResponse,
+  type CreateCounterpartyDto,
+  type CreateContractDto,
+  type CreateContractTariffDto,
+  type UpdateCounterpartyDto,
+  type UpdateContractDto,
+  type ListQuery,
 } from './dto/counterparty.dto';
 
 interface CounterpartyGrpcClient {
-  createCounterparty(data: any, metadata?: Metadata): Promise<CounterpartyResponse>;
+  createCounterparty(data: CreateCounterpartyDto, metadata?: Metadata): Promise<CounterpartyResponse>;
   getCounterparty(data: { id: string }, metadata?: Metadata): Promise<CounterpartyResponse>;
-  updateCounterparty(data: any, metadata?: Metadata): Promise<CounterpartyResponse>;
-  listCounterparties(data: any, metadata?: Metadata): Promise<{ items: CounterpartyResponse[] }>;
-  createContract(data: any, metadata?: Metadata): Promise<ContractResponse>;
+  updateCounterparty(data: UpdateCounterpartyDto, metadata?: Metadata): Promise<CounterpartyResponse>;
+  listCounterparties(data: ListQuery, metadata?: Metadata): Promise<{ items: CounterpartyResponse[] }>;
+  createContract(data: CreateContractDto, metadata?: Metadata): Promise<ContractResponse>;
   getContract(data: { id: string }, metadata?: Metadata): Promise<ContractResponse>;
-  updateContract(data: any, metadata?: Metadata): Promise<ContractResponse>;
-  listContracts(data: any, metadata?: Metadata): Promise<{ items: ContractResponse[] }>;
-  getContractTariffs(data: { contractId: string }, metadata?: Metadata): Promise<{ items: ContractTariffResponse[] }>;
-  createContractTariff(data: any, metadata?: Metadata): Promise<ContractTariffResponse>;
+  updateContract(data: UpdateContractDto, metadata?: Metadata): Promise<ContractResponse>;
+  listContracts(data: ListQuery & { counterpartyId?: string; status?: string }, metadata?: Metadata): Promise<{ items: ContractResponse[] }>;
+  getContractTariffs(data: { contractId: string; zone?: string }, metadata?: Metadata): Promise<{ items: ContractTariffResponse[] }>;
+  createContractTariff(data: CreateContractTariffDto, metadata?: Metadata): Promise<ContractTariffResponse>;
 }
 
 @Injectable()
@@ -46,10 +52,10 @@ export class CounterpartyService implements OnModuleInit, OnModuleDestroy {
     this.logger.log('CounterpartyService destroyed');
   }
 
-  async createCounterparty(data: any): Promise<CounterpartyResponse> {
-    const typeValue = this.typeMap[data.type] || data.type;
-    const transformed = { ...data, type: typeValue };
-    return this.client.createCounterparty(transformed);
+  async createCounterparty(data: CreateCounterpartyDto): Promise<CounterpartyResponse> {
+    const typeValue = data.type ? (this.typeMap[data.type] || data.type) : undefined;
+    const transformed = typeValue ? { ...data, type: typeValue } : data;
+    return this.client.createCounterparty(transformed as unknown as CreateCounterpartyDto);
   }
 
   async getCounterparty(id: string): Promise<CounterpartyResponse | null> {
@@ -61,16 +67,16 @@ export class CounterpartyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async updateCounterparty(data: any): Promise<CounterpartyResponse> {
+  async updateCounterparty(data: UpdateCounterpartyDto): Promise<CounterpartyResponse> {
     return this.client.updateCounterparty(data);
   }
 
-  async listCounterparties(data: any = {}): Promise<CounterpartyResponse[]> {
+  async listCounterparties(data: ListQuery = {}): Promise<CounterpartyResponse[]> {
     const response = await this.client.listCounterparties(data);
     return response.items || [];
   }
 
-  async createContract(data: any): Promise<ContractResponse> {
+  async createContract(data: CreateContractDto): Promise<ContractResponse> {
     return this.client.createContract(data);
   }
 
@@ -83,11 +89,11 @@ export class CounterpartyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async updateContract(data: any): Promise<ContractResponse> {
+  async updateContract(data: UpdateContractDto): Promise<ContractResponse> {
     return this.client.updateContract(data);
   }
 
-  async listContracts(data: any = {}): Promise<ContractResponse[]> {
+  async listContracts(data: ListQuery & { counterpartyId?: string; status?: string } = {}): Promise<ContractResponse[]> {
     const response = await this.client.listContracts(data);
     return response.items || [];
   }
@@ -102,7 +108,7 @@ export class CounterpartyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async createContractTariff(data: any): Promise<ContractTariffResponse> {
+  async createContractTariff(data: CreateContractTariffDto): Promise<ContractTariffResponse> {
     return this.client.createContractTariff(data);
   }
 }

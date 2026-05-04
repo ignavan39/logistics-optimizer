@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../auth/guards/rbac.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PermissionsService } from './roles.service';
+import { CreatePermissionDto } from './dto/role.dto';
 
 @ApiTags('permissions')
 @Controller('permissions')
@@ -40,7 +41,7 @@ export class PermissionsController {
   @HttpCode(HttpStatus.CREATED)
   @Permissions('users.manage')
   @ApiOperation({ summary: 'Create new permission' })
-  async createPermission(@Body() dto: any) {
+  async createPermission(@Body() dto: CreatePermissionDto) {
     return this.permissionsService.createPermission(dto);
   }
 

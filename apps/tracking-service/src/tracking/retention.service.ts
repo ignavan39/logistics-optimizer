@@ -8,6 +8,11 @@ interface PartitionInfo {
   fromValue: Date;
 }
 
+interface PartitionRow {
+  partition_name: string;
+  range_start: string;
+}
+
 @Injectable()
 export class RetentionService implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger(RetentionService.name);
@@ -89,7 +94,7 @@ export class RetentionService implements OnApplicationBootstrap, OnApplicationSh
         ORDER BY range_start ASC
       `, [cutoffDate]);
 
-      return result.map((row: any) => ({
+      return result.map((row: PartitionRow) => ({
         name: row.partition_name,
         fromValue: new Date(row.range_start),
       }));

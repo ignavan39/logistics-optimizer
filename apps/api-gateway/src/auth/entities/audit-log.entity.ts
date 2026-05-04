@@ -27,7 +27,7 @@ export class AuditLog {
   resourceId?: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  changes?: any;
+  changes?: Record<string, unknown>;
 
   @Column({ name: 'ip_address', type: 'inet', nullable: true })
   ipAddress?: string;

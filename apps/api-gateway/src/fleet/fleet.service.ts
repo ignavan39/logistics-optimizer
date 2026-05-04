@@ -3,19 +3,46 @@ import { ConfigService } from '@nestjs/config'
 import { ClientGrpc } from '@nestjs/microservices'
 import { Inject } from '@nestjs/common'
 import { Metadata } from '@grpc/grpc-js'
+import { Observable } from 'rxjs'
 import {
   type GetAvailableVehiclesDto,
   type AssignVehicleDto,
   type ReleaseVehicleDto,
+  type UpdateVehicleDto,
 } from './dto/fleet.dto'
 
+interface VehicleResponse {
+  id: string
+  type: string
+  status: string
+  capacity_kg?: number
+  capacity_m3?: number
+  current_location?: { lat: number; lng: number }
+}
+
+interface VehiclesListResponse {
+  vehicles: VehicleResponse[]
+}
+
+interface AssignVehicleResponse {
+  success: boolean
+  vehicle_id?: string
+  error?: string
+}
+
+interface UpdateVehicleResponse {
+  id: string
+  type?: string
+  status?: string
+}
+
 interface FleetGrpcClient {
-  getAvailableVehicles(data: GetAvailableVehiclesDto, metadata?: Metadata): any
-  getVehicle(data: { vehicleId: string }, metadata?: Metadata): any
-  getVehicleDetails(data: { vehicleId: string }, metadata?: Metadata): any
-  assignVehicle(data: AssignVehicleDto, metadata?: Metadata): any
-  releaseVehicle(data: ReleaseVehicleDto, metadata?: Metadata): any
-  updateVehicle(data: any, metadata?: Metadata): any
+  getAvailableVehicles(data: GetAvailableVehiclesDto, metadata?: Metadata): Observable<VehiclesListResponse>
+  getVehicle(data: { vehicleId: string }, metadata?: Metadata): Observable<VehicleResponse | null>
+  getVehicleDetails(data: { vehicleId: string }, metadata?: Metadata): Observable<VehicleResponse | null>
+  assignVehicle(data: AssignVehicleDto, metadata?: Metadata): Observable<AssignVehicleResponse>
+  releaseVehicle(data: ReleaseVehicleDto, metadata?: Metadata): Observable<{ success: boolean }>
+  updateVehicle(data: { vehicle_id: string } & Partial<UpdateVehicleDto>, metadata?: Metadata): Observable<UpdateVehicleResponse>
 }
 
 @Injectable()
@@ -65,14 +92,7 @@ export class FleetService implements OnModuleInit, OnModuleDestroy {
     })
   }
 
-  async updateVehicle(vehicleId: string, dto: {
-    type?: string
-    capacity_kg?: number
-    capacity_m3?: number
-    current_lat?: number
-    current_lng?: number
-    expected_version?: number
-  }) {
+  async updateVehicle(vehicleId: string, dto: Partial<UpdateVehicleDto>) {
     return this.fleetClient.updateVehicle({
       vehicle_id: vehicleId,
       type: dto.type,

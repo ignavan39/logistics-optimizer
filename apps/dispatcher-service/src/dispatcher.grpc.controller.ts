@@ -9,6 +9,18 @@ interface ListDispatchesRequest {
   offset?: number;
 }
 
+interface DispatchSagaRow {
+  id: string;
+  order_id: string;
+  status: string;
+  steps: string[];
+  vehicle_id: string | null;
+  route_id: string | null;
+  retry_count: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
 @Controller()
 export class DispatcherGrpcController {
   private readonly logger = new Logger(DispatcherGrpcController.name);
@@ -37,12 +49,12 @@ export class DispatcherGrpcController {
     }
   }
 
-  private toSagaResponse(saga: any) {
+  private toSagaResponse(saga: DispatchSagaRow) {
     return {
       sagaId: saga.id,
       orderId: saga.order_id,
       status: this.mapStatus(saga.status),
-      steps: saga.steps || [],
+      steps: typeof saga.steps === 'string' ? JSON.parse(saga.steps) : (saga.steps || []),
       vehicleId: saga.vehicle_id || '',
       routeId: saga.route_id || '',
       retryCount: saga.retry_count || 0,
