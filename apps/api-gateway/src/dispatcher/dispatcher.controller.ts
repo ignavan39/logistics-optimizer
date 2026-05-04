@@ -4,7 +4,8 @@ import { DispatcherService } from './dispatcher.service'
 import { DispatchOrderDto, type CancelDispatchDto } from './dto/dispatcher.dto'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RbacGuard } from '../auth/guards/rbac.guard'
-import { Permissions } from '../auth/decorators/permissions.decorator'
+import { Permissions as PermissionDecorator } from '../auth/decorators/permissions.decorator'
+import { Permissions } from '../auth/permissions/permissions'
 
 @ApiTags('dispatcher')
 @Controller('dispatch')
@@ -13,7 +14,7 @@ export class DispatcherController {
 
   @Get()
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('dispatch.read')
+  @PermissionDecorator(Permissions.DISPATCH_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List dispatches' })
   @ApiQuery({ name: 'status', required: false, schema: { type: 'string' } })
@@ -23,7 +24,7 @@ export class DispatcherController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('dispatch.execute')
+  @PermissionDecorator(Permissions.DISPATCH_EXECUTE)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Dispatch order to vehicle' })
   async dispatchOrder(@Body() dto: DispatchOrderDto) {
@@ -32,7 +33,7 @@ export class DispatcherController {
 
   @Get(':sagaId')
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('dispatch.read')
+  @PermissionDecorator(Permissions.DISPATCH_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get dispatch state' })
   async getDispatchState(@Param('sagaId') sagaId: string) {
@@ -41,7 +42,7 @@ export class DispatcherController {
 
   @Post(':sagaId/cancel')
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('dispatch.cancel')
+  @PermissionDecorator(Permissions.DISPATCH_CANCEL)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancel dispatch' })
   async cancelDispatch(

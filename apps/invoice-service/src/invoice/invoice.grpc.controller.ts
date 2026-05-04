@@ -185,16 +185,16 @@ export class InvoiceGrpcController {
     }
   }
 
-  private toResponse(invoice: InvoiceEntity) {
+private toResponse(invoice: InvoiceEntity) {
     return {
       id: invoice.id,
       order_id: invoice.orderId,
       number: invoice.number,
-      type: InvoiceType[invoice.type] ?? 0,
+      type: invoice.type as unknown as number,
       amount_rub: String(Math.round(Number(invoice.amountRub) * 100)),
       vat_rate: String(Math.round(Number(invoice.vatRate) * 100)),
       vat_amount: String(Math.round(Number(invoice.vatAmount) * 100)),
-      status: InvoiceStatus[invoice.status] ?? 0,
+      status: invoice.status as unknown as number,
       due_date: invoice.dueDate ? String(new Date(invoice.dueDate).getTime()) : '0',
       paid_at: invoice.paidAt ? String(new Date(invoice.paidAt).getTime()) : '0',
       counterparty_id: invoice.counterpartyId ?? '',
@@ -202,7 +202,7 @@ export class InvoiceGrpcController {
       description: invoice.description ?? '',
       created_at: invoice.createdAt ? String(new Date(invoice.createdAt).getTime()) : '0',
       version: invoice.version ?? 0,
-};
+    };
   }
 
   private mapInvoice(invoice: InvoiceEntity) {

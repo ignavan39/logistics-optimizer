@@ -19,7 +19,8 @@ import { RolesService } from '../roles/roles.service';
 import { AuditLog } from '../auth/entities/audit-log.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../auth/guards/rbac.guard';
-import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Permissions as PermissionDecorator } from '../auth/decorators/permissions.decorator'
+import { Permissions } from '../auth/permissions/permissions';
 import { ListAuditLogsQueryDto } from './dto/audit-log.dto';
 import { AssignRolesDto } from './dto/assign-roles.dto';
 import { ListUsersQueryDto } from '../users/dto/user.dto';
@@ -29,7 +30,7 @@ import { UpdateUserDto } from '../users/dto/user.dto';
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RbacGuard)
 @ApiBearerAuth()
-@Permissions('users.manage')
+@PermissionDecorator(Permissions.USERS_MANAGE)
 export class AdminController {
   constructor(
     private usersService: UsersService,

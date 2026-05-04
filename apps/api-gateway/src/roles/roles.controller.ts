@@ -13,7 +13,8 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../auth/guards/rbac.guard';
-import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Permissions as PermissionDecorator } from '../auth/decorators/permissions.decorator';
+import { Permissions } from '../auth/permissions/permissions';
 import { RolesService } from './roles.service';
 import { AssignRoleDto, CreateRoleDto, UpdateRoleDto } from './dto/role.dto';
 
@@ -25,14 +26,14 @@ export class RolesController {
   constructor(private rolesService: RolesService) {}
 
   @Get()
-  @Permissions('users.manage')
+  @PermissionDecorator(Permissions.USERS_MANAGE)
   @ApiOperation({ summary: 'List all roles' })
   async listRoles() {
     return this.rolesService.listRoles();
   }
 
   @Get(':id')
-  @Permissions('users.manage')
+  @PermissionDecorator(Permissions.USERS_MANAGE)
   @ApiOperation({ summary: 'Get role by ID' })
   async getRole(@Param('id') id: string) {
     return this.rolesService.getRole(id);
@@ -40,14 +41,14 @@ export class RolesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Permissions('users.manage')
+  @PermissionDecorator(Permissions.USERS_MANAGE)
   @ApiOperation({ summary: 'Create new role' })
   async createRole(@Body() dto: CreateRoleDto) {
     return this.rolesService.createRole(dto);
   }
 
   @Patch(':id')
-  @Permissions('users.manage')
+  @PermissionDecorator(Permissions.USERS_MANAGE)
   @ApiOperation({ summary: 'Update role' })
   async updateRole(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
     return this.rolesService.updateRole(id, dto);
@@ -55,14 +56,14 @@ export class RolesController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Permissions('users.manage')
+  @PermissionDecorator(Permissions.USERS_MANAGE)
   @ApiOperation({ summary: 'Delete role' })
   async deleteRole(@Param('id') id: string) {
     await this.rolesService.deleteRole(id);
   }
 
   @Post(':id/assign')
-  @Permissions('users.manage')
+  @PermissionDecorator(Permissions.USERS_MANAGE)
   @ApiOperation({ summary: 'Assign role to user' })
   async assignRoleToUser(@Param('id') roleId: string, @Body() dto: AssignRoleDto) {
     return this.rolesService.assignRoleToUser(roleId, dto);
@@ -70,7 +71,7 @@ export class RolesController {
 
   @Delete(':id/users/:userId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Permissions('users.manage')
+  @PermissionDecorator(Permissions.USERS_MANAGE)
   @ApiOperation({ summary: 'Remove role from user' })
   async removeRoleFromUser(
     @Param('id') roleId: string,

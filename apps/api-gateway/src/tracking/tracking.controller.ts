@@ -3,7 +3,8 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import { TrackingService } from './tracking.service'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RbacGuard } from '../auth/guards/rbac.guard'
-import { Permissions } from '../auth/decorators/permissions.decorator'
+import { Permissions as PermissionDecorator } from '../auth/decorators/permissions.decorator'
+import { Permissions } from '../auth/permissions/permissions'
 
 @ApiTags('tracking')
 @Controller('tracking')
@@ -12,7 +13,7 @@ export class TrackingController {
 
   @Get(':vehicleId/position')
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('tracking.read')
+  @PermissionDecorator(Permissions.TRACKING_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get latest vehicle position' })
   async getLatestPosition(@Param('vehicleId') vehicleId: string) {
@@ -21,7 +22,7 @@ export class TrackingController {
 
   @Get(':vehicleId/history')
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('tracking.read')
+  @PermissionDecorator(Permissions.TRACKING_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get vehicle position history' })
   async getTrack(

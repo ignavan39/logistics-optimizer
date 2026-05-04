@@ -12,7 +12,7 @@ interface CacheEntry {
 @Injectable()
 export class RouteCacheService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RouteCacheService.name);
-  private redis: Redis;
+  private redis: Redis | undefined;
   private readonly CACHE_TTL = 86400;
   private readonly CACHE_PREFIX = 'route:';
 
@@ -44,7 +44,9 @@ export class RouteCacheService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.redis.quit();
+    if (this.redis) {
+      await this.redis.quit();
+    }
   }
 
   private normalizeKey(originLat: number, originLng: number, destLat: number, destLng: number, vehicleId?: string): string {

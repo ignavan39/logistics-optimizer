@@ -4,7 +4,8 @@ import { FleetService } from './fleet.service'
 import { AssignVehicleDto, type ReleaseVehicleDto, type UpdateVehicleDto } from './dto/fleet.dto'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RbacGuard } from '../auth/guards/rbac.guard'
-import { Permissions } from '../auth/decorators/permissions.decorator'
+import { Permissions as PermissionDecorator } from '../auth/decorators/permissions.decorator'
+import { Permissions } from '../auth/permissions/permissions'
 
 @ApiTags('fleet')
 @Controller('vehicles')
@@ -13,7 +14,7 @@ export class FleetController {
 
   @Get()
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('vehicles.read')
+  @PermissionDecorator(Permissions.VEHICLES_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get available vehicles near a location' })
   async getAvailableVehicles(
@@ -35,7 +36,7 @@ export class FleetController {
 
   @Get(':vehicleId')
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('vehicles.read')
+  @PermissionDecorator(Permissions.VEHICLES_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get vehicle by ID' })
   async getVehicle(@Param('vehicleId') vehicleId: string) {
@@ -44,7 +45,7 @@ export class FleetController {
 
   @Get(':vehicleId/details')
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('vehicles.read')
+  @PermissionDecorator(Permissions.VEHICLES_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get vehicle details' })
   async getVehicleDetails(@Param('vehicleId') vehicleId: string) {
@@ -53,7 +54,7 @@ export class FleetController {
 
   @Post(':vehicleId/assign')
   @UseGuards(JwtAuthGuard)
-  @Permissions('vehicles.assign')
+  @PermissionDecorator(Permissions.VEHICLES_ASSIGN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Assign vehicle to order' })
   async assignVehicle(
@@ -68,7 +69,7 @@ export class FleetController {
 
   @Post(':vehicleId/release')
   @UseGuards(JwtAuthGuard)
-  @Permissions('vehicles.release')
+  @PermissionDecorator(Permissions.VEHICLES_RELEASE)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Release vehicle from order' })
   async releaseVehicle(
@@ -83,7 +84,7 @@ export class FleetController {
 
   @Patch(':vehicleId')
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('vehicles.update')
+  @PermissionDecorator(Permissions.VEHICLES_UPDATE)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update vehicle' })

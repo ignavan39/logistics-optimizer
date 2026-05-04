@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -30,6 +31,9 @@ export class AuthService {
   async register(dto: RegisterDto) {
     const user = await this.usersService.register(dto);
     const fullUser = await this.dataSource.getRepository(User).findOne({ where: { id: user.userId } });
+    if (!fullUser) {
+      throw new InternalServerErrorException('Failed to create user');
+    }
     return this.tokenService.generateTokens(fullUser);
   }
 

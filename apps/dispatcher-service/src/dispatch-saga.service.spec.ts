@@ -113,7 +113,7 @@ describe('DispatchSagaService', () => {
       const retrieved = service.getSaga(created.sagaId);
 
       expect(retrieved).toBeDefined();
-      expect(retrieved.orderId).toBe('order-4');
+      expect(retrieved!.orderId).toBe('order-4');
     });
 
     it('should return undefined for non-existent saga', () => {

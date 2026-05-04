@@ -20,7 +20,8 @@ import {
 } from './dto/orders.dto'
 import { JwtAuthGuard, CurrentUser } from '../auth/guards/jwt-auth.guard'
 import { RbacGuard } from '../auth/guards/rbac.guard'
-import { Permissions } from '../auth/decorators/permissions.decorator'
+import { Permissions as PermissionDecorator } from '../auth/decorators/permissions.decorator'
+import { Permissions } from '../auth/permissions/permissions'
 import { RequestUser } from '../auth/strategies/jwt.strategy'
 
 @ApiTags('orders')
@@ -31,7 +32,7 @@ export class OrdersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('orders.create')
+  @PermissionDecorator(Permissions.ORDERS_CREATE)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create new order' })
   async createOrder(@Body() dto: CreateOrderDto, @CurrentUser() user: RequestUser) {
@@ -41,7 +42,7 @@ export class OrdersController {
 
   @Get(':orderId')
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('orders.read')
+  @PermissionDecorator(Permissions.ORDERS_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get order by ID' })
   async getOrder(@Param('orderId') orderId: string) {
@@ -50,7 +51,7 @@ export class OrdersController {
 
   @Get(':orderId/history')
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('orders.read')
+  @PermissionDecorator(Permissions.ORDERS_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get order status history' })
   async getOrderHistory(@Param('orderId') orderId: string) {
@@ -59,7 +60,7 @@ export class OrdersController {
 
   @Get()
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('orders.read')
+  @PermissionDecorator(Permissions.ORDERS_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List orders with pagination' })
   async listOrders(
@@ -80,7 +81,7 @@ export class OrdersController {
   @Patch(':orderId/status')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('orders.update')
+  @PermissionDecorator(Permissions.ORDERS_UPDATE)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update order status' })
   async updateOrderStatus(
@@ -96,7 +97,7 @@ export class OrdersController {
   @Delete(':orderId')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RbacGuard)
-  @Permissions('orders.cancel')
+  @PermissionDecorator(Permissions.ORDERS_CANCEL)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancel order' })
   async cancelOrder(

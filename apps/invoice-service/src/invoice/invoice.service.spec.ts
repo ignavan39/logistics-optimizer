@@ -151,7 +151,7 @@ expect(mockQb.andWhere).toHaveBeenCalledWith(
     it('should set paidAt when status is PAID', async () => {
       const invoice = { id: 'inv-1', status: InvoiceStatus.SENT, version: 1, paidAt: undefined as Date | undefined };
       mockRepo.findOne.mockResolvedValue(invoice);
-      mockRepo.save.mockImplementation((entity) => Promise.resolve({ ...invoice, ...entity }));
+      mockRepo.save.mockImplementation((entity: InvoiceEntity) => Promise.resolve({ ...invoice, ...entity }));
 
       const result = await service.updateStatus('inv-1', InvoiceStatus.PAID);
 

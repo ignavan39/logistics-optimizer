@@ -67,7 +67,8 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
 
   async getInvoice(id: string): Promise<InvoiceResponse | null> {
     try {
-      return await this.invoiceClient.getInvoice({ invoiceId: id });
+      const result = await this.invoiceClient.getInvoice({ invoiceId: id });
+      return result ?? null;
     } catch (e) {
       this.logger.error(`Failed to get invoice ${id}: ${e}`);
       return null;
@@ -76,7 +77,8 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
 
   async getInvoiceByOrder(orderId: string): Promise<InvoiceResponse | null> {
     try {
-      return await this.invoiceClient.getInvoiceByOrder({ orderId });
+      const result = await this.invoiceClient.getInvoiceByOrder({ orderId });
+      return result ?? null;
     } catch (e) {
       this.logger.error(`Failed to get invoice for order ${orderId}: ${e}`);
       return null;
@@ -91,7 +93,7 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
         page: params.page ?? 1,
         limit: params.limit ?? 20,
       });
-      return response;
+      return response ?? { invoices: [], total: 0, page: 1 };
     } catch (e) {
       this.logger.error(`Failed to list invoices: ${e}`);
       return { invoices: [], total: 0, page: 1 };
@@ -103,10 +105,11 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
     status: 'paid' | 'cancelled',
   ): Promise<InvoiceResponse | null> {
     try {
-      return await this.invoiceClient.updateInvoiceStatus({
+      const result = await this.invoiceClient.updateInvoiceStatus({
         invoiceId: id,
         status: status.toUpperCase(),
       });
+      return result ?? null;
     } catch (e) {
       this.logger.error(`Failed to update invoice ${id}: ${e}`);
       return null;
