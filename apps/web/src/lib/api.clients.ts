@@ -43,6 +43,37 @@ export const contractsApi = {
   tariffs: (contractId: string) => apiGet<CreateContractTariffDto[]>(`/contracts/${contractId}/tariffs`),
 }
 
+interface InvoiceResponse {
+  id: string;
+  order_id: string;
+  number: string;
+  amount: number;
+  vat_rate: number;
+  vat_amount: number;
+  status: number;
+  due_date: string;
+  paid_at: string;
+  counterparty_id: string;
+  contract_id: string;
+  description: string;
+  created_at: string;
+  version: number;
+}
+
+const mapInvoice = (inv: InvoiceResponse): Invoice => ({
+  id: inv.id,
+  orderId: inv.order_id,
+  number: inv.number,
+  counterpartyId: inv.counterparty_id,
+  amount: inv.amount,
+  vatRate: inv.vat_rate,
+  vatAmount: inv.vat_amount,
+  status: inv.status as Invoice['status'],
+  dueDateUnix: inv.due_date ? Math.floor(Number(inv.due_date) / 1000) : undefined,
+  paidAtUnix: inv.paid_at ? Math.floor(Number(inv.paid_at) / 1000) : undefined,
+  createdAtUnix: inv.created_at ? Math.floor(Number(inv.created_at) / 1000) : 0,
+})
+
 export const invoicesApi = {
   list: (params?: { page?: number; limit?: number; status?: string }) => {
     const searchParams = new URLSearchParams()
@@ -50,12 +81,16 @@ export const invoicesApi = {
     if (params?.limit) searchParams.set('limit', String(params.limit))
     if (params?.status) searchParams.set('status', params.status)
     const query = searchParams.toString()
-    return apiGet<{ invoices: Invoice[]; total: number; page: number }>(query ? `/invoices?${query}` : '/invoices')
-      .then(res => ({ items: res.invoices, total: res.total, page: res.page }))
+    return apiGet<{ invoices: InvoiceResponse[]; total: number; page: number }>(query ? `/invoices?${query}` : '/invoices')
+      .then(res => ({
+        items: res.invoices.map(mapInvoice),
+        total: res.total,
+        page: res.page
+      }))
   },
-  get: (id: string) => apiGet<Invoice>(`/invoices/${id}`),
+  get: (id: string) => apiGet<InvoiceResponse>(`/invoices/${id}`).then(mapInvoice),
   pdf: (id: string) => apiDownload(`/invoices/${id}/pdf`, `invoice-${id}.pdf`),
-  updateStatus: (id: string, data: InvoiceStatusUpdate) => apiPatch<Invoice>(`/invoices/${id}`, data),
+  updateStatus: (id: string, data: InvoiceStatusUpdate) => apiPatch<InvoiceResponse>(`/invoices/${id}`, data).then(mapInvoice),
 }
 
 export const settingsApi = {
