@@ -206,20 +206,23 @@ private toResponse(invoice: InvoiceEntity) {
   }
 
   private mapInvoice(invoice: InvoiceEntity) {
+    const statusIndex = typeof invoice.status === 'number' 
+      ? invoice.status 
+      : Object.values(InvoiceStatus).indexOf(invoice.status as InvoiceStatus);
     return {
       id: invoice.id || '',
       order_id: invoice.orderId || '',
       number: invoice.number || '',
-      amount_rub: String(invoice.amountRub || 0),
-      vat_rate: String(invoice.vatRate || 0),
-      vat_amount: String(invoice.vatAmount || 0),
-      status: String(invoice.status || ''),
-      due_date: String(invoice.dueDate || ''),
-      paid_at: String(invoice.paidAt || ''),
+      amount: invoice.amountRub || 0,
+      vat_rate: invoice.vatRate || 0,
+      vat_amount: invoice.vatAmount || 0,
+      status: statusIndex >= 0 ? statusIndex : 0,
+      due_date: invoice.dueDate ? String(invoice.dueDate.getTime()) : '0',
+      paid_at: invoice.paidAt ? String(invoice.paidAt.getTime()) : '0',
       counterparty_id: invoice.counterpartyId || '',
       contract_id: invoice.contractId || '',
       description: invoice.description || '',
-      created_at: String(invoice.createdAt || ''),
+      created_at: invoice.createdAt ? String(invoice.createdAt.getTime()) : '0',
       version: invoice.version || 0,
     };
   }

@@ -1,5 +1,6 @@
 export interface Invoice {
   id: string
+  orderId?: string
   number: string
   counterpartyId: string
   counterpartyName?: string
