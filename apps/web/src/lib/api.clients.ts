@@ -2,26 +2,45 @@ export { apiGet, apiPost, apiPatch, apiDelete, apiDownload, ApiError } from './a
 
 import { apiGet, apiPost, apiPatch, apiDelete, apiDownload } from './api'
 import type { CreateVehicleDto, VehicleStatus } from '@/types/vehicle'
+import type { Counterparty, CreateCounterpartyDto } from '@/types/counterparty'
+import type { CreateContractDto, CreateContractTariffDto } from '@/types/counterparty'
+import type { Invoice, InvoiceStatusUpdate } from '@/types/invoice'
+import type { CompanySettings, UpdateCompanySettingsDto } from '@/types/settings'
+
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  page: number
+}
 
 export const counterpartiesApi = {
-  list: () => apiGet<any[]>('/counterparties'),
-  get: (id: string) => apiGet<any>(`/counterparties/${id}`),
-  create: (data: any) => apiPost<any>('/counterparties', data),
-  update: (id: string, data: any) => apiPatch<any>(`/counterparties/${id}`, data),
-  delete: (id: string) => apiDelete<any>(`/counterparties/${id}`),
+  list: () => apiGet<Counterparty[]>('/counterparties'),
+  get: (id: string) => apiGet<Counterparty>(`/counterparties/${id}`),
+  create: (data: CreateCounterpartyDto) => apiPost<Counterparty>('/counterparties', data),
+  update: (id: string, data: Partial<CreateCounterpartyDto>) => apiPatch<Counterparty>(`/counterparties/${id}`, data),
+  delete: (id: string) => apiDelete<void>(`/counterparties/${id}`),
+}
+
+export interface Contract {
+  id: string
+  counterpartyId: string
+  number: string
+  status: string
+  validFromUnix?: number
+  validToUnix?: number
 }
 
 export const contractsApi = {
-  list: (counterpartyId?: string) => apiGet<any[]>(counterpartyId ? `/contracts?counterpartyId=${counterpartyId}` : '/contracts'),
-  get: (id: string) => apiGet<any>(`/contracts/${id}`),
-  create: (data: any) => apiPost<any>('/contracts', data),
-  update: (id: string, data: any) => apiPatch<any>(`/contracts/${id}`, data),
-  delete: (id: string) => apiDelete<any>(`/contracts/${id}`),
-  createTariff: (contractId: string, data: any) => apiPost<any>(`/contracts/${contractId}/tariffs`, data),
-  getTariffs: (contractId: string) => apiGet<any[]>(`/contracts/${contractId}/tariffs`),
-  updateTariff: (contractId: string, tariffId: string, data: any) => apiPatch<any>(`/contracts/${contractId}/tariffs/${tariffId}`, data),
-  deleteTariff: (contractId: string, tariffId: string) => apiDelete<any>(`/contracts/${contractId}/tariffs/${tariffId}`),
-  tariffs: (contractId: string) => apiGet<any[]>(`/contracts/${contractId}/tariffs`),
+  list: (counterpartyId?: string) => apiGet<Contract[]>(counterpartyId ? `/contracts?counterpartyId=${counterpartyId}` : '/contracts'),
+  get: (id: string) => apiGet<Contract>(`/contracts/${id}`),
+  create: (data: CreateContractDto) => apiPost<Contract>('/contracts', data),
+  update: (id: string, data: Partial<CreateContractDto>) => apiPatch<Contract>(`/contracts/${id}`, data),
+  delete: (id: string) => apiDelete<void>(`/contracts/${id}`),
+  createTariff: (contractId: string, data: CreateContractTariffDto) => apiPost<CreateContractTariffDto>(`/contracts/${contractId}/tariffs`, data),
+  getTariffs: (contractId: string) => apiGet<CreateContractTariffDto[]>(`/contracts/${contractId}/tariffs`),
+  updateTariff: (contractId: string, tariffId: string, data: Partial<CreateContractTariffDto>) => apiPatch<CreateContractTariffDto>(`/contracts/${contractId}/tariffs/${tariffId}`, data),
+  deleteTariff: (contractId: string, tariffId: string) => apiDelete<void>(`/contracts/${contractId}/tariffs/${tariffId}`),
+  tariffs: (contractId: string) => apiGet<CreateContractTariffDto[]>(`/contracts/${contractId}/tariffs`),
 }
 
 export const invoicesApi = {
@@ -31,17 +50,17 @@ export const invoicesApi = {
     if (params?.limit) searchParams.set('limit', String(params.limit))
     if (params?.status) searchParams.set('status', params.status)
     const query = searchParams.toString()
-    return apiGet<{ invoices: any[]; total: number; page: number }>(query ? `/invoices?${query}` : '/invoices')
+    return apiGet<{ invoices: Invoice[]; total: number; page: number }>(query ? `/invoices?${query}` : '/invoices')
       .then(res => ({ items: res.invoices, total: res.total, page: res.page }))
   },
-  get: (id: string) => apiGet<any>(`/invoices/${id}`),
+  get: (id: string) => apiGet<Invoice>(`/invoices/${id}`),
   pdf: (id: string) => apiDownload(`/invoices/${id}/pdf`, `invoice-${id}.pdf`),
-  updateStatus: (id: string, data: any) => apiPatch<any>(`/invoices/${id}`, data),
+  updateStatus: (id: string, data: InvoiceStatusUpdate) => apiPatch<Invoice>(`/invoices/${id}`, data),
 }
 
 export const settingsApi = {
-  getCompany: () => apiGet<any>('/settings/company'),
-  updateCompany: (data: any) => apiPatch<any>('/settings/company', data),
+  getCompany: () => apiGet<CompanySettings>('/settings/company'),
+  updateCompany: (data: UpdateCompanySettingsDto) => apiPatch<CompanySettings>('/settings/company', data),
 }
 
 export const vehiclesApi = {

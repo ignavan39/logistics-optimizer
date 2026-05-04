@@ -15,6 +15,18 @@ export enum SagaStatus {
   CANCELLED           = 'cancelled',
 }
 
+export interface DispatchSagaRow {
+  id: string;
+  order_id: string;
+  status: string;
+  steps: string[];
+  vehicle_id: string | null;
+  route_id: string | null;
+  retry_count: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export interface DispatchSaga {
   sagaId: string;
   orderId: string;
@@ -265,7 +277,7 @@ private async execute(saga: DispatchSaga): Promise<void> {
     return this.sagas.get(sagaId);
   }
 
-  async listSagas(options: { status?: string; limit?: number; offset?: number } = {}): Promise<{ sagas: any[]; total: number }> {
+  async listSagas(options: { status?: string; limit?: number; offset?: number } = {}): Promise<{ sagas: DispatchSagaRow[]; total: number }> {
     const { status, limit = 50, offset = 0 } = options;
     
     let query = 'SELECT * FROM dispatch_sagas';

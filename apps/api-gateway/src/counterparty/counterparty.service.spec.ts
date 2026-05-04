@@ -81,18 +81,17 @@ describe('CounterpartyService', () => {
     it('should pass filter params', async () => {
       (mockGrpcClient.getService() as any).listCounterparties.mockResolvedValue({ items: [] });
 
-      await service.listCounterparties({ type: 'carrier', status: 'active' });
+      await service.listCounterparties({ type: 'carrier' });
 
       expect((mockGrpcClient.getService() as any).listCounterparties).toHaveBeenCalledWith({
         type: 'carrier',
-        status: 'active',
       });
     });
   });
 
   describe('createCounterparty()', () => {
     it('should create counterparty via gRPC', async () => {
-      const input = { name: 'New Company', inn: '1234567890', type: 'carrier' };
+      const input = { name: 'New Company', inn: '1234567890', type: 'carrier' as const };
       const created = { id: 'cp-new', ...input };
       (mockGrpcClient.getService() as any).createCounterparty.mockResolvedValue(created);
 
@@ -189,7 +188,7 @@ describe('CounterpartyService', () => {
 
   describe('createContractTariff()', () => {
     it('should create tariff via gRPC', async () => {
-      const input = { contractId: 'contract-1', zone: 'moscow', pricePerKm: 50 };
+      const input = { contractId: 'contract-1', zone: 'moscow', pricePerKm: 50, pricePerKg: 10 };
       const created = { id: 'tariff-new', ...input };
       (mockGrpcClient.getService() as any).createContractTariff.mockResolvedValue(created);
 

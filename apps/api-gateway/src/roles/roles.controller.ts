@@ -15,7 +15,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../auth/guards/rbac.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { RolesService } from './roles.service';
-import { AssignRoleDto } from './dto/role.dto';
+import { AssignRoleDto, CreateRoleDto, UpdateRoleDto } from './dto/role.dto';
 
 @ApiTags('roles')
 @Controller('roles')
@@ -42,14 +42,14 @@ export class RolesController {
   @HttpCode(HttpStatus.CREATED)
   @Permissions('users.manage')
   @ApiOperation({ summary: 'Create new role' })
-  async createRole(@Body() dto: any) {
+  async createRole(@Body() dto: CreateRoleDto) {
     return this.rolesService.createRole(dto);
   }
 
   @Patch(':id')
   @Permissions('users.manage')
   @ApiOperation({ summary: 'Update role' })
-  async updateRole(@Param('id') id: string, @Body() dto: any) {
+  async updateRole(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
     return this.rolesService.updateRole(id, dto);
   }
 

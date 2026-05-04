@@ -6,6 +6,16 @@ import { Session } from './entities/session.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { CreateUserDto, RegisterDto, ListUsersQueryDto, UpdateUserDto } from './dto/user.dto';
 
+interface UserRow {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  is_active: boolean;
+  is_verified: boolean;
+  created_at: Date;
+}
+
 @Injectable()
 export class UsersService {
   private readonly SALT_ROUNDS = 12;
@@ -59,10 +69,10 @@ export class UsersService {
     );
   }
 
-  async findUsers(options?: ListUsersQueryDto): Promise<{ users: any[]; total: number; limit: number; offset: number }> {
+  async findUsers(options?: ListUsersQueryDto): Promise<{ users: UserRow[]; total: number; limit: number; offset: number }> {
     const limit = options?.limit || 50;
     const offset = options?.offset || 0;
-    const params: any[] = [];
+    const params: (string | number | boolean)[] = [];
     const conditions: string[] = [];
 
     if (options?.search) {

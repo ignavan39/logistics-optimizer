@@ -84,15 +84,15 @@ describe('InvoiceGrpcController', () => {
       const invoice = { id: 'inv-1', orderId: 'order-1' };
       mockService.getInvoiceByOrderId.mockResolvedValue(invoice);
 
-      const result = await controller.getInvoiceByOrder({ orderId: 'order-1' });
+      const result = await controller.getInvoiceByOrder({ order_id: 'order-1' });
 
-      expect(result.orderId).toBe('order-1');
+      expect(result.order_id).toBe('order-1');
     });
 
     it('should throw NOT_FOUND if not found', async () => {
       mockService.getInvoiceByOrderId.mockResolvedValue(null);
 
-      await expect(controller.getInvoiceByOrder({ orderId: 'nonexistent' })).rejects.toThrow(
+      await expect(controller.getInvoiceByOrder({ order_id: 'nonexistent' })).rejects.toThrow(
         RpcException,
       );
     });

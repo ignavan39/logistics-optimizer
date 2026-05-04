@@ -2,19 +2,55 @@ import { Injectable, Logger, NotFoundException, ConflictException, Inject } from
 import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { ClientGrpc } from '@nestjs/microservices';
+import { Observable } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { PdfStatus } from './entities/invoice.entity';
 import { S3StorageService } from './s3-storage.service';
 import { PgAdvisoryLock } from './pg-advisory-lock';
 import { generateInvoice, type InvoiceData } from '@logistics/document-templates';
-import { firstValueFrom } from 'rxjs';
+
+interface InvoiceRow {
+  id: string;
+  order_id: string;
+  number: string;
+  amount_rub: number | string;
+  vat_rate: number | string;
+  vat_amount: number | string;
+  due_date: Date;
+  created_at: Date;
+}
+
+interface CompanySettings {
+  company_name?: string;
+  company_inn?: string;
+  company_kpp?: string;
+  company_address?: string;
+  default_payment_terms_days?: number;
+}
+
+interface OrderResponse {
+  id: string;
+  number?: string;
+  origin?: { address?: string };
+  destination?: { address?: string };
+  created_at?: { getTime?: () => number } | number;
+}
+
+interface CounterpartyResponse {
+  id: string;
+  name?: string;
+  inn?: string;
+  kpp?: string;
+  address?: { full?: string };
+}
 
 interface OrderServiceClient {
-  GetOrder(request: { order_id: string }): import('rxjs').Observable<any>;
-  GetCompanySettings(request: Record<string, never>): import('rxjs').Observable<any>;
+  GetOrder(request: { order_id: string }): Observable<OrderResponse>;
+  GetCompanySettings(request: Record<string, never>): Observable<CompanySettings>;
 }
 
 interface CounterpartyServiceClient {
-  GetCounterparty(request: { id: string }): import('rxjs').Observable<any>;
+  GetCounterparty(request: { id: string }): Observable<CounterpartyResponse>;
 }
 
 @Injectable()
@@ -183,7 +219,7 @@ private async getOrderData(orderId: string): Promise<any> {
     }
   }
 
-  private async getCompanySettings(): Promise<any> {
+  private async getCompanySettings(): Promise<CompanySettings | null> {
     try {
       const settings = await firstValueFrom(this.orderClient.GetCompanySettings({}));
       return settings;
@@ -193,7 +229,7 @@ private async getOrderData(orderId: string): Promise<any> {
     }
   }
 
-  private async getCounterpartyData(counterpartyId: string): Promise<any> {
+  private async getCounterpartyData(counterpartyId: string): Promise<CounterpartyResponse | null> {
     try {
       const counterparty = await firstValueFrom(this.counterpartyClient.GetCounterparty({ id: counterpartyId }));
       return counterparty;
@@ -203,7 +239,12 @@ private async getOrderData(orderId: string): Promise<any> {
     }
   }
 
-  private buildInvoiceData(invoice: any, order: any, companySettings: any, counterparty: any): InvoiceData {
+  private buildInvoiceData(
+    invoice: InvoiceRow,
+    order: OrderResponse | null,
+    companySettings: CompanySettings | null,
+    counterparty: CounterpartyResponse | null
+  ): InvoiceData {
     const originAddress = order?.origin?.address || '';
     const destinationAddress = order?.destination?.address || '';
     const amountRub = Number(invoice.amount_rub);

@@ -12,18 +12,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR
     let message = 'Internal server error'
-    let errors: any = null
+    let errors: Record<string, unknown> | null = null
 
     if (this.isHttpException(exception)) {
       status = (exception as HttpException).getStatus()
       const exceptionResponse = (exception as HttpException).getResponse()
-      message = typeof exceptionResponse === 'string' 
-        ? exceptionResponse 
-        : (exceptionResponse as any).message || (exception as Error).message
-      errors = typeof exceptionResponse === 'object' ? exceptionResponse : null
+      if (typeof exceptionResponse === 'string') {
+        message = exceptionResponse
+      } else {
+        const resp = exceptionResponse as Record<string, unknown>
+        message = typeof resp.message === 'string' ? resp.message : (exception as Error).message
+      }
+      errors = typeof exceptionResponse === 'object' ? exceptionResponse as Record<string, unknown> : null
     } 
     else if (exception instanceof RpcException) {
-      const rpcError = exception.getError() as any
+      const rpcError = exception.getError() as { code?: number; message?: string }
       status = this.mapGrpcToHttp(rpcError?.code)
       message = rpcError?.message || 'gRPC error'
       this.logger.error(`gRPC error: ${message}`, exception.stack)

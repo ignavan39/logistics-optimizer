@@ -3,6 +3,9 @@ import { GrpcMethod, RpcException } from '@nestjs/microservices'
 import { status as GrpcStatus } from '@grpc/grpc-js'
 import { CounterpartyService } from './counterparty/counterparty.service'
 import { ContractService } from './contract/contract.service'
+import { CounterpartyEntity } from './entities/counterparty.entity'
+import { ContractEntity } from './entities/contract.entity'
+import { ContractTariffEntity } from './entities/contract-tariff.entity'
 
 @Controller()
 export class CounterpartyGrpcController {
@@ -85,11 +88,6 @@ export class CounterpartyGrpcController {
       this.logger.error(`listCounterparties error: ${e}`)
       throw e
     }
-  }
-
-  @GrpcMethod('CounterpartyService', 'ListCounterparties')
-  async listCounterpartiesUpper(data: any) {
-    return this.listCounterparties(data)
   }
 
   @GrpcMethod('CounterpartyService', 'CreateContract')
@@ -189,7 +187,7 @@ export class CounterpartyGrpcController {
     }
   }
 
-  private toResponse(entity: any) {
+  private toResponse(entity: CounterpartyEntity) {
     return {
       id: entity.id,
       name: entity.name,
@@ -207,7 +205,7 @@ export class CounterpartyGrpcController {
     }
   }
 
-  private toContractResponse(entity: any) {
+  private toContractResponse(entity: ContractEntity) {
     return {
       id: entity.id,
       counterpartyId: entity.counterpartyId,
@@ -224,7 +222,7 @@ export class CounterpartyGrpcController {
     }
   }
 
-  private toTariffResponse(entity: any) {
+  private toTariffResponse(entity: ContractTariffEntity) {
     return {
       id: entity.id,
       contractId: entity.contractId,

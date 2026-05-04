@@ -81,8 +81,8 @@ export class S3StorageService {
         chunks.push(chunk);
       }
       return Buffer.concat(chunks);
-    } catch (error: any) {
-      if (error.name === 'NoSuchKey') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'NoSuchKey') {
         return null;
       }
       throw error;
