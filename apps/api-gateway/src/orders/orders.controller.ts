@@ -72,7 +72,7 @@ export class OrdersController {
   ) {
     return this.ordersService.listOrders({
       customer_id: customerId || user.userId,
-      status: status as any,
+      status: status !== undefined ? Number(status) : undefined,
       page: page ?? 1,
       limit: limit ?? 20,
     })

@@ -47,11 +47,6 @@ export class OrderService {
     private readonly routingService: RoutingService,
   ) {}
 
-  private async getTariffFromContract(contractId: string): Promise<{pricePerKm: number, pricePerKg: number, minPrice: number} | null> {
-    // TODO: implement this method properly
-    return null;
-  }
-
   private get orderRepo() { return this.dataSource.getRepository(OrderEntity); }
   private get outboxRepo() { return this.dataSource.getRepository(OutboxEventEntity); }
   private get historyRepo() { return this.dataSource.getRepository(OrderStatusHistoryEntity); }

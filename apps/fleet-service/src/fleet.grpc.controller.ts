@@ -244,7 +244,8 @@ export class FleetGrpcController {
     try {
       await this.fleetService.releaseVehicle(request.vehicle_id)
       return { success: true }
-    } catch {
+    } catch (e) {
+      this.logger.error(`Failed to release vehicle ${request.vehicle_id}: ${e}`);
       return { success: false }
     }
   }

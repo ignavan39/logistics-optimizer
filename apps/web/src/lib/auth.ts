@@ -66,19 +66,19 @@ export const useAuthStore = create<AuthState>()(
 
       refresh: async () => {
         const { refreshToken } = get()
-        console.log('refresh: start, have token:', !!refreshToken)
+        console.debug('refresh: start, have token:', !!refreshToken)
         if (!refreshToken) {
-          console.log('refresh: no token, clearing')
+          console.debug('refresh: no token, clearing')
           set({ user: null, token: null, refreshToken: null, isAuthenticated: false })
           return
         }
         try {
-          console.log('refresh: calling /auth/refresh...')
+          console.debug('refresh: calling /auth/refresh...')
           const res = await apiFetch<{ accessToken: string; refreshToken: string; user: User }>('/auth/refresh', {
             method: 'POST',
             body: JSON.stringify({ refreshToken }),
           })
-          console.log('refresh: success, new token:', !!res.accessToken, 'user:', !!res.user)
+          console.debug('refresh: success, new token:', !!res.accessToken, 'user:', !!res.user)
           set({
             token: res.accessToken,
             refreshToken: res.refreshToken,
@@ -86,7 +86,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
           })
         } catch (e) {
-          console.log('refresh: failed', e)
+          console.debug('refresh: failed', e)
           set({ user: null, token: null, refreshToken: null, isAuthenticated: false })
         }
       },
@@ -132,16 +132,16 @@ export async function apiFetchWithAuth<T>(endpoint: string, options?: RequestIni
   })
 
   if (res.status === 401) {
-    console.log('apiFetchWithAuth: got 401, calling refresh...')
+    console.debug('apiFetchWithAuth: got 401, calling refresh...')
     const { refresh } = useAuthStore.getState()
     await refresh()
     // Need to wait a bit for Zustand state to update
     await new Promise(resolve => setTimeout(resolve, 100))
     // Get fresh state after refresh
     const newState = useAuthStore.getState()
-    console.log('apiFetchWithAuth: after refresh, token:', !!newState.token, 'auth:', newState.isAuthenticated)
+    console.debug('apiFetchWithAuth: after refresh, token:', !!newState.token, 'auth:', newState.isAuthenticated)
     if (!newState.token || !newState.isAuthenticated) {
-      console.log('apiFetchWithAuth: refresh failed, throwing')
+      console.debug('apiFetchWithAuth: refresh failed, throwing')
       throw new Error('Session expired')
     }
     const retryRes = await fetch(`/api${endpoint}`, {
