@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { Injectable, Logger } from '@nestjs/common';
+import { DataSource, In } from 'typeorm';
 import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
 import { UserRole } from './entities/user-role.entity';
@@ -11,6 +11,8 @@ import {
 
 @Injectable()
 export class RolesService {
+  private readonly logger = new Logger(RolesService.name);
+
   constructor(
     private dataSource: DataSource,
   ) {}
@@ -38,7 +40,7 @@ export class RolesService {
 
     if (dto.permissions?.length) {
       const permissions = await this.dataSource.getRepository(Permission).findBy({
-        name: dto.permissions as any,
+        name: In(dto.permissions),
       });
       const rolePermissions = permissions.map((p) =>
         this.dataSource.getRepository(UserRole).manager.create('role_permission', {
@@ -73,7 +75,7 @@ export class RolesService {
       );
 
       const permissions = await this.dataSource.getRepository(Permission).findBy({
-        name: dto.permissions as any,
+        name: In(dto.permissions),
       });
       const rolePermissions = permissions.map((p) =>
         this.dataSource.getRepository(Role).manager.create('role_permission', {
