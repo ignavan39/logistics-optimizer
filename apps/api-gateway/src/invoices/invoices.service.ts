@@ -93,7 +93,19 @@ export class InvoicesService implements OnModuleInit, OnModuleDestroy {
         page: params.page ?? 1,
         limit: params.limit ?? 20,
       });
-      return response ?? { invoices: [], total: 0, page: 1 };
+      if (!response) {
+        return { invoices: [], total: 0, page: 1 };
+      }
+      return {
+        invoices: response.invoices.map(inv => ({
+          ...inv,
+          amountRub: (inv as any).amount ?? (inv as any).amount_rub ?? 0,
+          vatRate: (inv as any).vat_rate ?? 0,
+          vatAmount: (inv as any).vat_amount ?? 0,
+        })),
+        total: response.total,
+        page: response.page,
+      };
     } catch (e) {
       this.logger.error(`Failed to list invoices: ${e}`);
       return { invoices: [], total: 0, page: 1 };
