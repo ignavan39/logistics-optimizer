@@ -140,6 +140,34 @@ service RoutingService {
 - Route caching for performance
 - Support for traffic conditions
 
+### OSRM (Open Source Routing Machine)
+
+_external service, not a separate microservice_
+
+**Docker:** `osrm` container (docker-compose.services.yml)
+
+**Purpose:** High-performance route calculation using OSRM algorithm
+
+**Endpoints:**
+| Endpoint | URL | Description |
+|----------|-----|-------------|
+| Route | `http://osrm:5000/route/v1/driving/{coordinates}` | Calculate route |
+| Table | `http://osrm:5000/table/v1/driving/{coordinates}` | Distance matrix |
+
+**Data:**
+- OSM dump: `osrm-data/russia-latest.osm.pbf` (~12GB)
+- Processed: `osrm-data/russia-latest.osrm`
+
+**Download:**
+```bash
+# Auto (makefile)
+make osrm
+
+# Manual
+mkdir -p osrm-data
+wget -P osrm-data https://download.geofabrik.de/russia-latest.osm.pbf
+```
+
 ---
 
 ## tracking-service
