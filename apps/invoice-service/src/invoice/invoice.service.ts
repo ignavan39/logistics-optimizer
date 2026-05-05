@@ -27,6 +27,7 @@ export class InvoiceService {
     offset?: number;
   } = {}): Promise<{ items: InvoiceEntity[]; total: number }> {
     const { counterpartyId, status, page = 1, limit = 50, offset = 0 } = options;
+    const safePage = page < 1 ? 1 : page;
     
     const qb = this.invoiceRepo.createQueryBuilder('invoice');
     
@@ -40,7 +41,7 @@ export class InvoiceService {
     
     const [items, total] = await qb
       .orderBy('invoice.createdAt', 'DESC')
-      .skip((page - 1) * limit + offset)
+      .skip((safePage - 1) * limit + offset)
       .take(limit)
       .getManyAndCount();
     

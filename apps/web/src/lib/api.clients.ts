@@ -7,6 +7,30 @@ import type { CreateContractDto, CreateContractTariffDto } from '@/types/counter
 import type { Invoice, InvoiceStatusUpdate } from '@/types/invoice'
 import type { CompanySettings, UpdateCompanySettingsDto } from '@/types/settings'
 
+const OSRM_API = '/osrm'
+
+export interface OsrmRouteResponse {
+  distance: number
+  duration: number
+  geometry: { coordinates: [number, number][] }
+}
+
+export const osrmApi = {
+  route: async (originLng: number, originLat: number, destLng: number, destLat: number): Promise<OsrmRouteResponse> => {
+    const url = `${OSRM_API}/route/v1/driving/${originLng},${originLat};${destLng},${destLat}?overview=full&geometries=geojson`
+    const res = await fetch(url)
+    const data = await res.json()
+    if (!data.routes?.length) {
+      throw new Error(data.message || 'No route found')
+    }
+    return {
+      distance: data.routes[0].distance,
+      duration: data.routes[0].duration,
+      geometry: data.routes[0].geometry,
+    }
+  },
+}
+
 export interface PaginatedResponse<T> {
   items: T[]
   total: number
@@ -28,6 +52,7 @@ export interface Contract {
   status: string
   validFromUnix?: number
   validToUnix?: number
+  totalLimitRub?: number
 }
 
 export const contractsApi = {
@@ -45,41 +70,54 @@ export const contractsApi = {
 
 interface InvoiceResponse {
   id: string;
-  order_id: string;
+  orderId?: string;
   number: string;
-  amount: number;
-  vat_rate: number;
-  vat_amount: number;
-  status: number;
-  due_date: string;
-  paid_at: string;
-  counterparty_id: string;
-  contract_id: string;
-  description: string;
-  created_at: string;
-  version: number;
+  amount?: number;
+  amountRub?: number;
+  vatRate?: number;
+  vatAmount?: number;
+  status: number | string;
+  dueDate?: string;
+  paidAt?: string;
+  counterpartyId?: string;
+  counterpartyName?: string;
+  contractId?: string;
+  description?: string;
+  createdAt?: string;
+  version?: number;
 }
 
-const mapInvoice = (inv: InvoiceResponse): Invoice => ({
-  id: inv.id,
-  orderId: inv.order_id,
-  number: inv.number,
-  counterpartyId: inv.counterparty_id,
-  amount: inv.amount,
-  vatRate: inv.vat_rate,
-  vatAmount: inv.vat_amount,
-  status: inv.status as Invoice['status'],
-  dueDateUnix: inv.due_date ? Math.floor(Number(inv.due_date) / 1000) : undefined,
-  paidAtUnix: inv.paid_at ? Math.floor(Number(inv.paid_at) / 1000) : undefined,
-  createdAtUnix: inv.created_at ? Math.floor(Number(inv.created_at) / 1000) : 0,
-})
+const parseDate = (dateStr: string): number | undefined => {
+  if (!dateStr) return undefined;
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? undefined : Math.floor(d.getTime() / 1000);
+}
+
+const mapInvoice = (inv: InvoiceResponse): Invoice => {
+  const statusVal = typeof inv.status === 'number' ? inv.status : parseInt(String(inv.status), 10) || 0;
+  return {
+    id: inv.id,
+    orderId: inv.orderId,
+    number: inv.number,
+    counterpartyId: inv.counterpartyId,
+    counterpartyName: inv.counterpartyName,
+    amount: Number(inv.amount ?? inv.amountRub) || 0,
+    vatRate: Number(inv.vatRate) || 0,
+    vatAmount: Number(inv.vatAmount) || 0,
+    status: statusVal as Invoice['status'],
+    dueDateUnix: parseDate(inv.dueDate),
+    paidAtUnix: parseDate(inv.paidAt) || undefined,
+    createdAtUnix: parseDate(inv.createdAt) || Math.floor(Date.now() / 1000),
+  };
+}
 
 export const invoicesApi = {
-  list: (params?: { page?: number; limit?: number; status?: string }) => {
+  list: (params?: { page?: number; limit?: number; status?: string; counterpartyId?: string }) => {
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.set('page', String(params.page))
     if (params?.limit) searchParams.set('limit', String(params.limit))
     if (params?.status) searchParams.set('status', params.status)
+    if (params?.counterpartyId) searchParams.set('counterpartyId', params.counterpartyId)
     const query = searchParams.toString()
     return apiGet<{ invoices: InvoiceResponse[]; total: number; page: number }>(query ? `/invoices?${query}` : '/invoices')
       .then(res => ({

@@ -5,6 +5,7 @@ import { AssignVehicleDto, type ReleaseVehicleDto, type UpdateVehicleDto } from 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RbacGuard } from '../auth/guards/rbac.guard'
 import { Permissions as PermissionDecorator } from '../auth/decorators/permissions.decorator'
+import { AuditLog as AuditDecorator } from '../auth/decorators/audit.decorator'
 import { Permissions } from '../auth/permissions/permissions'
 
 @ApiTags('fleet')
@@ -55,6 +56,7 @@ export class FleetController {
   @Post(':vehicleId/assign')
   @UseGuards(JwtAuthGuard)
   @PermissionDecorator(Permissions.VEHICLES_ASSIGN)
+  @AuditDecorator('vehicle.assigned', 'vehicle')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Assign vehicle to order' })
   async assignVehicle(

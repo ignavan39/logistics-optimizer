@@ -1,5 +1,7 @@
 # REST API Reference
 
+> **IMPORTANT:** All API responses use **camelCase** for field names (e.g., `counterpartyName`, `orderId`, `amountRub`, NOT `counterparty_name`, `order_id`, `amount_rub`). Frontend must read camelCase.
+
 API Gateway runs on port 3000. All endpoints except `/auth/*` require authentication.
 
 ## Authentication

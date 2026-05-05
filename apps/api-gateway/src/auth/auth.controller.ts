@@ -24,6 +24,7 @@ import {
 } from './dto/user-auth.dto';
 import { JwtAuthGuard, CurrentUser } from './guards/jwt-auth.guard';
 import { Public } from './decorators/public.decorator';
+import { AuditLog } from './decorators/audit.decorator';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -37,6 +38,7 @@ export class AuthController {
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register new user' })
+  @AuditLog('user.created')
   @Throttle({ default: { ttl: 60000, limit: 1000 } })
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
@@ -47,6 +49,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
   @Throttle({ default: { ttl: 60000, limit: 1000 } })
+  @AuditLog('auth.login')
   async login(@Body() dto: LoginDto, @Req() req: Request) {
     const ipAddress = req.ip || req.socket?.remoteAddress;
     const userAgent = req.get('User-Agent');
@@ -73,6 +76,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Logout and invalidate session' })
+  @AuditLog('auth.logout')
   async logout(@CurrentUser() user: { userId: string }, @Req() req: Request) {
     const sessionId = req.headers['x-session-id'] as string | undefined;
     return this.authService.logout(user.userId, sessionId);

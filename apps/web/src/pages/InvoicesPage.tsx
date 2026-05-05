@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { FileText, Download, Clock, Loader2 } from 'lucide-react'
 import { Button, PageLoader, Badge, Modal } from '@/components/ui'
@@ -125,7 +126,16 @@ export function InvoicesPage() {
               {filteredData.map(inv => (
                 <tr key={inv.id} className="border-t border-border hover:bg-surface-hover/50">
                   <td className="p-3 font-mono">{inv.number}</td>
-                  <td className="p-3">{inv.counterpartyName || '-'}</td>
+                  <td className="p-3">
+                    {inv.counterpartyId ? (
+                      <Link 
+                        to={`/counterparties/${inv.counterpartyId}`} 
+                        className="text-accent-lavender hover:underline"
+                      >
+                        {inv.counterpartyName || inv.counterpartyId.slice(0, 8)}
+                      </Link>
+                    ) : '-'}
+                  </td>
                   <td className="p-3 font-medium">{formatCurrency(inv.amount)}</td>
                   <td className="p-3 text-text-muted">{inv.vatRate}% ({formatCurrency(inv.vatAmount)})</td>
                   <td className="p-3">
