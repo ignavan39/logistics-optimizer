@@ -8,6 +8,7 @@
 
 | Факт | Контекст |
 |------|---------|
+| **REST API использует camelCase** | Ответы: `counterpartyId`, `orderId`, `amountRub`, `vatRate`, `vatAmount`, `dueDate`, `paidAt`, `createdAt` — НЕ snake_case |
 | Карта с >100 маркерами без кластеризации = freeze | Всегда MarkerClusterGroup или виртуализация |
 | `useEffect` + `fetch` = race condition | Только React Query для серверного стейта |
 | Zustand `state.field++` — мутация стора | Всегда `set((s) => ({ count: s.count + 1 }))` |

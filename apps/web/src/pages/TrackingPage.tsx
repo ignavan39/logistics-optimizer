@@ -1,264 +1,231 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
-import { Loader2, Navigation, History } from 'lucide-react'
+import { Loader2, Package } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import L from 'leaflet'
 import { apiFetchWithAuth as apiFetch } from '@/lib/auth'
-import { TrackingPoint } from '@/types'
-import { Button, Input } from '@/components/ui'
+import { osrmApi } from '@/lib/api.clients'
+import type { OrderStatus } from '@/types'
 
-interface Vehicle {
+interface Order {
   id: string
-  current_location?: { lat: number; lng: number }
-}
-
-interface VehiclesResponse {
-  vehicles: Vehicle[]
-}
-
-interface TrackingHistoryResponse {
-  vehicleId: string
-  points: TrackingPoint[]
+  status: OrderStatus
+  origin?: { lat: number; lng: number }
+  destination?: { lat: number; lng: number }
 }
 
 const defaultCenter: [number, number] = [55.7558, 37.6173]
 
-const truckIcon = L.divIcon({
+const originIcon = L.divIcon({
   className: 'custom-icon',
-  html: `<div style="background: #a8d8ea; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff;">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0f0f1a" stroke-width="2">
-      <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
-      <path d="M15 18H9"/>
-      <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/>
-      <circle cx="17" cy="18" r="2"/>
-      <circle cx="7" cy="18" r="2"/>
-    </svg>
-  </div>`,
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
+  html: `<div style="background: #a8d8ea; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff;"></div>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
 })
 
-const pointIcon = L.divIcon({
+const destIcon = L.divIcon({
   className: 'custom-icon',
-  html: `<div style="background: #f59e0b; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff;"></div>`,
-  iconSize: [12, 12],
-  iconAnchor: [6, 6],
+  html: `<div style="background: #22c55e; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff;"></div>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
 })
+
+const getStatusColor = (status: OrderStatus): string => {
+  const colors: Record<OrderStatus, string> = {
+    0: '#a8d8ea',
+    1: '#f59e0b',
+    2: '#22c55e',
+    3: '#ef4444',
+    4: '#6b7280'
+  }
+  return colors[status] || '#6b7280'
+}
+
+const getStatusLabel = (status: OrderStatus): string => {
+  const labels: Record<OrderStatus, string> = {
+    0: 'Новый',
+    1: 'В пути',
+    2: 'Доставлен',
+    3: 'Проблема',
+    4: 'Отменен'
+  }
+  return labels[status] || 'Неизвестно'
+}
 
 export function TrackingPage() {
-  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null)
-  const [mapCenter, setMapCenter] = useState<[number, number]>(defaultCenter)
-  const [activeTab, setActiveTab] = useState<'realtime' | 'history'>('realtime')
-  const [historyFrom, setHistoryFrom] = useState('')
-  const [historyTo, setHistoryTo] = useState('')
+  const [selectedOrder, setSelectedOrder] = useState<string | null>(null)
+  const [orderRoutes, setOrderRoutes] = useState<Record<string, [number, number][]>>({})
+  const [loadingRoutes, setLoadingRoutes] = useState(false)
+  const [activeStatus, setActiveStatus] = useState<string>('all')
 
-  const { data: vehiclesData, isLoading: vehiclesLoading } = useQuery<VehiclesResponse>({
-    queryKey: ['vehicles'],
-    queryFn: () => apiFetch('/vehicles'),
-    refetchInterval: activeTab === 'realtime' ? 30000 : false,
+  const { data: ordersData, isLoading } = useQuery({
+    queryKey: ['orders', 'all', 'active'],
+    queryFn: () => apiFetch<{ orders: Order[] }>('/orders?limit=200'),
   })
 
-  const { data: trackingHistory, isLoading: historyLoading, refetch: refetchHistory } = useQuery<TrackingHistoryResponse>({
-    queryKey: ['tracking', selectedVehicle, 'history', historyFrom, historyTo],
-    queryFn: () => {
-      const params = new URLSearchParams()
-      if (historyFrom) params.append('from', String(Math.floor(new Date(historyFrom).getTime() / 1000)))
-      if (historyTo) params.append('to', String(Math.floor(new Date(historyTo).getTime() / 1000)))
-      params.append('max_points', '100')
-      return apiFetch(`/tracking/${selectedVehicle}/history?${params.toString()}`)
-    },
-    enabled: !!selectedVehicle && activeTab === 'history',
-  })
-
-  const vehicles = vehiclesData?.vehicles || []
-  const vehiclesWithLocation = vehicles.filter(v => v.current_location?.lat && v.current_location?.lng)
-
-  const selected = vehicles.find(v => v.id === selectedVehicle)
-  useEffect(() => {
-    if (selected?.current_location) {
-      setMapCenter([selected.current_location.lat, selected.current_location.lng])
-    }
-  }, [selected])
-
-  const historyPoints = trackingHistory?.points || []
-  const polylinePositions: [number, number][] = historyPoints.map(p => [p.lat, p.lng])
+  const orders = ordersData?.orders || []
+  const ordersWithGeo = orders.filter(o => o.origin?.lat && o.destination?.lat)
+  const filteredOrders = activeStatus === 'all' 
+    ? ordersWithGeo 
+    : ordersWithGeo.filter(o => o.status === Number(activeStatus))
 
   useEffect(() => {
-    if (historyPoints.length > 0) {
-      const bounds = L.latLngBounds(historyPoints.map(p => [p.lat, p.lng]))
-      const center = bounds.getCenter()
-      setMapCenter([center.lat, center.lng])
-    }
-  }, [historyPoints])
+    const fetchRoutes = async () => {
+      if (filteredOrders.length === 0) return
+      
+      setLoadingRoutes(true)
+      const newRoutes: Record<string, [number, number][]> = {}
+      
+      for (const order of filteredOrders.slice(0, 50)) {
+        if (!order.origin || !order.destination) continue
+        try {
+          const result = await osrmApi.route(
+            order.origin.lng,
+            order.origin.lat,
+            order.destination.lng,
+            order.destination.lat
+          )
+          if (result.geometry?.coordinates?.length) {
+            newRoutes[order.id] = result.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]])
+          }
+        } catch (e) {
+          console.error('[Tracking] Route error for order', order.id, e)
+        }
+      }
 
-  const renderMap = () => {
-    if (activeTab === 'history' && historyPoints.length > 0) {
-      return (
-        <>
-          <Polyline positions={polylinePositions} color="#f59e0b" weight={3} opacity={0.8} />
-          {historyPoints.map((point, idx) => (
-            <Marker key={idx} position={[point.lat, point.lng]} icon={pointIcon}>
-              <Popup>
-                <div className="text-background">
-                  <p className="text-xs">
-                    {new Date(point.timestampUnix * 1000).toLocaleString('ru-RU')}
-                    {point.speed !== undefined && <span> | {point.speed} км/ч</span>}
-                  </p>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </>
-      )
+      setOrderRoutes(newRoutes)
+      setLoadingRoutes(false)
     }
 
-    return vehiclesWithLocation.map((vehicle) => (
-      <Marker
-        key={vehicle.id}
-        position={[vehicle.current_location!.lat, vehicle.current_location!.lng]}
-        icon={truckIcon}
-        eventHandlers={{
-          click: () => setSelectedVehicle(vehicle.id),
-        }}
-      >
-        <Popup>
-          <div className="text-background">
-            <p className="font-medium">{vehicle.id.slice(0, 8)}</p>
-          </div>
-        </Popup>
-      </Marker>
-    ))
-  }
+    fetchRoutes()
+  }, [ordersData, activeStatus])
+
+  const selected = orders.find(o => o.id === selectedOrder)
 
   return (
     <div className="p-6 h-[calc(100vh-48px)] flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold text-text-primary">Трекинг</h1>
-        <div className="flex items-center gap-2 text-text-secondary text-sm">
-          {activeTab === 'realtime' && (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Обновление каждые 30 сек
-            </>
-          )}
+        <div className="flex items-center gap-2">
+          <select
+            value={activeStatus}
+            onChange={(e) => setActiveStatus(e.target.value)}
+            className="bg-surface border border-border rounded px-3 py-1.5 text-sm text-text-primary"
+          >
+            <option value="all">Все статусы</option>
+            <option value="0">Новые</option>
+            <option value="1">В пути</option>
+            <option value="2">Доставленные</option>
+          </select>
         </div>
       </div>
 
       <div className="flex-1 flex gap-4 min-h-0">
         <div className="flex-1 bg-surface rounded-xl border border-border overflow-hidden relative">
-          {(vehiclesLoading || historyLoading) && (
+          {(isLoading || loadingRoutes) && (
             <div className="absolute inset-0 flex items-center justify-center bg-surface/80 z-[1000]">
               <Loader2 className="w-8 h-8 text-accent-lavender animate-spin" />
             </div>
           )}
           <MapContainer
-            center={mapCenter}
+            center={defaultCenter}
             zoom={10}
             className="h-full w-full"
             style={{ background: '#1a1a2e' }}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              attribution=''
               url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             />
-            {renderMap()}
+            {filteredOrders.map((order) => {
+              const route = orderRoutes[order.id]
+              const isSelected = selectedOrder === order.id
+              const color = getStatusColor(order.status)
+              
+              return (
+                <React.Fragment key={order.id}>
+                  {order.origin && (
+                    <Marker position={[order.origin.lat, order.origin.lng]} icon={originIcon}>
+                      <Popup>
+                        <div className="text-background">
+                          <p className="font-medium">{order.id.slice(0, 8)}</p>
+                          <p className="text-xs">{getStatusLabel(order.status)}</p>
+                          <p className="text-xs">Откуда</p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )}
+                  {order.destination && (
+                    <Marker position={[order.destination.lat, order.destination.lng]} icon={destIcon}>
+                      <Popup>
+                        <div className="text-background">
+                          <p className="font-medium">{order.id.slice(0, 8)}</p>
+                          <p className="text-xs">Куда</p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )}
+                  {route && (
+                    <Polyline 
+                      positions={route} 
+                      color={color} 
+                      weight={isSelected ? 4 : 2} 
+                      opacity={isSelected ? 0.9 : 0.5}
+                      eventHandlers={{
+                        click: () => setSelectedOrder(order.id),
+                      }}
+                    />
+                  )}
+                </React.Fragment>
+              )
+            })}
           </MapContainer>
         </div>
 
         <div className="w-72 bg-surface rounded-xl border border-border overflow-hidden flex flex-col">
           <div className="p-3 border-b border-border">
-            <div className="flex gap-2 mb-2">
-              <button
-                onClick={() => setActiveTab('realtime')}
-                className={`flex-1 py-1 px-2 rounded text-sm ${
-                  activeTab === 'realtime' ? 'bg-accent-lavender text-background' : 'text-text-muted'
-                }`}
-              >
-                Карта
-              </button>
-              <button
-                onClick={() => setActiveTab('history')}
-                className={`flex-1 py-1 px-2 rounded text-sm flex items-center justify-center gap-1 ${
-                  activeTab === 'history' ? 'bg-accent-lavender text-background' : 'text-text-muted'
-                }`}
-              >
-                <History className="w-3 h-3" />История
-              </button>
-            </div>
             <h2 className="font-medium text-text-primary">
-              {activeTab === 'realtime' ? `Транспорт (${vehiclesWithLocation.length})` : 'История'}
+              <Package className="w-4 h-4 inline mr-2" />
+              Заказы ({filteredOrders.length})
             </h2>
           </div>
 
-          {activeTab === 'realtime' ? (
-            <div className="flex-1 overflow-y-auto">
-              {vehiclesWithLocation.map((vehicle) => (
+          <div className="flex-1 overflow-y-auto">
+            {filteredOrders.map((order) => {
+              const isSelected = selectedOrder === order.id
+              const color = getStatusColor(order.status)
+              
+              return (
                 <button
-                  key={vehicle.id}
-                  onClick={() => setSelectedVehicle(vehicle.id)}
+                  key={order.id}
+                  onClick={() => setSelectedOrder(order.id)}
                   className={`w-full p-3 text-left border-b border-border transition-colors hover:bg-surface-hover ${
-                    selectedVehicle === vehicle.id ? 'bg-surface-hover border-l-2 border-l-accent-lavender' : ''
+                    isSelected ? 'bg-surface-hover border-l-2 border-l-accent-lavender' : ''
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <Navigation className="w-4 h-4 text-accent-lavender" />
-                    <span className="text-text-primary font-medium">{vehicle.id.slice(0, 8)}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-text-primary font-medium">{order.id.slice(0, 8)}</span>
+                    <span 
+                      className="text-xs px-2 py-0.5 rounded"
+                      style={{ backgroundColor: color + '20', color }}
+                    >
+                      {getStatusLabel(order.status)}
+                    </span>
                   </div>
-                  <p className="text-xs text-text-muted mt-1">
-                    {vehicle.current_location?.lat.toFixed(4)}, {vehicle.current_location?.lng.toFixed(4)}
-                  </p>
+                  {order.origin && order.destination && (
+                    <p className="text-xs text-text-muted mt-1">
+                      {order.origin.lat.toFixed(2)}, {order.origin.lng.toFixed(2)} → {order.destination.lat.toFixed(2)}, {order.destination.lng.toFixed(2)}
+                    </p>
+                  )}
                 </button>
-              ))}
-              {vehiclesWithLocation.length === 0 && (
-                <div className="p-4 text-center text-text-muted text-sm">
-                  Нет данных о местоположении
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
-              <div className="space-y-2">
-                <Input
-                  type="datetime-local"
-                  label="С"
-                  value={historyFrom}
-                  onChange={(e) => setHistoryFrom(e.target.value)}
-                />
-                <Input
-                  type="datetime-local"
-                  label="По"
-                  value={historyTo}
-                  onChange={(e) => setHistoryTo(e.target.value)}
-                />
-                <Button
-                  size="sm"
-                  onClick={() => refetchHistory()}
-                  disabled={!selectedVehicle}
-                  className="w-full"
-                >
-                  Загрузить историю
-                </Button>
+              )
+            })}
+            {filteredOrders.length === 0 && (
+              <div className="p-4 text-center text-text-muted text-sm">
+                Нет заказов с маршрутами
               </div>
-
-              {historyPoints.length > 0 && (
-                <div className="text-sm text-text-muted">
-                  Точек: {historyPoints.length}
-                </div>
-              )}
-
-              {historyPoints.length === 0 && selectedVehicle && (
-                <div className="p-4 text-center text-text-muted text-sm">
-                  Нет данных за выбранный период
-                </div>
-              )}
-
-              {!selectedVehicle && (
-                <div className="p-4 text-center text-text-muted text-sm">
-                  Выберите транспорт из списка
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
