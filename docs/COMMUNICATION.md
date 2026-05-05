@@ -84,6 +84,31 @@ flowchart TD
 
 ---
 
+## External Services
+
+| Service | Docker | URL | Purpose |
+|---------|--------|-----|---------|
+| OSRM | `osrm` | `http://osrm:5000` | Route calculation (A* algorithm) |
+| MinIO | `minio` | `http://minio:9000` | S3-compatible storage for PDFs |
+| Prometheus | `prometheus` | `http://prometheus:9090` | Metrics collection |
+| Grafana | `grafana` | `http://grafana:3001` | Dashboards |
+| Jaeger | `jaeger` | `http://jaeger:16686` | Distributed tracing |
+
+### OSRM
+
+routing-service communicates with OSRM via HTTP:
+
+```typescript
+// routing-service -> OSRM
+const route = await this.httpClient.get(
+  `http://osrm:5000/route/v1/driving/${from};${to}?overview=full`
+);
+```
+
+**Data source:** OpenStreetMap Russia (~12GB)
+
+---
+
 ## Kafka Communication
 
 ### Topics
