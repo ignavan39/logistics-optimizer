@@ -170,7 +170,7 @@ INSERT INTO settings (key, value) VALUES
     ('company_inn', '1234567890'),
     ('company_kpp', '000000000'),
     ('company_address', 'г. Москва, ул. Тестовая, д. 1'),
-    ('company_phone', '+7 (495) 123-45-67'),
+    ('company_phone', '+7 (000) 000-00-00'),
     ('company_email', 'test@test.test'),
     ('default_payment_terms_days', '30'),
     ('default_vat_rate', '20')

@@ -5,19 +5,19 @@
 INSERT INTO counterparty (id, name, type, inn, kpp, ogrn, address, phone, email, version, created_at, updated_at) VALUES
     ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'ООО "Тест"', 'carrier', '1234567890', '000000000', '0000000000000',
      '{"street": "ул. Тестовая, д. 10", "city": "Москва", "zip": "000000"}'::jsonb,
-     '+7 (495) 111-22-33', 'test@test.test', 0, NOW(), NOW()),
+     '+7 (000) 000-00-00', 'test@test.test', 0, NOW(), NOW()),
     ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b02', 'ООО "Тест СПб"', 'carrier', '1234567891', '000000000', '0000000000000',
      '{"street": "пр. Тестовая, д. 50", "city": "Санкт-Петербург", "zip": "000000"}'::jsonb,
-     '+7 (812) 222-33-44', 'test@test.test', 0, NOW(), NOW()),
+     '+7 (000) 000-00-01', 'test@test.test', 0, NOW(), NOW()),
     ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b03', 'ИП Тестов И.И.', 'carrier', '1234567892', NULL, '0000000000000',
      '{"street": "ул. Тестовая, д. 5", "city": "Москва", "zip": "000000"}'::jsonb,
-     '+7 (495) 333-44-55', 'test@test.test', 0, NOW(), NOW()),
+     '+7 (000) 000-00-02', 'test@test.test', 0, NOW(), NOW()),
     ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b04', 'ООО "Тест Заказчик"', 'shipper', '1234567893', '000000000', '0000000000000',
      '{"street": "ул. Тестовая, д. 20", "city": "Москва", "zip": "000000"}'::jsonb,
-     '+7 (495) 444-55-66', 'test@test.test', 0, NOW(), NOW()),
+     '+7 (000) 000-00-03', 'test@test.test', 0, NOW(), NOW()),
     ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b05', 'АО "Тест Экспедиция"', 'both', '1234567894', '000000000', '0000000000000',
      '{"street": "ул. Тестовая, д. 30", "city": "Москва", "zip": "000000"}'::jsonb,
-     '+7 (495) 555-66-77', 'test@test.test', 0, NOW(), NOW())
+     '+7 (000) 000-00-04', 'test@test.test', 0, NOW(), NOW())
 ON CONFLICT (inn) DO NOTHING;
 
 -- Insert test contracts
