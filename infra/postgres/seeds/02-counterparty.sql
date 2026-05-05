@@ -3,19 +3,19 @@
 
 -- Insert test counterparties (carriers and shippers)
 INSERT INTO counterparty (id, name, type, inn, kpp, ogrn, address, phone, email, version, created_at, updated_at) VALUES
-    ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'ООО "АвтоЛогистик"', 'carrier', '7701234567', '770101001', '1157700000000',
+    ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'ООО "АвтоЛогистик"', 'carrier', '1234567890', '770101001', '1157700000000',
      '{"street": "ул. Транспортная, д. 10", "city": "Москва", "zip": "127000"}'::jsonb,
      '+7 (495) 111-22-33', 'info@autologist.ru', 0, NOW(), NOW()),
-    ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b02', 'ООО "Грузоперевозки СПб"', 'carrier', '7802345678', '780201001', '1167800000000',
+    ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b02', 'ООО "Грузоперевозки СПб"', 'carrier', '1234567891', '780201001', '1167800000000',
      '{"street": "пр. Невский, д. 50", "city": "Санкт-Петербург", "zip": "191000"}'::jsonb,
      '+7 (812) 222-33-44', 'info@spb-cargo.ru', 0, NOW(), NOW()),
-    ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b03', 'ИП Иванов И.И.', 'carrier', '7703456789', NULL, '315770000000000',
+    ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b03', 'ИП Иванов И.И.', 'carrier', '1234567892', NULL, '315770000000000',
      '{"street": "ул. Малая, д. 5", "city": "Москва", "zip": "127001"}'::jsonb,
      '+7 (495) 333-44-55', 'ivanov@carrier.ru', 0, NOW(), NOW()),
-    ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b04', 'ООО "Заказчик-Логист"', 'shipper', '7704567890', '770401001', '1177700000000',
+    ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b04', 'ООО "Заказчик-Логист"', 'shipper', '1234567893', '770401001', '1177700000000',
      '{"street": "ул. Заказная, д. 20", "city": "Москва", "zip": "127002"}'::jsonb,
      '+7 (495) 444-55-66', 'order@shipper.ru', 0, NOW(), NOW()),
-    ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b05', 'АО "Экспедиция"', 'both', '7705678901', '770501001', '1187700000000',
+    ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b05', 'АО "Экспедиция"', 'both', '1234567894', '770501001', '1187700000000',
      '{"street": "ул. Экспедиционная, д. 30", "city": "Москва", "zip": "127003"}'::jsonb,
      '+7 (495) 555-66-77', 'expedition@corp.ru', 0, NOW(), NOW())
 ON CONFLICT (inn) DO NOTHING;

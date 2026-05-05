@@ -25,13 +25,24 @@ Open Source система управления логистикой для вы
 
 | | |
 |---|---|
-| **Высокие нагрузки** | Backpressure в Kafka consumer, batch записи в PostgreSQL (50k+ rows/sec), партиционирование |
+| **OSRM Маршрутизация** | Open Source Routing Machine с A* алгоритмом. Оптимальные маршруты по дорогам России (12ГБ OSM данных), расчёт ETA с учётом типов дорог |
 | **Saga Dispatch** | Автоматический подбор ТС, расчёт маршрута, назначение. 5 попыток с exponential backoff |
 | **Transaction Outbox** | События пишутся в БД в той же транзакции что и данные — гарантия доставки |
+| **Высокие нагрузки** | Backpressure в Kafka consumer, batch записи в PostgreSQL (50k+ rows/sec), партиционирование |
 | **Идемпотентность** | Database-based idempotency guards — ни одного дубликата даже при rebalance |
-| **PostGIS маршрутизация** | A* алгоритм, кеширование маршрутов, расчёт ETA |
-| **PDF Счета** | Генерация через pdfkit, хранение в MinIO/S3 |
+| **PDF Счета** | Генерация через pdfkit, хранение в MinIO (S3-совместимое хранилище) |
+| **Мониторинг** | Prometheus + Grafana (дашборды Kafka lag, gRPC latency, PG pool), Jaeger (distributed tracing), OpenTelemetry |
 | **Безопасность** | JWT + Refresh tokens, RBAC, API Keys, audit logging |
+
+---
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Tracking](assets/demo/traking.png) | Карта маршрутов в реальном времени |
+| ![Counterparties](assets/demo/counterparties.png) | Контрагенты, договоры, тарифы |
+| ![Settings](assets/demo/settings.png) | Настройки: пользователи, роли, аудит |
 
 ---
 
@@ -72,10 +83,11 @@ flowchart TB
 
     subgraph Infrastructure
         Kafka[Kafka<br/>:9092]
-        MinIO[MinIO<br/>S3]
-        Prometheus[Prometheus]
-        Grafana[Grafana]
-        Jaeger[Jaeger]
+        OSRM[OSRM<br/>:5000]
+        MinIO[MinIO<br/>:9000]
+        Prometheus[Prometheus<br/>:9090]
+        Grafana[Grafana<br/>:3001]
+        Jaeger[Jaeger<br/>:16686]
     end
 
     Web --> API
@@ -97,6 +109,7 @@ flowchart TB
     Order --> Kafka
     Fleet --> PG2
     Routing --> PG3
+    Routing -.-> OSRM
     Tracking --> PG4
     Dispatcher --> PG5
     Counterparty --> PG6
@@ -115,12 +128,22 @@ flowchart TB
 |--------|-----------------|-------------|
 | `order-service` | Жизненный цикл заказов, Outbox | PostgreSQL |
 | `fleet-service` | Автопарк, PostGIS геозоны | PostgreSQL + PostGIS |
-| `routing-service` | Маршруты A*, VRP, ETA | PostgreSQL + PostGIS |
+| `routing-service` | Маршруты через OSRM (A*), кеширование, ETA | PostgreSQL + OSRM |
 | `tracking-service` | GPS телеметрия, batch writes | PostgreSQL (partitioned) |
 | `dispatcher-service` | Saga orchestrator | PostgreSQL |
-| `counterparty-service` | Контрагенты, тарифы | PostgreSQL |
-| `invoice-service` | Счета, PDF генерация | PostgreSQL + MinIO |
+| `counterparty-service` | Контрагенты, договоры, тарифы | PostgreSQL |
+| `invoice-service` | Счета, PDF генерация в MinIO | PostgreSQL + MinIO |
 | `api-gateway` | REST API, auth, aggregation | PostgreSQL |
+
+### Инфраструктура
+
+| Сервис | Порт | Описание |
+|--------|------|----------|
+| `osrm` | 5000 | Open Source Routing Machine — маршрутизация по дорогам России |
+| `minio` | 9000 | S3-совместимое хранилище для PDF |
+| `prometheus` | 9090 | Сбор метрик |
+| `grafana` | 3001 | Дашборды (Kafka lag, gRPC latency, PG pool) |
+| `jaeger` | 16686 | Distributed tracing |
 
 ---
 
@@ -145,6 +168,8 @@ make web    # Только фронтенд
 **URL:**
 - Frontend: http://localhost:5173
 - API Gateway: http://localhost:3000
+- OSRM: http://localhost:5000 (маршрутизация)
+- MinIO: http://localhost:9000 (хранилище PDF)
 - Grafana: http://localhost:3001 (admin/admin)
 - Jaeger: http://localhost:16686
 - Kafka UI: http://localhost:8080
