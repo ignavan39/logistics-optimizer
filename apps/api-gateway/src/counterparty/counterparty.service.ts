@@ -1,114 +1,274 @@
-import { Injectable, type OnModuleInit, type OnModuleDestroy, Logger } from '@nestjs/common';
+import { Injectable, type OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ClientGrpc } from '@nestjs/microservices';
-import { Inject } from '@nestjs/common';
-import { Metadata } from '@grpc/grpc-js';
-import {
-  type CounterpartyResponse,
-  type ContractResponse,
-  type ContractTariffResponse,
-  type CreateCounterpartyDto,
-  type CreateContractDto,
-  type CreateContractTariffDto,
-  type UpdateCounterpartyDto,
-  type UpdateContractDto,
-  type ListQuery,
-} from './dto/counterparty.dto';
+import { loadPackageDefinition, credentials } from '@grpc/grpc-js';
+import * as protoLoader from '@grpc/proto-loader';
 
-interface CounterpartyGrpcClient {
-  createCounterparty(data: CreateCounterpartyDto, metadata?: Metadata): Promise<CounterpartyResponse>;
-  getCounterparty(data: { id: string }, metadata?: Metadata): Promise<CounterpartyResponse>;
-  updateCounterparty(data: UpdateCounterpartyDto, metadata?: Metadata): Promise<CounterpartyResponse>;
-  listCounterparties(data: ListQuery, metadata?: Metadata): Promise<{ items: CounterpartyResponse[] }>;
-  createContract(data: CreateContractDto, metadata?: Metadata): Promise<ContractResponse>;
-  getContract(data: { id: string }, metadata?: Metadata): Promise<ContractResponse>;
-  updateContract(data: UpdateContractDto, metadata?: Metadata): Promise<ContractResponse>;
-  listContracts(data: ListQuery & { counterpartyId?: string; status?: string }, metadata?: Metadata): Promise<{ items: ContractResponse[] }>;
-  getContractTariffs(data: { contractId: string; zone?: string }, metadata?: Metadata): Promise<{ items: ContractTariffResponse[] }>;
-  createContractTariff(data: CreateContractTariffDto, metadata?: Metadata): Promise<ContractTariffResponse>;
+export interface CounterpartyResponse {
+  id: string;
+  name: string;
+  inn: string;
+  kpp?: string;
+  type: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  status: string;
+  createdAt?: string;
+  version?: number;
 }
 
+export interface ContractResponse {
+  id: string;
+  counterpartyId: string;
+  number: string;
+  type: string;
+  status: string;
+  validFrom?: string;
+  validTo?: string;
+}
+
+export interface ContractTariffResponse {
+  id: string;
+  contractId: string;
+  zoneFrom: string;
+  zoneTo: string;
+  pricePerKg: number;
+  pricePerKm: number;
+  minPrice: number;
+}
+
+export interface ListQuery {
+  type?: string;
+  inn?: string;
+  nameLike?: string;
+  limit?: number;
+  offset?: number;
+  status?: string;
+}
+
+const PROTO_PATH = '/app/libs/proto/src/counterparty.proto';
+
 @Injectable()
-export class CounterpartyService implements OnModuleInit, OnModuleDestroy {
+export class CounterpartyService implements OnModuleInit {
   private readonly logger = new Logger(CounterpartyService.name);
-  private client!: CounterpartyGrpcClient;
+  private client: any;
 
-  private readonly typeMap: Record<string, number> = {
-    'CARRIER': 1,
-    'WAREHOUSE': 2,
-    'INDIVIDUAL': 3,
-  };
-
-  constructor(
-    @Inject('COUNTERPARTY_PACKAGE') private grpcClient: ClientGrpc,
-  ) {}
+  constructor(private configService: ConfigService) {}
 
   onModuleInit() {
-    this.client = this.grpcClient.getService<CounterpartyGrpcClient>('CounterpartyService');
-    this.logger.log('CounterpartyService initialized');
-  }
-
-  onModuleDestroy() {
-    this.logger.log('CounterpartyService destroyed');
-  }
-
-  async createCounterparty(data: CreateCounterpartyDto): Promise<CounterpartyResponse> {
-    const typeValue = data.type ? (this.typeMap[data.type] || data.type) : undefined;
-    const transformed = typeValue ? { ...data, type: typeValue } : data;
-    return this.client.createCounterparty(transformed as unknown as CreateCounterpartyDto);
-  }
-
-  async getCounterparty(id: string): Promise<CounterpartyResponse | null> {
     try {
-      return await this.client.getCounterparty({ id });
+      const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
+        keepCase: true,
+        longs: String,
+        enums: String,
+        defaults: true,
+        oneofs: true,
+      });
+      const proto = loadPackageDefinition(packageDefinition) as any;
+      
+      const CounterpartyServiceProto = proto.counterparty?.CounterpartyService;
+      if (!CounterpartyServiceProto) {
+        this.logger.error('CounterpartyService not found in proto');
+        return;
+      }
+      
+      const url = this.configService.get('GRPC_COUNTERPARTY_HOST', 'counterparty-service:50057');
+      this.logger.log(`Connecting to ${url}`);
+      
+      this.client = new CounterpartyServiceProto(url, credentials.createInsecure());
+      this.client.waitForReady(Date.now() + 5000, (err: any) => {
+        if (err) this.logger.error(`gRPC connection error: ${err}`);
+        else this.logger.log('gRPC client ready');
+      });
     } catch (e) {
-      this.logger.error(`Failed to get counterparty ${id}: ${e}`);
-      return null;
+      this.logger.error(`Failed to init gRPC client: ${e}`);
     }
-  }
-
-  async updateCounterparty(data: UpdateCounterpartyDto): Promise<CounterpartyResponse> {
-    return this.client.updateCounterparty(data);
   }
 
   async listCounterparties(data: ListQuery = {}): Promise<CounterpartyResponse[]> {
-    const response = await this.client.listCounterparties(data);
-    return response.items || [];
+    return new Promise((resolve) => {
+      if (!this.client) {
+        this.logger.error('gRPC client not initialized');
+        resolve([]);
+        return;
+      }
+      
+      this.client.listCounterparties({
+        type: data.type,
+        inn: data.inn,
+        nameLike: data.nameLike,
+        limit: (data.limit ?? 20) || 20,
+        offset: (data.offset ?? 0) || 0,
+      }, (err: any, response: any) => {
+        if (err) {
+          this.logger.error(`listCounterparties error: ${err}`);
+          resolve([]);
+          return;
+        }
+        
+        const items = (response.items || []).map((item: any) => ({
+          id: String(item.id || ''),
+          name: String(item.name || ''),
+          inn: String(item.inn || ''),
+          kpp: item.kpp ? String(item.kpp) : undefined,
+          type: String(item.type || ''),
+          address: item.address ? String(item.address) : undefined,
+          phone: item.phone ? String(item.phone) : undefined,
+          email: item.email ? String(item.email) : undefined,
+          status: String(item.status || ''),
+          createdAt: item.created_at ? String(item.created_at) : undefined,
+          version: Number(item.version) || 0,
+        }));
+        
+        resolve(items);
+      });
+    });
   }
 
-  async createContract(data: CreateContractDto): Promise<ContractResponse> {
-    return this.client.createContract(data);
+  async getCounterparty(id: string): Promise<CounterpartyResponse | null> {
+    return new Promise((resolve) => {
+      if (!this.client) {
+        this.logger.error('gRPC client not initialized');
+        resolve(null);
+        return;
+      }
+      
+      this.client.getCounterparty({ id }, (err: any, response: any) => {
+        if (err || !response) {
+          this.logger.error(`getCounterparty error: ${err}`);
+          resolve(null);
+          return;
+        }
+        
+        resolve({
+          id: String(response.id || ''),
+          name: String(response.name || ''),
+          inn: String(response.inn || ''),
+          kpp: response.kpp ? String(response.kpp) : undefined,
+          type: String(response.type || ''),
+          address: response.address ? String(response.address) : undefined,
+          phone: response.phone ? String(response.phone) : undefined,
+          email: response.email ? String(response.email) : undefined,
+          status: String(response.status || ''),
+          createdAt: response.created_at ? String(response.created_at) : undefined,
+          version: Number(response.version) || 0,
+        });
+      });
+    });
   }
 
-  async getContract(id: string): Promise<ContractResponse | null> {
-    try {
-      return await this.client.getContract({ id });
-    } catch (e) {
-      this.logger.error(`Failed to get contract ${id}: ${e}`);
-      return null;
-    }
+  async createCounterparty(data: any): Promise<CounterpartyResponse> {
+    return new Promise((resolve) => {
+      this.client.createCounterparty(data, (err: any, response: any) => {
+        if (err) {
+          this.logger.error(`createCounterparty error: ${err}`);
+          resolve(null as any);
+          return;
+        }
+        resolve(response);
+      });
+    });
   }
 
-  async updateContract(data: UpdateContractDto): Promise<ContractResponse> {
-    return this.client.updateContract(data);
+  async updateCounterparty(data: any): Promise<CounterpartyResponse> {
+    return new Promise((resolve) => {
+      this.client.updateCounterparty(data, (err: any, response: any) => {
+        if (err) {
+          this.logger.error(`updateCounterparty error: ${err}`);
+          resolve(null as any);
+          return;
+        }
+        resolve(response);
+      });
+    });
   }
 
   async listContracts(data: ListQuery & { counterpartyId?: string; status?: string } = {}): Promise<ContractResponse[]> {
-    const response = await this.client.listContracts(data);
-    return response.items || [];
+    return new Promise((resolve) => {
+      if (!this.client) { resolve([]); return; }
+      this.client.listContracts({
+        counterpartyId: data.counterpartyId,
+        status: data.status,
+        limit: (data.limit ?? 20) || 20,
+        offset: (data.offset ?? 0) || 0,
+      }, (err: any, response: any) => {
+        if (err) { this.logger.error(err); resolve([]); return; }
+        resolve((response.items || []).map((c: any) => ({
+          id: String(c.id || ''),
+          counterpartyId: String(c.counterparty_id || ''),
+          number: String(c.number || ''),
+          type: String(c.type || ''),
+          status: String(c.status || ''),
+          validFrom: c.valid_from ? String(c.valid_from) : undefined,
+          validTo: c.valid_to ? String(c.valid_to) : undefined,
+        })));
+      });
+    });
   }
 
-  async getContractTariffs(contractId: string): Promise<ContractTariffResponse[]> {
-    try {
-      const response = await this.client.getContractTariffs({ contractId });
-      return response.items || [];
-    } catch (e) {
-      this.logger.error(`Failed to get tariffs for contract ${contractId}: ${e}`);
-      return [];
-    }
+  async getContract(id: string): Promise<ContractResponse | null> {
+    return new Promise((resolve) => {
+      if (!this.client) { resolve(null); return; }
+      this.client.getContract({ id }, (err: any, response: any) => {
+        if (err || !response) { resolve(null); return; }
+        resolve({
+          id: String(response.id || ''),
+          counterpartyId: String(response.counterparty_id || ''),
+          number: String(response.number || ''),
+          type: String(response.type || ''),
+          status: String(response.status || ''),
+          validFrom: response.valid_from ? String(response.valid_from) : undefined,
+          validTo: response.valid_to ? String(response.valid_to) : undefined,
+        });
+      });
+    });
   }
 
-  async createContractTariff(data: CreateContractTariffDto): Promise<ContractTariffResponse> {
-    return this.client.createContractTariff(data);
+  async createContract(data: any): Promise<ContractResponse> {
+    return new Promise((resolve) => {
+      if (!this.client) { resolve(null as any); return; }
+      this.client.createContract(data, (err: any, response: any) => {
+        if (err) { resolve(null as any); return; }
+        resolve(response);
+      });
+    });
+  }
+
+  async updateContract(data: any): Promise<ContractResponse> {
+    return new Promise((resolve) => {
+      if (!this.client) { resolve(null as any); return; }
+      this.client.updateContract(data, (err: any, response: any) => {
+        if (err) { resolve(null as any); return; }
+        resolve(response);
+      });
+    });
+  }
+
+  async getContractTariffs(contractId: string, zone?: string): Promise<ContractTariffResponse[]> {
+    return new Promise((resolve) => {
+      if (!this.client) { resolve([]); return; }
+      this.client.getContractTariffs({ contractId, zone }, (err: any, response: any) => {
+        if (err) { resolve([]); return; }
+        resolve((response.items || []).map((t: any) => ({
+          id: String(t.id || ''),
+          contractId: String(t.contract_id || ''),
+          zoneFrom: String(t.zone_from || ''),
+          zoneTo: String(t.zone_to || ''),
+          pricePerKg: Number(t.price_per_kg) || 0,
+          pricePerKm: Number(t.price_per_km) || 0,
+          minPrice: Number(t.min_price) || 0,
+        })));
+      });
+    });
+  }
+
+  async createContractTariff(data: any): Promise<ContractTariffResponse> {
+    return new Promise((resolve) => {
+      if (!this.client) { resolve(null as any); return; }
+      this.client.createContractTariff(data, (err: any, response: any) => {
+        if (err) { resolve(null as any); return; }
+        resolve(response);
+      });
+    });
   }
 }

@@ -9,7 +9,7 @@ export interface Order {
   customerId: string
   origin: OrderLocation
   destination: OrderLocation
-  status: OrderStatus
+  status: number
   priority: number
   weightKg: number
   volumeM3: number
@@ -17,9 +17,10 @@ export interface Order {
   version?: number
   vehicleId?: string
   driverId?: string
+  cargoName?: string
 }
 
-export type OrderStatus = 0 | 1 | 2 | 3 | 4
+export type OrderStatus = number
 
 export interface OrderDetails extends Order {
   history?: OrderHistoryItem[]
@@ -74,4 +75,14 @@ export interface UpdateOrderStatusDto {
 
 export interface CancelOrderDto {
   reason?: string
+}
+
+export interface OrderStatusInfo {
+  value: number
+  key: string
+  label: string
+}
+
+export interface GetStatusesResponse {
+  statuses: OrderStatusInfo[]
 }

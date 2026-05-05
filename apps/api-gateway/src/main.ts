@@ -1,9 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Reflector } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
+import { AuditInterceptor } from './auth/interceptors/audit.interceptor';
+import { DataSource } from 'typeorm';
 import helmet from 'helmet';
 
 async function bootstrap() {
@@ -18,6 +21,11 @@ async function bootstrap() {
 
   // Security headers
   app.use(helmet());
+
+  // Global audit interceptor
+  const reflector = app.get(Reflector);
+  const dataSource = app.get(DataSource);
+  app.useGlobalInterceptors(new AuditInterceptor(dataSource, reflector));
 
   app.useGlobalFilters(new AllExceptionsFilter());
 

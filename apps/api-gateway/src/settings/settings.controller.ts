@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../auth/guards/rbac.guard';
 import { Permissions as PermissionDecorator } from '../auth/decorators/permissions.decorator'
+import { AuditLog as AuditDecorator } from '../auth/decorators/audit.decorator'
 import { Permissions } from '../auth/permissions/permissions';
 import { SettingsService } from './settings.service';
 import { CompanySettings, type UpdateCompanySettingsDto } from './settings.dto';
@@ -22,6 +23,7 @@ export class SettingsController {
   @Put('company')
   @UseGuards(RbacGuard)
   @PermissionDecorator(Permissions.SETTINGS_MANAGE)
+  @AuditDecorator('settings.updated', 'settings')
   async updateCompanySettings(@Body() dto: UpdateCompanySettingsDto): Promise<CompanySettings | null> {
     return this.settingsService.updateCompanySettings(dto);
   }

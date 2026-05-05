@@ -24,6 +24,20 @@ x-service-common: &service-common
       condition: service_completed_successfully
 
 services:
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:latest
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./osrm-data:/data
+    command: >
+      osrm-routed
+      --algorithm mld
+      /data/russia-latest.osrm
+    networks:
+      - logistics-net
+    restart: unless-stopped
+
   api-gateway:
     <<: *service-common
     build:

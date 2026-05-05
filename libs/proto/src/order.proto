@@ -22,8 +22,9 @@ service OrderService {
   rpc UpdateInvoiceStatus (UpdateInvoiceStatusRequest) returns (InvoiceResponse);
   rpc GetCompanySettings (GetCompanySettingsRequest) returns (GetCompanySettingsResponse);
   rpc GetSetting (GetSettingRequest) returns (GetSettingResponse);
-  rpc SetSetting (SetSettingRequest) returns (SetSettingResponse);
+  rpc SetSetting (SetSettingRequest) returns (GetSettingResponse);
   rpc UpdateCompanySettings (UpdateCompanySettingsRequest) returns (GetCompanySettingsResponse);
+  rpc GetStatuses (GetStatusesRequest) returns (GetStatusesResponse);
 }
 
 // ── Enums ──
@@ -231,4 +232,18 @@ message UpdateCompanySettingsRequest {
   string company_email = 6;
   int32 default_payment_terms_days = 7;
   int32 default_vat_rate = 8;
+}
+
+// ── Statuses ──
+
+message GetStatusesRequest {}
+
+message GetStatusesResponse {
+  repeated OrderStatusInfo statuses = 1;
+}
+
+message OrderStatusInfo {
+  int32 value = 1;
+  string key = 2;
+  string label = 3;
 }

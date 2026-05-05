@@ -131,18 +131,44 @@ flowchart TB
 git clone https://github.com/your-org/logistics-optimizer
 cd logistics-optimizer
 
-# Поднимаем всё (инфраструктура + сервисы)
-docker compose up -d
+# Полная инициализация (зависимости + OSM данные + Docker образы)
+make init
 
-# Проверяем
-curl http://localhost:3000/health
+# Запуск (Docker + фронтенд)
+make up:dev
 
-# Открываем UI
-# http://localhost:5173 (фронтенд)
-# http://localhost:3000 (API)
+# Или отдельно:
+make up      # Только Docker
+make web    # Только фронтенд
 ```
 
-**Требования**: Docker 24+, Docker Compose 2.20+
+**URL:**
+- Frontend: http://localhost:5173
+- API Gateway: http://localhost:3000
+- Grafana: http://localhost:3001 (admin/admin)
+- Jaeger: http://localhost:16686
+- Kafka UI: http://localhost:8080
+
+**Требования**: Docker 24+, Docker Compose 2.20+, pnpm 9+, ~15GB диска
+
+### Разработка
+
+```bash
+# Сборка
+make build
+
+# Тесты
+make test
+make lint
+make typecheck
+
+# Логи
+make logs
+
+# Очистка
+make clean        # Контейнеры + тома
+make clean:all   # + node_modules + osrm-data
+```
 
 ---
 
@@ -214,19 +240,26 @@ Kafka Consumer → Queue (500) → Batch Writer → PostgreSQL
 
 ---
 
-## Contributing
+## Разработка
 
 ```bash
-# Разработка
-pnpm install
+# Установить зависимости
+make install
+
+# Запуск всех сервисов (dev mode)
 pnpm start:dev
 
-# Тесты
-pnpm test           # Unit
-pnpm test:e2e       # E2E
+# Один сервис
+pnpm --filter @logistics/order-service start:dev
 
-# Линтинг
-pnpm lint && pnpm typecheck
+# Тесты
+make test
+make lint
+make typecheck
+
+# Очистка
+make clean
+make clean:all
 ```
 
 ---

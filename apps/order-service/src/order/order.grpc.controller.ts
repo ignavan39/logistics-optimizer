@@ -199,4 +199,19 @@ export class OrderGrpcController {
     }
     return new RpcException({ code: GrpcStatus.INTERNAL, message });
   }
+
+  @GrpcMethod('OrderService', 'GetStatuses')
+  getStatuses() {
+    return {
+      statuses: [
+        { value: 1, key: 'pending', label: 'Создан' },
+        { value: 2, key: 'assigned', label: 'Назначен' },
+        { value: 3, key: 'picked_up', label: 'Загружен' },
+        { value: 4, key: 'in_transit', label: 'В пути' },
+        { value: 5, key: 'delivered', label: 'Доставлен' },
+        { value: 6, key: 'failed', label: 'Проблема' },
+        { value: 7, key: 'cancelled', label: 'Отменен' },
+      ]
+    }
+  }
 }

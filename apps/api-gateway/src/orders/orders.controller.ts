@@ -19,8 +19,10 @@ import {
   type CancelOrderDto,
 } from './dto/orders.dto'
 import { JwtAuthGuard, CurrentUser } from '../auth/guards/jwt-auth.guard'
+import { Public } from '../auth/decorators/public.decorator'
 import { RbacGuard } from '../auth/guards/rbac.guard'
 import { Permissions as PermissionDecorator } from '../auth/decorators/permissions.decorator'
+import { AuditLog as AuditDecorator } from '../auth/decorators/audit.decorator'
 import { Permissions } from '../auth/permissions/permissions'
 import { RequestUser } from '../auth/strategies/jwt.strategy'
 
@@ -29,10 +31,17 @@ import { RequestUser } from '../auth/strategies/jwt.strategy'
 export class OrdersController {
   constructor(private ordersService: OrdersService) {}
 
+  @Public()
+  @Get('statuses')
+  getStatuses() {
+    return this.ordersService.getStatuses()
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard, RbacGuard)
   @PermissionDecorator(Permissions.ORDERS_CREATE)
+  @AuditDecorator('order.created', 'order')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create new order' })
   async createOrder(@Body() dto: CreateOrderDto, @CurrentUser() user: RequestUser) {
@@ -82,6 +91,7 @@ export class OrdersController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RbacGuard)
   @PermissionDecorator(Permissions.ORDERS_UPDATE)
+  @AuditDecorator('order.status.changed', 'order')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update order status' })
   async updateOrderStatus(

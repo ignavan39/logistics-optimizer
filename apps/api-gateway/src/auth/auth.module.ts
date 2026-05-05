@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuditService } from './audit.service';
 import { TokenService } from './token.service';
 import { SessionService } from './session.service';
 import { PasswordService } from './password.service';
@@ -84,11 +85,13 @@ import { UsersService } from '../users/users.service';
       ) => new JwtStrategy(configService, dataSource),
       inject: [ConfigService, DataSource],
     },
+    AuditService,
     JwtAuthGuard,
     RbacGuard,
   ],
   exports: [
     AuthService,
+    AuditService,
     TokenService,
     SessionService,
     PasswordService,

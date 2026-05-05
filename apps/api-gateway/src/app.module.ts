@@ -18,6 +18,7 @@ import { TrackingModule } from './tracking/tracking.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AdminModule } from './admin/admin.module';
 import { DatabaseModule } from './database/database.module';
+import { ContractsModule } from './contracts/contracts.module';
 
 @Module({
   imports: [
@@ -38,6 +39,8 @@ import { DatabaseModule } from './database/database.module';
     NotificationsModule,
     // Admin (users management)
     AdminModule,
+    // Contracts
+    ContractsModule,
   ],
   providers: [],
 })

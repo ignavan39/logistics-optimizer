@@ -20,6 +20,7 @@ import { AuditLog } from '../auth/entities/audit-log.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../auth/guards/rbac.guard';
 import { Permissions as PermissionDecorator } from '../auth/decorators/permissions.decorator'
+import { AuditLog as AuditDecorator } from '../auth/decorators/audit.decorator'
 import { Permissions } from '../auth/permissions/permissions';
 import { ListAuditLogsQueryDto } from './dto/audit-log.dto';
 import { AssignRolesDto } from './dto/assign-roles.dto';
@@ -60,6 +61,7 @@ export class AdminController {
   @Patch('users/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update user' })
+  @AuditDecorator('user.updated', 'user')
   async updateUser(
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,

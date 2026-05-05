@@ -51,9 +51,11 @@ interface GetInvoicePdfUrlRequest {
 export class InvoiceGrpcController {
   private readonly logger = new Logger(InvoiceGrpcController.name);
   private orderClient?: OrderGrpcClient;
+  private counterpartyClient?: any;
 
   constructor(
     @Inject('ORDER_PACKAGE') @Optional() private orderPackage: any,
+    @Inject('COUNTERPARTY_PACKAGE') @Optional() private counterpartyPackage: any,
     private readonly invoiceService: InvoiceService,
     private readonly pdfService: PdfService,
   ) {}
@@ -61,6 +63,9 @@ export class InvoiceGrpcController {
   onModuleInit() {
     if (this.orderPackage) {
       this.orderClient = this.orderPackage.getService('OrderService');
+    }
+    if (this.counterpartyPackage) {
+      this.counterpartyClient = this.counterpartyPackage.getService('CounterpartyService');
     }
   }
 
@@ -105,18 +110,25 @@ export class InvoiceGrpcController {
 
   @GrpcMethod('InvoiceService', 'ListInvoices')
   async listInvoices(data: ListInvoicesRequest) {
-    const status = data.status ? InvoiceStatus[data.status as keyof typeof InvoiceStatus] : undefined;
+    const req = data as any;
+    const page = req.page || 1;
+    const limit = req.limit || 20;
+    const counterpartyId = req.counterparty_id || req.counterpartyId;
+    
+    console.log('DEBUG listInvoices:', JSON.stringify(req));
+    
     const { items, total } = await this.invoiceService.findAll({
-      counterpartyId: data.counterpartyId,
-      status,
-      page: data.page,
-      limit: data.limit,
+      counterpartyId,
+      page,
+      limit,
     });
 
+    console.log('DEBUG found:', items.length, 'invoices');
+
     return {
-      invoices: items.map(inv => this.mapInvoice(inv)),
+      invoices: items.map(inv => this.mapInvoice(inv, {})),
       total,
-      page: data.page || 1,
+      page,
     };
   }
 
@@ -205,10 +217,22 @@ private toResponse(invoice: InvoiceEntity) {
     };
   }
 
-  private mapInvoice(invoice: InvoiceEntity) {
+  private toTimestamp(date: Date | string | null | undefined): string {
+    if (!date) return '0';
+    if (typeof date === 'string') {
+      return String(new Date(date).getTime());
+    }
+    if (date instanceof Date) {
+      return String(date.getTime());
+    }
+    return '0';
+  }
+
+  private mapInvoice(invoice: InvoiceEntity, counterpartyNames: Record<string, string> = {}) {
     const statusIndex = typeof invoice.status === 'number' 
       ? invoice.status 
       : Object.values(InvoiceStatus).indexOf(invoice.status as InvoiceStatus);
+    const counterpartyId = invoice.counterpartyId || '';
     return {
       id: invoice.id || '',
       order_id: invoice.orderId || '',
@@ -217,12 +241,13 @@ private toResponse(invoice: InvoiceEntity) {
       vat_rate: invoice.vatRate || 0,
       vat_amount: invoice.vatAmount || 0,
       status: statusIndex >= 0 ? statusIndex : 0,
-      due_date: invoice.dueDate ? String(invoice.dueDate.getTime()) : '0',
-      paid_at: invoice.paidAt ? String(invoice.paidAt.getTime()) : '0',
-      counterparty_id: invoice.counterpartyId || '',
+      due_date: this.toTimestamp(invoice.dueDate),
+      paid_at: this.toTimestamp(invoice.paidAt),
+      counterparty_id: counterpartyId,
+      counterparty_name: counterpartyNames[counterpartyId] || '',
       contract_id: invoice.contractId || '',
       description: invoice.description || '',
-      created_at: invoice.createdAt ? String(invoice.createdAt.getTime()) : '0',
+      created_at: this.toTimestamp(invoice.createdAt),
       version: invoice.version || 0,
     };
   }

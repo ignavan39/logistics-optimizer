@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { Truck, Package, MapPin, LayoutDashboard, LogOut, Settings, User, Activity, Navigation, FileText } from 'lucide-react'
+import { Truck, Package, MapPin, LayoutDashboard, LogOut, Settings, User, Activity, Navigation, FileText, Users, Map } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import { NotificationsBell } from './ui/NotificationsBell'
@@ -9,10 +9,9 @@ const navItems = [
   { to: '/dispatch', icon: Activity, label: 'Dispatch' },
   { to: '/vehicles', icon: Truck, label: 'Автопарк' },
   { to: '/tracking', icon: MapPin, label: 'Трекинг' },
-  { to: '/routes', icon: Navigation, label: 'Маршруты' },
   { to: '/invoices', icon: FileText, label: 'Счета' },
+  { to: '/counterparties', icon: Users, label: 'Контрагенты' },
   { to: '/settings', icon: Settings, label: 'Настройки' },
-  { to: '/admin', icon: Settings, label: 'Админка' },
 ]
 
 export function Layout() {

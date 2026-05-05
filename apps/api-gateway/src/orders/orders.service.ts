@@ -17,6 +17,7 @@ interface OrderGrpcClient {
   listOrders(data: ListOrdersDto): Promise<any>
   updateOrderStatus(data: UpdateOrderStatusDto): Promise<any>
   cancelOrder(data: CancelOrderDto): Promise<any>
+  getStatuses(data: {}): Promise<any>
 }
 
 @Injectable()
@@ -68,5 +69,21 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       order_id: dto.order_id,
       reason: dto.reason,
     })
+  }
+
+  async getStatuses() {
+    // Return hardcoded statuses from api-gateway
+    // (order-service may not have GetStatuses method in older containers)
+    return {
+      statuses: [
+        { value: 1, key: 'pending', label: 'Создан' },
+        { value: 2, key: 'assigned', label: 'Назначен' },
+        { value: 3, key: 'picked_up', label: 'Загружен' },
+        { value: 4, key: 'in_transit', label: 'В пути' },
+        { value: 5, key: 'delivered', label: 'Доставлен' },
+        { value: 6, key: 'failed', label: 'Проблема' },
+        { value: 7, key: 'cancelled', label: 'Отменен' },
+      ]
+    }
   }
 }

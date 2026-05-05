@@ -30,3 +30,11 @@ body {
 .leaflet-container {
   z-index: 1 !important;
 }
+
+.leaflet-control-attribution {
+  display: none !important;
+}
+
+.leaflet-container a {
+  display: none !important;
+}

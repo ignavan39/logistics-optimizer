@@ -80,6 +80,7 @@
 
 | Факт | Контекст |
 |------|---------|
+| **REST API использует camelCase** | Ответы: `counterpartyName`, `orderId`, `amountRub`, НЕ `counterparty_name`, `order_id` |
 | `@nestjs/typeorm` сломан в Docker с pnpm | Используй `new DataSource()` напрямую (ADR-001) |
 | `git checkout -- .` откатывает ВСЁ | Используй `git restore path/to/file` |
 | `init SQL` запускается только при первом старте контейнера | При schema errors — пересоздай контейнер |

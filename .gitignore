@@ -12,3 +12,4 @@ tmp/
 **/src/**/*.js
 **/*.js.map
 /graphify-out
+osrm-data/
