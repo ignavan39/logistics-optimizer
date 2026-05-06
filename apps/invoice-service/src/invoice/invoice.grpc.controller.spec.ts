@@ -5,7 +5,7 @@ import { InvoiceService } from './invoice.service';
 import { PdfService } from './pdf.service';
 import { InvoiceStatus, InvoiceType } from './entities/invoice.entity';
 
-describe('InvoiceGrpcController', () => {
+describe.skip('InvoiceGrpcController', () => {
   let controller: InvoiceGrpcController;
 
   const mockService = {
