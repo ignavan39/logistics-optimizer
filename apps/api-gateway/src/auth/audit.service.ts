@@ -20,7 +20,7 @@ export class AuditService {
     try {
       await this.dataSource
         .getRepository(AuditLog)
-        .insert(input as AuditLog);
+        .save(input);
     } catch (error) {
       console.error('[AuditService] Failed to write audit log:', error);
     }

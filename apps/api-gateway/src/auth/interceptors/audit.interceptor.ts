@@ -57,14 +57,14 @@ export class AuditInterceptor implements NestInterceptor {
           }
 
           try {
-            await this.dataSource.getRepository(AuditLog).insert({
+            await this.dataSource.getRepository(AuditLog).save({
               userId: user?.userId,
               action,
               resource,
               resourceId,
               ipAddress: ipAddress as string,
               userAgent: userAgent as string,
-            } as AuditLog);
+            });
           } catch (error) {
             console.error('[AuditInterceptor] Failed to write audit log:', error);
           }
