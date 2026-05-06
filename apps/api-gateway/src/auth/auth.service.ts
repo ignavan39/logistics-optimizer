@@ -34,6 +34,7 @@ export class AuthService {
     if (!fullUser) {
       throw new InternalServerErrorException('Failed to create user');
     }
+    await this.assignDefaultRole(fullUser.id);
     return this.tokenService.generateTokens(fullUser);
   }
 
@@ -263,7 +264,7 @@ export class AuthService {
     try {
       await queryRunner.query(
         `INSERT INTO user_roles (user_id, role_id, assigned_at)
-         SELECT $1, id, NOW() FROM roles WHERE name = 'user'`,
+         SELECT $1, id, NOW() FROM roles WHERE name = 'api_client'`,
         [userId],
       );
     } finally {

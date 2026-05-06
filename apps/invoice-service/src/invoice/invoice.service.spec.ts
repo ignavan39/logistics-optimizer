@@ -28,8 +28,7 @@ describe('InvoiceService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InvoiceService,
-        { provide: DataSource, useValue: mockDataSource },
-        { provide: getRepositoryToken(InvoiceEntity), useValue: mockRepo },
+        { provide: 'INVOICE_REPOSITORY', useValue: mockRepo },
       ],
     }).compile();
 

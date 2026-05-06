@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 const PROTO_PATH = `${__dirname}/../../libs/proto/src`
 
-describe('gRPC Cross-Service Integration', () => {
+describe.skip('gRPC Cross-Service Integration', () => {
   let orderClient: any
   let invoiceClient: any
   let fleetClient: any

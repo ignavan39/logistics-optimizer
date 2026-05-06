@@ -8,7 +8,7 @@ const GRPC_HOST = process.env.GRPC_TRACKING_HOST || 'localhost:50055'
 describe('TrackingService E2E', () => {
   let client: any
 
-  beforeAll(() => {
+  beforeAll(async () => {
     const packageDefinition = protoLoader.loadSync(PROTO_PATH)
     const grpcPackage = grpc.loadPackageDefinition(packageDefinition) as any
     const TrackingService = grpcPackage.tracking.TrackingService
