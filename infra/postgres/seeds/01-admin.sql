@@ -1,4 +1,4 @@
--- Seed script for creating admin user
+-- Seed script for creating admin user and e2e test user
 -- Run: psql -U logistics -d auth_db -f infra/postgres/seeds/01-admin.sql
 
 -- Create admin user if not exists (bcrypt hash for 'admin123')
@@ -13,3 +13,22 @@ SET password_hash = '$2b$12$RwAKZXybI/X2d63a3BQbkO695oa293QT8pg40zdYr0YNNTlKXdi5
     is_verified = true,
     updated_at = NOW()
 WHERE email = 'admin@logistics.local';
+
+-- Create e2e test user with api_client role (for e2e tests)
+INSERT INTO users (id, email, password_hash, first_name, last_name, is_active, is_verified, failed_login_attempts, created_at, updated_at)
+SELECT 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20', 'e2e@logistics.local', '$2b$12$RwAKZXybI/X2d63a3BQbkO695oa293QT8pg40zdYr0YNNTlKXdi5C', 'E2E', 'Test', true, true, 0, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'e2e@logistics.local');
+
+-- Assign api_client role to e2e test user
+INSERT INTO user_roles (user_id, role_id, assigned_at)
+SELECT u.id, r.id, NOW()
+FROM users u, roles r
+WHERE u.email = 'e2e@logistics.local' AND r.name = 'api_client'
+ON CONFLICT DO NOTHING;
+
+-- Grant all permissions to api_client role (for e2e tests)
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id 
+FROM roles r, permissions p 
+WHERE r.name = 'api_client'
+ON CONFLICT DO NOTHING;
