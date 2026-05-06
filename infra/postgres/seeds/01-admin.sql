@@ -16,7 +16,7 @@ WHERE email = 'admin@logistics.local';
 
 -- Create e2e test user with api_client role (for e2e tests)
 INSERT INTO users (id, email, password_hash, first_name, last_name, is_active, is_verified, failed_login_attempts, created_at, updated_at)
-SELECT 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20', 'e2e@logistics.local', '$2b$12$RwAKZXybI/X2d63a3BQbkO695oa293QT8pg40zdYr0YNNTlKXdi5C', 'E2E', 'Test', true, true, 0, NOW(), NOW()
+SELECT 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20', 'e2e@logistics.local', '$2b$12$g.8yHCHve1TL3.gSs.ARr.i1.9gTvpWvbhGCnEMlBRIoEnUsi20eK', 'E2E', 'Test', true, true, 0, NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'e2e@logistics.local');
 
 -- Assign api_client role to e2e test user
