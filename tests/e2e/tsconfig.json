@@ -16,7 +16,7 @@
     "noFallthroughCasesInSwitch": false,
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
-    "isolatedModules": true
+    "isolatedModules": false
   },
   "include": ["tests/e2e/**/*.ts"],
   "exclude": ["node_modules", "tmp"]
