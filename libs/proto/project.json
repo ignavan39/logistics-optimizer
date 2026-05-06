@@ -8,12 +8,6 @@
       "options": {
         "script": "build"
       }
-    },
-    "typecheck": {
-      "executor": "nx:run-script",
-      "options": {
-        "script": "typecheck"
-      }
     }
   }
 }

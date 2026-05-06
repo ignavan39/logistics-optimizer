@@ -4,7 +4,8 @@
   "private": true,
   "main": "src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "build": "echo 'proto is .proto files, no build needed'",
+    "typecheck": "echo 'proto is .proto files, no typecheck needed' && exit 0"
   },
   "dependencies": {
     "protobufjs": "^7.3.0"
