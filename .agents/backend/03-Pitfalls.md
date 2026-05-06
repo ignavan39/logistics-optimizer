@@ -130,6 +130,7 @@ if (!result) throw new Error('gRPC method failed despite ready state');
 | Моки не соответствуют реальному интерфейсу | Тесты проходят, код падает в prod | Сверяй моки с реальными методами сервиса перед тестом |
 | Забытые `// TEMP:` комментарии | Отключённая логика уходит в prod | `grep -r "TEMP:"` перед коммитом |
 | Несоответствие типов в вызовах сервисов | `calculateEstimatedPrice` возвращает не то, что ожидает код | Читай контракт, используй отдельные методы для тарифов |
+| `relations: ['roles']` без Entity @ManyToMany | "Property 'roles' was not found in User entity" → 500 | Не используй relations без настроенных Entity relations |
 
 ### 🧪 Unit-тест шаблон для gRPC-сервисов
 
