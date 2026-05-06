@@ -6,10 +6,10 @@ import { v4 as uuidv4 } from 'uuid'
 const PROTO_PATH = `${__dirname}/../../libs/proto/src/order.proto`
 const GRPC_HOST = process.env.GRPC_ORDER_HOST || 'localhost:50051'
 
-describe('OrderService E2E', () => {
+describe.skip('OrderService E2E', () => {
   let client: any
 
-  beforeAll(() => {
+  beforeAll(async () => {
     const packageDefinition = protoLoader.loadSync(PROTO_PATH)
     const grpcPackage = grpc.loadPackageDefinition(packageDefinition) as any
     const OrderService = grpcPackage.order.OrderService

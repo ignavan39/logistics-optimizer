@@ -1,6 +1,6 @@
 import { InvoicesService, type InvoiceResponse } from './invoices.service';
 
-describe.skip('InvoicesService', () => {
+describe('InvoicesService', () => {
   let service: InvoicesService;
   
   const mockClient = {
@@ -36,7 +36,7 @@ describe.skip('InvoicesService', () => {
 
       const result = await service.getInvoice('inv-1');
 
-      expect(mockClient.getInvoice).toHaveBeenCalledWith({ invoiceId: 'inv-1' }, expect.any(Function));
+      expect(mockClient.getInvoice).toHaveBeenCalledWith({ invoice_id: 'inv-1' }, expect.any(Function));
       expect(result).toMatchObject({ id: 'inv-1', orderId: 'order-1' });
     });
 
@@ -53,15 +53,15 @@ describe.skip('InvoicesService', () => {
 
   describe('getInvoiceByOrder()', () => {
     it('should return invoice by order id', async () => {
-      const invoice: InvoiceResponse = { id: 'inv-1', orderId: 'order-1' } as any;
+      const rawResponse = { id: 'inv-1', order_id: 'order-1' };
       mockClient.getInvoiceByOrder.mockImplementation((_opts: any, callback: any) => {
-        callback(null, invoice);
+        callback(null, rawResponse);
       });
 
       const result = await service.getInvoiceByOrder('order-1');
 
-      expect(mockClient.getInvoiceByOrder).toHaveBeenCalledWith({ orderId: 'order-1' }, expect.any(Function));
-      expect(result).toEqual(invoice);
+      expect(mockClient.getInvoiceByOrder).toHaveBeenCalledWith({ order_id: 'order-1' }, expect.any(Function));
+      expect(result).toMatchObject({ id: 'inv-1', orderId: 'order-1' });
     });
   });
 });

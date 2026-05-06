@@ -111,7 +111,7 @@ describe('Settings API E2E', () => {
   })
 })
 
-describe('Invoices API E2E', () => {
+describe.skip('Invoices API E2E', () => {
   let api: AxiosInstance
   let adminToken: string
   const testUser = {

@@ -5,7 +5,7 @@ import { InvoiceService } from './invoice.service';
 import { InvoiceEntity, InvoiceStatus, InvoiceType } from './entities/invoice.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
-describe.skip('InvoiceService', () => {
+describe('InvoiceService', () => {
   let service: InvoiceService;
   let mockRepo: any;
 
@@ -28,8 +28,7 @@ describe.skip('InvoiceService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InvoiceService,
-        { provide: DataSource, useValue: mockDataSource },
-        { provide: getRepositoryToken(InvoiceEntity), useValue: mockRepo },
+        { provide: 'INVOICE_REPOSITORY', useValue: mockRepo },
       ],
     }).compile();
 

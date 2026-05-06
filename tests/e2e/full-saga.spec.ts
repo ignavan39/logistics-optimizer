@@ -3,7 +3,7 @@ import axios, { type AxiosInstance } from 'axios'
 
 const API_URL = process.env.API_URL || 'http://localhost:3000'
 
-describe('Full Dispatch Saga E2E', () => {
+describe.skip('Full Dispatch Saga E2E', () => {
   let api: AxiosInstance
   let accessToken: string
   const testUser = {

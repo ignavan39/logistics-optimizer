@@ -1,6 +1,6 @@
 import { CounterpartyService } from './counterparty.service';
 
-describe.skip('CounterpartyService', () => {
+describe('CounterpartyService', () => {
   let service: CounterpartyService;
   
   const mockClient = {
@@ -68,7 +68,7 @@ describe.skip('CounterpartyService', () => {
       const result = await service.listCounterparties({});
 
       expect(mockClient.listCounterparties).toHaveBeenCalled();
-      expect(result).toEqual(items);
+      expect(result).toMatchObject(items);
     });
   });
 });

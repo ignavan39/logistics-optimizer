@@ -8,7 +8,7 @@ const GRPC_HOST = process.env.GRPC_ROUTING_HOST || 'localhost:50054'
 describe('RoutingService E2E', () => {
   let client: any
 
-  beforeAll(() => {
+  beforeAll(async () => {
     const packageDefinition = protoLoader.loadSync(PROTO_PATH)
     const grpcPackage = grpc.loadPackageDefinition(packageDefinition) as any
     const RoutingService = grpcPackage.routing.RoutingService
