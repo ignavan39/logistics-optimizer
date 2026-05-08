@@ -45,7 +45,7 @@ describe('API Gateway E2E', () => {
         lastName: 'User',
       })
 
-      expect([201, 403]).toContain(response.status)
+      expect(response.status).toBe(201)
       expect(response.data).toHaveProperty('accessToken')
       expect(response.data).toHaveProperty('refreshToken')
     })
@@ -70,19 +70,19 @@ describe('API Gateway E2E', () => {
         origin: { lat: 55.7558, lng: 37.6173 },
         destination: { lat: 55.7644, lng: 37.6225 },
       })
-      expect([401, 429]).toContain(response.status)
+      expect(response.status).toBe(401)
     })
 
     it('should reject GET /orders without token', async () => {
       accessToken = ''
       const response = await api.get('/orders')
-      expect([401, 429]).toContain(response.status)
+      expect(response.status).toBe(401)
     })
 
     it('should reject GET /vehicles without token', async () => {
       accessToken = ''
       const response = await api.get('/vehicles')
-      expect([401, 429]).toContain(response.status)
+      expect(response.status).toBe(401)
     })
 
     it('should reject POST /routes/calculate without token', async () => {
@@ -91,36 +91,57 @@ describe('API Gateway E2E', () => {
         origin: { lat: 55.7558, lng: 37.6173 },
         destination: { lat: 55.7644, lng: 37.6225 },
       })
-      expect([401, 429]).toContain(response.status)
+      expect(response.status).toBe(401)
     })
 
     it.skip('should reject GET /tracking/:id without token', async () => {
       accessToken = ''
       const response = await api.get('/tracking/vehicle-1/position')
-      expect([401, 429]).toContain(response.status)
+      expect(response.status).toBe(401)
     })
 
     it.skip('should reject POST /dispatch without token', async () => {
       accessToken = ''
       const response = await api.post('/dispatch', { order_id: 'test' })
-      expect([401, 429]).toContain(response.status)
+      expect(response.status).toBe(401)
     })
   })
 
 describe.skip('POST /auth/login', () => {
-describe.skip('GET /auth/me', () => {
-describe.skip('POST /auth/refresh', () => {
-describe.skip('POST /auth/logout', () => {
-    it('should logout successfully', async () => {
-      const response = await api.post(
-        '/auth/logout',
-        {},
-        { headers: { Authorization: `Bearer ${accessToken}` } },
-      )
-
-      expect(response.status).toBe(204)
+  it('should login', async () => {
+    const response = await api.post('/auth/login', {
+      email: testUser.email,
+      password: testUser.password,
     })
+    expect(response.status).toBe(200)
   })
+})
+
+describe.skip('GET /auth/me', () => {
+  it('should get current user', async () => {
+    const response = await api.get('/auth/me')
+    expect(response.status).toBe(200)
+  })
+})
+
+describe.skip('POST /auth/refresh', () => {
+  it('should refresh token', async () => {
+    const response = await api.post('/auth/refresh', {})
+    expect(response.status).toBe(200)
+  })
+})
+
+describe.skip('POST /auth/logout', () => {
+  it('should logout successfully', async () => {
+    const response = await api.post(
+      '/auth/logout',
+      {},
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    )
+
+    expect(response.status).toBe(204)
+  })
+})
 
   describe('POST /auth/refresh validation', () => {
     it.skip('should reject expired refresh token', async () => {
@@ -147,14 +168,14 @@ describe.skip('POST /auth/logout', () => {
         weight_kg: 50,
       })
 
-      expect([201, 403]).toContain(response.status)
+      expect(response.status).toBe(201)
       expect(response.data).toHaveProperty('id')
     })
 
     it('should list orders', async () => {
       const response = await api.get('/orders')
 
-      expect([200, 429]).toContain(response.status)
+      expect(response.status).toBe(200)
       if (response.status === 200) {
         expect(response.data).toHaveProperty('orders')
         expect(response.data).toHaveProperty('total')
@@ -172,7 +193,7 @@ describe.skip('POST /auth/logout', () => {
 
       const response = await api.get(`/orders/${orderId}`)
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
   })
 
@@ -189,7 +210,7 @@ describe.skip('POST /auth/logout', () => {
     it('should get vehicle by id', async () => {
       const response = await api.get('/vehicles/vehicle-1')
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should return valid response for assign vehicle', async () => {
@@ -197,7 +218,7 @@ describe.skip('POST /auth/logout', () => {
         order_id: 'test-order-123',
       })
 
-      expect([200, 400, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
   })
 
@@ -208,7 +229,7 @@ describe.skip('POST /auth/logout', () => {
         destination: { lat: 55.7644, lng: 37.6225 },
       })
 
-      expect([200, 201]).toContain(response.status)
+      expect(response.status).toBe(200)
       if (response.status === 200) {
         expect(response.data).toHaveProperty('waypoints')
       }
@@ -217,7 +238,7 @@ describe.skip('POST /auth/logout', () => {
     it('should return 404 for non-existent route', async () => {
       const response = await api.get('/routes/non-existent-route')
 
-      expect([404, 500]).toContain(response.status)
+      expect(response.status).toBe(404)
     })
   })
 
@@ -241,7 +262,7 @@ describe.skip('POST /auth/logout', () => {
         lastName: 'User',
       })
 
-      expect([400, 422]).toContain(response.status)
+      expect(response.status).toBe(400)
     })
 
     it('should reject short password', async () => {
@@ -252,7 +273,7 @@ describe.skip('POST /auth/logout', () => {
         lastName: 'User',
       })
 
-      expect([400, 422]).toContain(response.status)
+      expect(response.status).toBe(400)
     })
 
     it('should reject missing required fields', async () => {
@@ -260,7 +281,7 @@ describe.skip('POST /auth/logout', () => {
         email: `missing-${Date.now()}@test.local`,
       })
 
-      expect([400, 422]).toContain(response.status)
+      expect(response.status).toBe(400)
     })
 
     it.skip('should reject logout with invalid token', async () => {
@@ -289,7 +310,7 @@ describe.skip('POST /auth/logout', () => {
         params: { page: 1, limit: 5 },
       })
 
-      expect([200, 429, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
       if (response.status === 200) {
         expect(response.data.orders.length).toBeLessThanOrEqual(5)
       }
@@ -300,7 +321,7 @@ describe.skip('POST /auth/logout', () => {
         params: { status: 1 },
       })
 
-      expect([200, 429, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should list orders with customer filter', async () => {
@@ -308,7 +329,7 @@ describe.skip('POST /auth/logout', () => {
         params: { customer_id: 'test-customer-ext' },
       })
 
-      expect([200, 429, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should reject invalid order data', async () => {
@@ -318,7 +339,7 @@ describe.skip('POST /auth/logout', () => {
         destination: { lat: 55.7644, lng: 37.6225 },
       })
 
-      expect([200, 201, 400, 422, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should reject invalid coordinates', async () => {
@@ -328,7 +349,7 @@ describe.skip('POST /auth/logout', () => {
         destination: { lat: 55.7644, lng: 37.6225 },
       })
 
-      expect([201, 400, 422]).toContain(response.status)
+      expect(response.status).toBe(201)
     })
 
     it('should update order status', async () => {
@@ -339,7 +360,7 @@ describe.skip('POST /auth/logout', () => {
         status: 2,
       })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should cancel order', async () => {
@@ -349,13 +370,13 @@ describe.skip('POST /auth/logout', () => {
         data: { order_id: createdOrderId, reason: 'Test cancellation' },
       })
 
-      expect([200, 204, 400, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should return 404 for non-existent order', async () => {
       const response = await api.get('/orders/non-existent-order-id')
 
-      expect([404, 500]).toContain(response.status)
+      expect(response.status).toBe(404)
     })
   })
 
@@ -365,7 +386,7 @@ describe.skip('POST /auth/logout', () => {
         params: { min_capacity_kg: 100 },
       })
 
-      expect([200, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should get vehicles with radius filter', async () => {
@@ -373,7 +394,7 @@ describe.skip('POST /auth/logout', () => {
         params: { lat: 55.7558, lng: 37.6173, radius_km: 20 },
       })
 
-      expect([200, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should release vehicle', async () => {
@@ -381,7 +402,7 @@ describe.skip('POST /auth/logout', () => {
         order_id: 'test-order-123',
       })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should reject assign without vehicle_id', async () => {
@@ -389,7 +410,7 @@ describe.skip('POST /auth/logout', () => {
         order_id: 'test-order-123',
       })
 
-      expect([400, 404]).toContain(response.status)
+      expect(response.status).toBe(400)
     })
   })
 
@@ -401,7 +422,7 @@ describe.skip('POST /auth/logout', () => {
         destination: { lat: 55.7644, lng: 37.6225 },
       })
 
-      expect([200, 201, 400]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should calculate route with vehicle_id', async () => {
@@ -411,7 +432,7 @@ describe.skip('POST /auth/logout', () => {
         destination: { lat: 55.7644, lng: 37.6225 },
       })
 
-      expect([200, 201, 400]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should reject invalid coordinates', async () => {
@@ -420,7 +441,7 @@ describe.skip('POST /auth/logout', () => {
         destination: { lat: 55.7644, lng: 37.6225 },
       })
 
-      expect([400, 500]).toContain(response.status)
+      expect(response.status).toBe(400)
     })
 
     it('should reject missing origin', async () => {
@@ -428,7 +449,7 @@ describe.skip('POST /auth/logout', () => {
         destination: { lat: 55.7644, lng: 37.6225 },
       })
 
-      expect([400, 500]).toContain(response.status)
+      expect(response.status).toBe(400)
     })
 
     it('should reject missing destination', async () => {
@@ -436,7 +457,7 @@ describe.skip('POST /auth/logout', () => {
         origin: { lat: 55.7558, lng: 37.6173 },
       })
 
-      expect([400, 500]).toContain(response.status)
+      expect(response.status).toBe(400)
     })
   })
 
@@ -444,7 +465,7 @@ describe.skip('POST /auth/logout', () => {
     it('should get latest position', async () => {
       const response = await api.get('/tracking/vehicle-1/position')
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should get track with time range', async () => {
@@ -456,7 +477,7 @@ describe.skip('POST /auth/logout', () => {
         },
       })
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should get track with max_points', async () => {
@@ -464,13 +485,13 @@ describe.skip('POST /auth/logout', () => {
         params: { max_points: 50 },
       })
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should reject non-existent vehicle', async () => {
       const response = await api.get('/tracking/non-existent-vehicle/position')
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
   })
 
@@ -480,13 +501,13 @@ describe.skip('POST /auth/logout', () => {
         order_id: 'test-order-789',
       })
 
-      expect([200, 201, 400, 503]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should get dispatch state', async () => {
       const response = await api.get('/dispatch/test-saga-123')
 
-      expect([200, 404, 503]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should cancel dispatch', async () => {
@@ -494,13 +515,13 @@ describe.skip('POST /auth/logout', () => {
         reason: 'Test cancellation',
       })
 
-      expect([200, 400, 404, 503]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should reject dispatch without order_id', async () => {
       const response = await api.post('/dispatch', {})
 
-      expect([400, 422, 503]).toContain(response.status)
+      expect(response.status).toBe(400)
     })
   })
 
@@ -584,7 +605,7 @@ describe.skip('POST /auth/logout', () => {
     it('should reject connection without token', async () => {
       const response = await api.get('/notifications')
 
-      expect([404, 200]).toContain(response.status)
+      expect(response.status).toBe(404)
     })
   })
 
@@ -608,7 +629,7 @@ describe.skip('POST /auth/logout', () => {
         weight_kg: 10,
       }, { headers: { Authorization: `Bearer ${accessToken}` } })
 
-      expect([201, 403]).toContain(response.status)
+      expect(response.status).toBe(201)
       orderId = response.data.id
       expect(response.data.status).toBe(1)
     })
@@ -620,7 +641,7 @@ describe.skip('POST /auth/logout', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should update order status PENDING → ASSIGNED', async () => {
@@ -631,7 +652,7 @@ describe.skip('POST /auth/logout', () => {
         status: 2,
       }, { headers: { Authorization: `Bearer ${accessToken}` } })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should reject invalid transition ASSIGNED → PENDING (409)', async () => {
@@ -642,7 +663,7 @@ describe.skip('POST /auth/logout', () => {
         status: 1,
       }, { headers: { Authorization: `Bearer ${accessToken}` } })
 
-      expect([409, 400, 500]).toContain(response.status)
+      expect(response.status).toBe(409)
     })
 
 it('should reject transition DELIVERED → CANCELLED (409)', async () => {
@@ -665,7 +686,7 @@ it('should reject transition DELIVERED → CANCELLED (409)', async () => {
           status: 7,
         }, { headers: { Authorization: `Bearer ${accessToken}` } })
 
-expect([409, 400, 500]).toContain(cancelResponse.status)
+expect(cancelResponse.status).toBe(409)
       }
     })
 
@@ -683,7 +704,7 @@ expect([409, 400, 500]).toContain(cancelResponse.status)
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 204, 400, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
   })
 
@@ -712,7 +733,7 @@ expect([409, 400, 500]).toContain(cancelResponse.status)
         order_id: orderId,
       }, { headers: { Authorization: `Bearer ${dispatchAccessToken}` } })
 
-      expect([200, 201, 400, 404, 500, 503]).toContain(dispatchResponse.status)
+      expect(dispatchResponse.status).toBe(200)
     })
 
     it('should get dispatch state', async () => {
@@ -720,7 +741,7 @@ expect([409, 400, 500]).toContain(cancelResponse.status)
         headers: { Authorization: `Bearer ${dispatchAccessToken}` },
       })
 
-      expect([200, 404, 500, 503]).toContain(dispatchResponse.status)
+      expect(dispatchResponse.status).toBe(200)
     })
 
     it('should cancel dispatch', async () => {
@@ -728,7 +749,7 @@ expect([409, 400, 500]).toContain(cancelResponse.status)
         reason: 'Test cancellation',
       }, { headers: { Authorization: `Bearer ${dispatchAccessToken}` } })
 
-      expect([200, 400, 404, 500]).toContain(dispatchResponse.status)
+      expect(dispatchResponse.status).toBe(200)
     })
 
     it('should reject dispatch without order_id', async () => {
@@ -736,7 +757,7 @@ expect([409, 400, 500]).toContain(cancelResponse.status)
         headers: { Authorization: `Bearer ${dispatchAccessToken}` },
       })
 
-      expect([400, 422, 500]).toContain(response.status)
+      expect(response.status).toBe(400)
     })
   })
 
@@ -757,7 +778,7 @@ expect([409, 400, 500]).toContain(cancelResponse.status)
         version: 0,
       }, { headers: { Authorization: `Bearer ${fleetToken}` } })
 
-      expect([200, 409, 400, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should release vehicle from order', async () => {
@@ -765,7 +786,7 @@ expect([409, 400, 500]).toContain(cancelResponse.status)
         order_id: 'test-order-release',
       }, { headers: { Authorization: `Bearer ${fleetToken}` } })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
   })
 
@@ -786,7 +807,7 @@ expect([409, 400, 500]).toContain(cancelResponse.status)
         newPassword: 'NewPassword123!',
       }, { headers: { Authorization: `Bearer ${changePassToken}` } })
 
-      expect([200, 400, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should reject change password with wrong current', async () => {
@@ -795,7 +816,7 @@ expect([409, 400, 500]).toContain(cancelResponse.status)
         newPassword: 'NewPassword123!',
       }, { headers: { Authorization: `Bearer ${changePassToken}` } })
 
-      expect([400, 401, 500]).toContain(response.status)
+      expect(response.status).toBe(400)
     })
   })
 
@@ -815,7 +836,7 @@ expect([409, 400, 500]).toContain(cancelResponse.status)
         name: 'Test API Key',
       }, { headers: { Authorization: `Bearer ${apiKeyToken}` } })
 
-      expect([201, 400, 500]).toContain(response.status)
+      expect(response.status).toBe(201)
       if (response.status === 201) {
         expect(response.data).toHaveProperty('key')
       }
@@ -826,7 +847,7 @@ expect([409, 400, 500]).toContain(cancelResponse.status)
         headers: { Authorization: `Bearer ${apiKeyToken}` },
       })
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
       if (response.status === 200) {
         expect(Array.isArray(response.data)).toBe(true)
       }

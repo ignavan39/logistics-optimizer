@@ -58,7 +58,7 @@ describe('Settings API E2E', () => {
 
     it('should return 401 without authentication', async () => {
       const response = await api.get('/settings/company')
-      expect([401, 404, 429]).toContain(response.status)
+      expect(response.status).toBe(401)
     })
   })
 
@@ -92,7 +92,7 @@ describe('Settings API E2E', () => {
 
     it('should return 401 without authentication', async () => {
       const response = await api.put('/settings/company', updatedSettings)
-      expect([401, 404, 429]).toContain(response.status)
+      expect(response.status).toBe(401)
     })
 
     it('should update single field (partial update)', async () => {
@@ -159,7 +159,7 @@ describe.skip('Invoices API E2E', () => {
 
     it('should return 401 without authentication', async () => {
       const response = await api.get('/invoices')
-      expect([401, 404, 429]).toContain(response.status)
+      expect(response.status).toBe(401)
     })
 
     it('should support pagination', async () => {
@@ -180,7 +180,7 @@ describe.skip('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${adminToken}` },
       })
 
-      expect([200, 403, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
   })
 
@@ -210,13 +210,13 @@ describe.skip('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${adminToken}` },
       })
 
-      expect([200, 403, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should return 401 without authentication', async () => {
       const response = await api.get('/invoices/some-id/pdf')
 
-      expect([401, 404, 429]).toContain(response.status)
+      expect(response.status).toBe(401)
     })
   })
 
@@ -245,7 +245,7 @@ describe.skip('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([201, 202]).toContain(orderResponse.status)
+      expect(orderResponse.status).toBe(201)
       if (orderResponse.status === 201 || orderResponse.status === 202) {
         orderId = orderResponse.data.id
 
@@ -256,7 +256,7 @@ describe.skip('Invoices API E2E', () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         })
 
-        expect([200, 201, 202]).toContain(dispatchResponse.status)
+        expect(dispatchResponse.status).toBe(200)
       }
     })
 
@@ -331,15 +331,15 @@ describe.skip('Invoices API E2E', () => {
 
       const results = await Promise.all(requests)
 
-      results.forEach((response, index) => {
-        expect(response.status).toBe(200, `Request ${index + 1} failed with status ${response.status}`)
+      results.forEach((response) => {
+        expect(response.status).toBe(200)
         expect(response.data).toHaveProperty('url')
       })
 
       // All responses should have the same URL
       const firstUrl = results[0].data.url
-      results.slice(1).forEach((response, index) => {
-        expect(response.data.url).toBe(firstUrl, `Response ${index + 2} differs from first response`)
+      results.slice(1).forEach((response) => {
+        expect(response.data.url).toBe(firstUrl)
       })
     })
   })
@@ -371,7 +371,7 @@ describe.skip('Invoices API E2E', () => {
         expect(response.data).toHaveProperty('status')
         expect([1, 2]).toContain(response.data.status)
       } else {
-        expect([400, 404, 500]).toContain(response.status)
+        expect(response.status).toBe(400)
       }
     })
 
@@ -416,7 +416,7 @@ describe.skip('Invoices API E2E', () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         })
 
-        expect([409, 400, 500]).toContain(updateResponse.status)
+        expect(updateResponse.status).toBe(409)
       }
     })
 
@@ -443,7 +443,7 @@ describe.skip('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 201, 400, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should get invoice payments', async () => {
@@ -453,7 +453,7 @@ describe.skip('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
   })
 
@@ -476,7 +476,7 @@ describe.skip('Invoices API E2E', () => {
       if (response.status === 200) {
         const invoices = response.data.invoices || response.data.data || []
         invoices.forEach((inv: any) => {
-          expect([1, 'DRAFT', 'draft']).toContain(inv.status)
+          expect(inv.status).toBe(1)
         })
       }
     })
@@ -486,7 +486,7 @@ describe.skip('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 403]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should filter invoices by date range', async () => {
@@ -498,7 +498,7 @@ describe.skip('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 403]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should support limit and offset pagination', async () => {
@@ -510,7 +510,7 @@ describe.skip('Invoices API E2E', () => {
         const invoices = response.data.invoices || response.data.data || []
         expect(invoices.length).toBeLessThanOrEqual(5)
       } else {
-        expect([200, 403]).toContain(response.status)
+        expect(response.status).toBe(200)
       }
     })
 
@@ -519,7 +519,7 @@ describe.skip('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 403]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should search invoices by number', async () => {
@@ -527,7 +527,7 @@ describe.skip('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 403]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
   })
 
@@ -550,7 +550,7 @@ describe.skip('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([400, 404, 422, 500]).toContain(response.status)
+      expect(response.status).toBe(400)
     })
 
     it('should reject invoice with invalid VAT rate', async () => {
@@ -562,7 +562,7 @@ describe.skip('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([400, 404, 422, 500]).toContain(response.status)
+      expect(response.status).toBe(400)
     })
 
     it('should reject invoice without counterparty_id', async () => {
@@ -572,7 +572,7 @@ describe.skip('Invoices API E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([400, 404, 422, 500]).toContain(response.status)
+      expect(response.status).toBe(400)
     })
   })
 })

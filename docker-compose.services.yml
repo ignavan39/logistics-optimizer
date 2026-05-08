@@ -16,8 +16,8 @@ x-service-common: &service-common
     - ./tests/e2e/tsconfig.json:/app/tests/e2e/tsconfig.json:ro
     - ./tests/e2e/jest.config.js:/app/tests/e2e/jest.config.js:ro
   depends_on:
-    # pg-order:
-    #   condition: service_healthy
+    pg-order:
+      condition: service_healthy
     kafka:
       condition: service_healthy
     kafka-init:
@@ -115,8 +115,8 @@ services:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
-      # pg-fleet:
-      #   condition: service_healthy
+      pg-fleet:
+        condition: service_healthy
 
   routing-service:
     <<: *service-common
@@ -137,8 +137,8 @@ services:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
-      # pg-routing:
-      #   condition: service_healthy
+      pg-routing:
+        condition: service_healthy
 
   tracking-service:
     <<: *service-common
@@ -159,8 +159,8 @@ services:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
-      # pg-tracking:
-      #   condition: service_healthy
+      pg-tracking:
+        condition: service_healthy
 
   dispatcher-service:
     <<: *service-common
@@ -182,8 +182,8 @@ services:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
-      # pg-dispatcher:
-      #   condition: service_healthy
+      pg-dispatcher:
+        condition: service_healthy
       order-service:
         condition: service_started
       fleet-service:
@@ -210,8 +210,8 @@ services:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
-      # counterparty-service:
-      #   condition: service_started
+      pg-counterparty:
+        condition: service_healthy
 
   invoice-service:
     <<: *service-common

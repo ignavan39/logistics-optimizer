@@ -80,7 +80,7 @@ describe('Kafka Events E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 404, 500]).toContain(finalCheck.status)
+      expect(finalCheck.status).toBe(200)
     })
 
     it('should find auto-created invoice after order.delivered', async () => {
@@ -124,7 +124,7 @@ describe('Kafka Events E2E', () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         })
 
-        expect([200, 204, 404, 500]).toContain(cancelResponse.status)
+        expect(cancelResponse.status).toBe(200)
       }
     })
   })
@@ -148,14 +148,14 @@ describe('Kafka Events E2E', () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         })
 
-        expect([200, 400, 404, 500]).toContain(assignResponse.status)
+        expect(assignResponse.status).toBe(200)
 
         if (assignResponse.status === 200) {
           const orderCheck = await api.get(`/orders/${orderId}`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           })
 
-          expect([200, 404, 500]).toContain(orderCheck.status)
+          expect(orderCheck.status).toBe(200)
         }
       }
     })
@@ -181,7 +181,7 @@ describe('Kafka Events E2E', () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         })
 
-        expect([200, 201, 400, 404, 500]).toContain(paymentResponse.status)
+        expect(paymentResponse.status).toBe(200)
 
         const invoiceCheck = await api.get(`/invoices/${invoiceId}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -200,7 +200,7 @@ describe('Kafka Events E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should publish order.delivered event', async () => {
@@ -208,7 +208,7 @@ describe('Kafka Events E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should support event replay', async () => {
@@ -220,7 +220,7 @@ describe('Kafka Events E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
   })
 
@@ -230,7 +230,7 @@ describe('Kafka Events E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should retry failed events', async () => {
@@ -240,7 +240,7 @@ describe('Kafka Events E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
   })
 
@@ -256,7 +256,7 @@ describe('Kafka Events E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should reject event with missing required fields', async () => {
@@ -267,7 +267,7 @@ describe('Kafka Events E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([400, 404, 422, 500]).toContain(response.status)
+      expect(response.status).toBe(400)
     })
   })
 })

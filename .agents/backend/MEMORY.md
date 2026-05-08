@@ -3,6 +3,45 @@
 > Живая память проекта. Обновляй после каждой сессии, когда узнал что-то важное.
 > Это первый файл который надо прочитать перед работой.
 
+### 📝 08.05.2026 — Docker/Infra + E2E tests fix
+
+**Что сделано:**
+
+1. **Docker/Infra стабилизация:**
+   - Добавлен ZooKeeper для Kafka (убрали KRaft mode - падал)
+   - Раскомментированы PostgreSQL depends_on в services.yml
+   - Исправлен Makefile (был баг с multiple target patterns)
+   - Создание сети автоматически перед `make up`
+
+2. **RBAC исправлен:**
+   - Применён init-auth.sql (созданы roles, permissions, функции)
+   - Применён seeds/01-admin.sql (e2e пользователь)
+   - e2e@logistics.local теперь имеет 25 permissions
+   - Token generation работает корректно
+
+3. **E2E тесты исправлены:**
+   - Исправлен синтаксис `api-gateway.spec.ts` (4 describe.skip без closing braces)
+   - Исправлен `settings-invoices.spec.ts` (toBe с message - не поддерживается)
+   - Сделаны stricter assertions (было 133 relaxed → заменены на toBe)
+   - Убраны .skip где возможно
+
+**Грабли:**
+- Kafka KRaft mode нестабилен в Docker → ZooKeeper стабильнее
+- Makefile не работал из-за unicode в комментариях → упростили
+- e2e пользователь locked после неудачных попыток → нужно clear в seed
+- Тесты с relaxed assertions скрывали реальные проблемы → исправили
+
+**Результаты E2E:**
+- counterparty.spec.ts: ✅ 25 passed
+- api-gateway: 17 passed, 43 failed (много роутов не существует)
+- gRPC тесты: skipped (сервисы не отвечают)
+
+**Следующий шаг:**
+- Исправить оставшиеся E2E failures
+- Добавить роут /auth/my-roles
+
+---
+
 ### 📝 06.05.2026 — E2E тесты и Docker
 
 **Что сделали:**

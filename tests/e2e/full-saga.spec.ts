@@ -50,7 +50,7 @@ describe.skip('Full Dispatch Saga E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([201, 400, 500]).toContain(response.status)
+      expect(response.status).toBe(201)
       if (response.status === 201) {
         sagaOrderId = response.data.id
         expect(response.data.status).toBe(1)
@@ -66,7 +66,7 @@ describe.skip('Full Dispatch Saga E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 201, 400, 404, 500, 503]).toContain(response.status)
+      expect(response.status).toBe(200)
       if (response.status === 200 || response.status === 201) {
         sagaDispatchId = response.data.saga_id || response.data.id
         expect(response.data).toHaveProperty('status')
@@ -82,7 +82,7 @@ describe.skip('Full Dispatch Saga E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should update order status to IN_TRANSIT', async () => {
@@ -95,7 +95,7 @@ describe.skip('Full Dispatch Saga E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 400, 409, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should update order status to DELIVERED', async () => {
@@ -108,7 +108,7 @@ describe.skip('Full Dispatch Saga E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 400, 409, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should verify invoice was created automatically', async () => {
@@ -146,7 +146,7 @@ describe.skip('Full Dispatch Saga E2E', () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         })
 
-        expect([503, 400, 500]).toContain(dispatchResponse.status)
+        expect(dispatchResponse.status).toBe(503)
       }
     })
 
@@ -172,7 +172,7 @@ describe.skip('Full Dispatch Saga E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 201, 400, 404, 500, 503]).toContain(dispatchResponse.status)
+      expect(dispatchResponse.status).toBe(200)
     })
   })
 
@@ -204,7 +204,7 @@ describe.skip('Full Dispatch Saga E2E', () => {
             headers: { Authorization: `Bearer ${accessToken}` },
           })
 
-          expect([200, 400, 404, 500]).toContain(cancelResponse.status)
+          expect(cancelResponse.status).toBe(200)
         }
       }
     })
@@ -236,7 +236,7 @@ describe.skip('Full Dispatch Saga E2E', () => {
             headers: { Authorization: `Bearer ${accessToken}` },
           })
 
-          expect([200, 400, 404, 500]).toContain(releaseResponse.status)
+          expect(releaseResponse.status).toBe(200)
         }
       }
     })
@@ -248,7 +248,7 @@ describe.skip('Full Dispatch Saga E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
       if (response.status === 200) {
         expect(Array.isArray(response.data.sagas || response.data.data)).toBe(true)
       }
@@ -259,7 +259,7 @@ describe.skip('Full Dispatch Saga E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should track saga steps', async () => {
@@ -267,7 +267,7 @@ describe.skip('Full Dispatch Saga E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
   })
 
@@ -280,7 +280,7 @@ describe.skip('Full Dispatch Saga E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 201, 400, 404, 408, 500, 503]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
 
     it('should retry timed out saga', async () => {
@@ -290,7 +290,7 @@ describe.skip('Full Dispatch Saga E2E', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      expect([200, 400, 404, 500]).toContain(response.status)
+      expect(response.status).toBe(200)
     })
   })
 })
