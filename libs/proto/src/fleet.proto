@@ -3,6 +3,7 @@ syntax = "proto3";
 package fleet;
 
 service FleetService {
+  rpc CreateVehicle(CreateVehicleRequest) returns (CreateVehicleResponse);
   rpc GetAvailableVehicles(GetAvailableVehiclesRequest) returns (GetAvailableVehiclesResponse);
   rpc GetVehicle(GetVehicleRequest) returns (GetVehicleResponse);
   rpc GetVehicleDetails(GetVehicleRequest) returns (GetVehicleDetailsResponse);
@@ -18,6 +19,18 @@ message GetAvailableVehiclesRequest {
   int32 min_capacity_kg = 3;
   int32 min_capacity_m3 = 4;
   int32 limit = 5;
+}
+
+message CreateVehicleRequest {
+  string license_plate = 1;
+  VehicleType type = 2;
+  int32 capacity_kg = 3;
+  float capacity_m3 = 4;
+  string model = 5;
+}
+
+message CreateVehicleResponse {
+  Vehicle vehicle = 1;
 }
 
 message GetAvailableVehiclesResponse {

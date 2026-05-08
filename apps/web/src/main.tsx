@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { useAuthStore } from './lib/auth'
+import 'leaflet/dist/leaflet.css'
 import './index.css'
 
 const queryClient = new QueryClient({

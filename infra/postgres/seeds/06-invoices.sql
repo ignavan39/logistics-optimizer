@@ -12,8 +12,7 @@ INSERT INTO invoice (id, order_id, number, type, amount_rub, vat_rate, vat_amoun
     -- Paid invoices
     ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c05', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'INV-2026-005', 'invoice', 16800.00, 20.00, 2800.00, 'paid', '2026-05-01', NOW() - INTERVAL '3 days', 'bank_transfer', 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c01', 'Текущая доставка', 0, NOW() - INTERVAL '4 days', NOW()),
     -- Cancelled invoice
-    ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c06', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'INV-2026-006', 'invoice', 19000.00, 20.00, 3166.67, 'cancelled', '2026-05-05', NULL, NULL, 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c01', 'Отмененная доставка', 0, NOW() - INTERVAL '3 days', NOW())
-ON CONFLICT (number) DO NOTHING;
+    ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c06', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'INV-2026-006', 'invoice', 19000.00, 20.00, 3166.67, 'cancelled', '2026-05-05', NULL, NULL, 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c01', 'Отмененная доставка', 0, NOW() - INTERVAL '3 days', NOW());
 
 -- Update pdf fields for paid invoices (simulate PDF generation)
 UPDATE invoice SET 
