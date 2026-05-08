@@ -41,6 +41,11 @@
 
 | ❌ Антипаттерн | 💥 Почему ломается | ✅ Правильно |
 |--------------|-------------------|-------------|
+| NestJS @EventPattern с Kafka transport | Events не доходят до handlers - known limitation | Использовать ручной KafkaJS в onModuleInit |
+| Docker hot-reload через docker cp в /app/ | Приложение запускается из /app/dist/, не из /app/ | Копировать в /app/dist/ при запуске из dist/main.js |
+
+| ❌ Антипаттерн | 💥 Почему ломается | ✅ Правильно |
+|--------------|-------------------|-------------|
 | Kafka produce без Outbox | Сбой после commit → событие потеряно | Transactional Outbox (ADR-002) |
 | Consumer без идемпотентности | Дубли при rebalance/retry | Проверяй `eventId` в `processed_events` |
 | In-memory Set для идемпотентности | Теряется при рестарте сервиса | DB-based `IdempotencyGuard` |
@@ -208,3 +213,15 @@ service.onModuleInit();
   3. Использовать fallback: `(data as any).invoice_id || data.invoiceId` в контроллере
   4. Исправить gRPC вызов: `{ order_id: orderId }` вместо `{ orderId: orderId }`
 - **Следующее**: Если S3/MinIO upload падает — проверить network connectivity
+
+---
+
+## 📨 Kafka (08.05.2026) — FIXED ✅
+
+### NestJS @EventPattern не работает с Kafka transport
+- **Было**: @EventPattern handlers не получали события
+- **Решение**: Ручной KafkaJS consumer в `NotificationsConsumer.onModuleInit()`
+- **Файлы**: `notifications.consumer.ts`, `notifications.module.ts`, `main.ts`
+- **Проверка**: TypeScript 0 errors, Unit tests 49 passed, real-time test ✅
+
+> ⚠️ Всегда используй KafkaJS напрямую, не полагайся на @EventPattern.
