@@ -153,7 +153,9 @@ export class NotificationsGateway
       customerId: string;
       status?: string;
       vehicleId?: string;
+      driverId?: string;
       eta?: number;
+      reason?: string;
     },
   ): void {
     this.server.to(`order:${orderId}`).emit(event, payload);

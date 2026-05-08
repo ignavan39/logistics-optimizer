@@ -17,6 +17,7 @@ import { GuardsModule } from '../auth/guards/guards.module'
             package: 'order',
             protoPath: process.env.PROTO_ROOT ? `${process.env.PROTO_ROOT}/order.proto` : '/home/ivan/programming/pets/logistics-optimizer/libs/proto/src/order.proto',
             url: configService.get('GRPC_ORDER_HOST', 'order-service:50051'),
+            loader: { keepCase: true },
           },
         }),
         inject: [ConfigService],

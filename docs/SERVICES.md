@@ -42,45 +42,6 @@ service OrderService {
 
 ---
 
-## invoice-service
-
-**Port:** gRPC 50052, HTTP 3012  
-**Database:** logistics_invoices (PostgreSQL)  
-**Package:** `invoice`
-
-### Responsibilities
-- Invoice lifecycle management (CRUD)
-- Invoice creation from order.delivered events
-- Invoice status tracking (draft, sent, paid, overdue, cancelled)
-
-### Main Entities
-- `Invoice` — Invoice with VAT calculation
-
-### gRPC Methods
-```protobuf
-service InvoiceService {
-  GetInvoice, GetInvoiceByOrder, ListInvoices
-  CreateInvoice, UpdateInvoiceStatus
-}
-```
-
-### Kafka Topics Consumed
-- `order.delivered` — Triggers invoice creation
-
-### Dependencies
-- `OrderService` — Get order details for invoice
-- `CounterpartyService` — Get buyer information
-
-### Key Features
-- Optimistic locking on invoices
-- VAT calculation and tracking
-- Payment tracking (due date, paid date)
-- **Lazy PDF generation with S3/MinIO storage**
-- **PostgreSQL advisory lock for concurrent request handling**
-- **Distributed generation: only one request generates, others poll**
-
----
-
 ## fleet-service
 
 **Port:** gRPC 50053, HTTP 3013  
@@ -110,6 +71,24 @@ service FleetService {
 - PostGIS for geographic queries (find nearest vehicle)
 - Optimistic locking on vehicles
 - Vehicle status tracking (idle, in_transit, maintenance)
+
+---
+
+## invoice-service
+
+**Port:** gRPC 50052, HTTP 3012  
+**Database:** pg-invoices (PostgreSQL)  
+**Package:** `invoice`
+
+### Responsibilities
+- Invoice generation from delivered orders
+- PDF generation with company branding
+- VAT calculations
+- Invoice status management (draft, sent, paid)
+
+### Main Entities
+- `Invoice` — Invoice entity with items
+- `InvoiceItem` — Line items for invoices
 
 ---
 
@@ -317,12 +296,15 @@ service CounterpartyService {
 | DispatcherService | `DISPATCHER_PACKAGE` | Dispatch |
 | TrackingService | `TRACKING_PACKAGE` | Tracking |
 
-### Kafka Consumers
+### Kafka Consumers (Manual KafkaJS — not @EventPattern)
 - `order.created` → WebSocket notification
 - `order.assigned` → WebSocket + driver info
 - `order.completed` → WebSocket notification
 - `order.failed` → WebSocket notification
+- `order.cancelled` → WebSocket notification
 - `vehicle.telemetry` → "Near destination" alert
+
+> ⚠️ NestJS @EventPattern не работает с Kafka transport. Используется ручной KafkaJS consumer в `NotificationsConsumer.onModuleInit()`.
 
 ### Key Features
 - JWT with refresh tokens

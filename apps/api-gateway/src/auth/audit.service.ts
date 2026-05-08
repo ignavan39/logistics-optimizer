@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { AuditLog } from './entities/audit-log.entity';
 
@@ -14,6 +14,8 @@ interface AuditLogInput {
 
 @Injectable()
 export class AuditService {
+  private readonly logger = new Logger(AuditService.name);
+
   constructor(private dataSource: DataSource) {}
 
   async log(input: AuditLogInput): Promise<void> {
@@ -22,7 +24,7 @@ export class AuditService {
         .getRepository(AuditLog)
         .save(input);
     } catch (error) {
-      console.error('[AuditService] Failed to write audit log:', error);
+      this.logger.error('Failed to write audit log', error instanceof Error ? error.message : String(error));
     }
   }
 

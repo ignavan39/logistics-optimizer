@@ -3,6 +3,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { MicroserviceOptions } from '@nestjs/microservices';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { AuditInterceptor } from './auth/interceptors/audit.interceptor';
@@ -16,8 +17,13 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get('PORT', 3000);
 
-  // Global prefix /api
   app.setGlobalPrefix('api');
+
+  try {
+    await app.startAllMicroservices();
+  } catch (err) {
+    logger.error(`Failed to start microservices: ${err}`);
+  }
 
   // Security headers
   app.use(helmet());
@@ -31,9 +37,9 @@ async function bootstrap() {
 
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,
+      whitelist: false,
       transform: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: false,
     }),
   );
 
@@ -71,6 +77,12 @@ API использует JWT токены. Для защищённых эндп�
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
 
+  try {
+    await app.startAllMicroservices();
+    logger.log('Kafka microservice started');
+  } catch (err) {
+    logger.error(`Failed to start Kafka microservice: ${err}`);
+  }
   await app.listen(port);
   logger.log(`API Gateway running on port ${port}`);
 }

@@ -1,4 +1,4 @@
-import { Injectable, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common'
+import { Injectable, type OnModuleInit, type OnModuleDestroy, Logger } from '@nestjs/common'
 import { ClientGrpc } from '@nestjs/microservices'
 import { Inject } from '@nestjs/common'
 import {
@@ -22,6 +22,7 @@ interface OrderGrpcClient {
 @Injectable()
 export class OrdersService implements OnModuleInit, OnModuleDestroy {
   private orderClient!: OrderGrpcClient
+  private readonly logger = new Logger(OrdersService.name)
 
   constructor(
     @Inject('ORDERS_PACKAGE') private client: ClientGrpc,
@@ -34,7 +35,22 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   onModuleDestroy() {}
 
   async createOrder(dto: CreateOrderDto) {
-    return this.orderClient.createOrder(dto)
+    this.logger.log(`createOrder input: ${JSON.stringify(dto)}`)
+    // Convert camelCase to snake_case for gRPC
+    const grpcData: any = {
+      customer_id: dto.customer_id,
+      origin: dto.origin ? { lat: dto.origin.lat, lng: dto.origin.lng, address: dto.origin.address } : null,
+      destination: dto.destination ? { lat: dto.destination.lat, lng: dto.destination.lng, address: dto.destination.address } : null,
+      weight_kg: dto.weight_kg,
+      volume_m3: dto.volume_m3,
+      priority: dto.priority,
+      notes: dto.notes,
+      sla_deadline_unix: dto.sla_deadline_unix,
+    }
+    this.logger.log(`createOrder grpcData: ${JSON.stringify(grpcData)}`)
+    const result = await this.orderClient.createOrder(grpcData)
+    this.logger.log(`createOrder result: ${JSON.stringify(result)}`)
+    return result
   }
 
   async getOrder(orderId: string) {

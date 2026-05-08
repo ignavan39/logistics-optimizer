@@ -3,6 +3,7 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
+  Logger,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -13,6 +14,8 @@ import { AUDIT_KEY, AuditMetadata } from '../decorators/audit.decorator';
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(AuditInterceptor.name);
+
   constructor(
     private dataSource: DataSource,
     private reflector: Reflector,
@@ -66,11 +69,11 @@ export class AuditInterceptor implements NestInterceptor {
               userAgent: userAgent as string,
             });
           } catch (error) {
-            console.error('[AuditInterceptor] Failed to write audit log:', error);
+            this.logger.error('Failed to write audit log', error instanceof Error ? error.message : String(error));
           }
         },
         error: async (error) => {
-          console.error('[AuditInterceptor] Request failed:', error.message);
+          this.logger.error('Request failed', error instanceof Error ? error.message : String(error));
         },
       }),
     );

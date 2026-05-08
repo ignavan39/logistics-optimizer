@@ -114,16 +114,12 @@ export class InvoiceGrpcController {
     const page = req.page || 1;
     const limit = req.limit || 20;
     const counterpartyId = req.counterparty_id || req.counterpartyId;
-    
-    console.log('DEBUG listInvoices:', JSON.stringify(req));
-    
+
     const { items, total } = await this.invoiceService.findAll({
       counterpartyId,
       page,
       limit,
     });
-
-    console.log('DEBUG found:', items.length, 'invoices');
 
     return {
       invoices: items.map(inv => this.mapInvoice(inv, {})),

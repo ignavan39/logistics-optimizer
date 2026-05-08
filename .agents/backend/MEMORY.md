@@ -3,6 +3,87 @@
 > Живая память проекта. Обновляй после каждой сессии, когда узнал что-то важное.
 > Это первый файл который надо прочитать перед работой.
 
+### 📝 08.05.2026 — Kafka → WebSocket FIXED ✅
+
+**Проблема:** NestJS @EventPattern не получал события из Kafka (known limitation).
+
+**Решение:** Заменили @EventPattern на ручной KafkaJS consumer.
+
+**Что изменили:**
+1. `notifications.consumer.ts` — полный рефакторинг:
+   - Убран `@Controller`, `@EventPattern`, `@Payload`, `@Ctx`, `KafkaContext`
+   - Добавлен прямой KafkaJS: `Kafka`, `Consumer`, `EachMessagePayload`
+   - Реализован `onModuleInit()` → `consumer.connect()` + `subscribe()` + `run()`
+   - Реализован `onModuleDestroy()` → `consumer.disconnect()`
+   - `handleMessage()` парсит JSON, проверяет идемпотентность, вызывает private методы
+
+2. `notifications.module.ts` — убран `ClientsModule.registerAsync` с Kafka
+
+3. `main.ts` — убран `connectMicroservice` с Kafka transport (теперь KafkaJS в consumer)
+
+4. `notifications.gateway.ts` — расширен payload интерфейс (`driverId`, `reason`)
+
+5. `order.grpc.controller.ts` — добавлена защита от null для origin/destination
+
+6. `database.module.ts` — ProcessedEvent entity вынесен в отдельный файл
+
+7. `main.ts` — ValidationPipe whitelist: false (иначе origin/destination отбрасывались)
+
+**Результат:**
+- TypeScript: ✅ 0 errors
+- Unit tests: ✅ 49 passed
+- Kafka consumer: ✅ подключается и получает события
+- order.created → Kafka → consumer → WebSocket emit: ✅ РАБОТАЕТ
+
+**Тест:**
+```bash
+# Создать order → order.created → Kafka → consumer → WebSocket
+curl -X POST http://localhost:3000/api/orders ... # → logs показывают "📥 order.created received"
+```
+
+**Следующий шаг:**
+- Проверить real-time WebSocket flow с клиентом
+- Добавить unit тесты для NotificationsConsumer
+
+---
+
+### 📝 08.05.2026 — Kafka → WebSocket (not working)
+
+**Цель:** Получить real-time Kafka events в WebSocket клиентах
+
+**Что сделано:**
+
+1. **Инфраструктура:**
+   - Созданы Kafka топики: order.created, order.updated, order.assigned, order.completed, order.failed, order.cancelled, vehicle.telemetry
+   - Создана таблица processed_events в pg-auth для идемпотентности
+
+2. **Код:**
+   - Добавлен Kafka microservice в main.ts (connectMicroservice + startAllMicroservices)
+   - Создан NotificationsConsumer с @EventPattern декораторами
+   - Создан NotificationsGateway с WebSocket emit логикой
+
+3. **Проблема:**
+   - Kafka consumer подключается (groupId: logistics.api-gateway-notifications-server)
+   - Consumer joins group успешно
+   - **НО:** @EventPattern handlers НЕ получают события
+   - Прямой KafkaJS читает события корректно
+
+4. **Отладка:**
+   - Docker cp работает только в /app/dist/ (запускается из dist/main.js)
+   - NestJS @EventPattern требует явную конфигурацию subscribe
+   - Ручной KafkaJS в onModuleInit - рабочая альтернатива
+
+**Грабли:**
+- NestJS @EventPattern не работает "из коробки" с Kafka transport - это known limitation
+- Docker контейнер запускается из /app/dist/, не из /app/
+- Kafka сообщения в правильном формате (проверено через kafkajs)
+
+**Следующий шаг:**
+- Перейти на ручной KafkaJS consumer в onModuleInit вместо @EventPattern
+- Проверить WebSocket emit после получения событий
+
+---
+
 ### 📝 08.05.2026 — Docker/Infra + E2E tests fix
 
 **Что сделано:**

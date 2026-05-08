@@ -1,11 +1,13 @@
 import { Module, Global, type DynamicModule } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DataSource } from 'typeorm';
+import { DataSource, Entity, PrimaryColumn, Column, CreateDateColumn } from 'typeorm';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import { UserRole, Role, RolePermission, Permission } from '../roles/entities';
 import { ApiKey, User, RefreshToken, Session } from '../users/entities';
+import { AuditLog } from '../auth/entities/audit-log.entity';
+import { ProcessedEvent } from '../notifications/entities/processed-event.entity';
 
-const ENTITIES = [ApiKey, UserRole, Role, RolePermission, User, Session, RefreshToken, Permission];
+const ENTITIES = [ApiKey, UserRole, Role, RolePermission, User, Session, RefreshToken, Permission, AuditLog, ProcessedEvent];
 
 @Global()
 @Module({})

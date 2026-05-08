@@ -237,6 +237,49 @@ export class OrderService {
             },
           },
         });
+
+        // Publish order.completed for real-time notifications
+        await manager.save(OutboxEventEntity, {
+          id: uuidv4(),
+          aggregateType: 'order',
+          aggregateId: updated.id,
+          eventType: 'order.completed',
+          payload: {
+            eventId: uuidv4(),
+            source: 'order-service',
+            type: 'order.completed',
+            aggregateId: updated.id,
+            occurredAt: new Date().toISOString(),
+            payload: {
+              orderId: updated.id,
+              previousStatus: prevStatus,
+              newStatus: updated.status,
+            },
+          },
+        });
+      }
+
+      // Publish order.cancelled for real-time notifications
+      if (dto.status === OrderStatus.FAILED) {
+        await manager.save(OutboxEventEntity, {
+          id: uuidv4(),
+          aggregateType: 'order',
+          aggregateId: updated.id,
+          eventType: 'order.cancelled',
+          payload: {
+            eventId: uuidv4(),
+            source: 'order-service',
+            type: 'order.cancelled',
+            aggregateId: updated.id,
+            occurredAt: new Date().toISOString(),
+            payload: {
+              orderId: updated.id,
+              previousStatus: prevStatus,
+              newStatus: updated.status,
+              reason: dto.reason,
+            },
+          },
+        });
       }
 
       // Write event to outbox

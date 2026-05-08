@@ -38,12 +38,12 @@ export class OrderGrpcController {
     try {
       const order = await this.orderService.createOrder({
         customerId: req.customer_id,
-        originLat: req.origin.lat,
-        originLng: req.origin.lng,
-        originAddress: req.origin.address,
-        destinationLat: req.destination.lat,
-        destinationLng: req.destination.lng,
-        destinationAddress: req.destination.address,
+        originLat: req.origin?.lat ?? 0,
+        originLng: req.origin?.lng ?? 0,
+        originAddress: req.origin?.address,
+        destinationLat: req.destination?.lat ?? 0,
+        destinationLng: req.destination?.lng ?? 0,
+        destinationAddress: req.destination?.address,
         priority: this.mapPriority(req.priority),
         weightKg: req.weight_kg,
         volumeM3: req.volume_m3,
