@@ -83,7 +83,7 @@ describe('OrdersService', () => {
     it('should update order status', async () => {
       const dto = { order_id: 'order-123', status: 2 };
 
-      const result = await service.updateOrderStatus(dto);
+      const _result = await service.updateOrderStatus(dto);
 
       expect(orderClient.updateOrderStatus).toHaveBeenCalledWith(
         expect.objectContaining({ order_id: 'order-123', status: 2 }),
@@ -95,7 +95,7 @@ describe('OrdersService', () => {
     it('should cancel order', async () => {
       const dto = { order_id: 'order-123', reason: 'Test cancellation' };
 
-      const result = await service.cancelOrder(dto);
+      const _result = await service.cancelOrder(dto);
 
       expect(orderClient.cancelOrder).toHaveBeenCalledWith(dto);
     });

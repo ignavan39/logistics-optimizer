@@ -63,7 +63,7 @@ export function TrackingPage() {
     queryFn: () => apiFetch<{ orders: Order[] }>('/orders?limit=200'),
   })
 
-  const orders = ordersData?.orders || []
+const orders = ordersData?.orders || []
   const ordersWithGeo = orders.filter(o => o.origin?.lat && o.destination?.lat)
   const filteredOrders = activeStatus === 'all' 
     ? ordersWithGeo 
@@ -98,9 +98,8 @@ export function TrackingPage() {
     }
 
     fetchRoutes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ordersData, activeStatus])
-
-  const selected = orders.find(o => o.id === selectedOrder)
 
   return (
     <div className="p-6 h-[calc(100vh-48px)] flex flex-col">

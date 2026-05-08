@@ -1,8 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { AuthService } from './auth.service';
-import { UsersService } from '../users/users.service';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { RbacGuard } from './guards/rbac.guard';
 
 // Mock @nestjs/throttler
 jest.mock('@nestjs/throttler', () => ({
@@ -38,9 +34,9 @@ const createMockAuthController = () => ({
 });
 
 describe('AuthController', () => {
-  let controller: any;
-  let authService: jest.Mocked<AuthService>;
-  let usersService: jest.Mocked<UsersService>;
+  let _controller: any;
+  let _authService: jest.Mocked<AuthService>;
+  let _usersService: jest.Mocked<UsersService>;
 
   beforeEach(async () => {
     const mockController = createMockAuthController();

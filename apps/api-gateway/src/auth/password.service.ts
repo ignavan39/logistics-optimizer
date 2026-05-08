@@ -54,11 +54,13 @@ export class PasswordService {
   async handleSuccessfulLogin(
     user: User,
     onLoginAttempt: (email: string, ip?: string, success?: boolean, reason?: string) => Promise<void>,
+    ipAddress?: string,
   ) {
     user.failedLoginAttempts = 0;
     user.lockedUntil = undefined;
     user.lastLoginAt = new Date();
     await this.dataSource.getRepository(User).save(user);
+    await onLoginAttempt(user.email, ipAddress, true);
   }
 
   hashPassword(password: string): Promise<string> {

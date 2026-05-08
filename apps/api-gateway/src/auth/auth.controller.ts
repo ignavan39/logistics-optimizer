@@ -131,7 +131,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Create user (admin)' })
   async createUser(
     @Body() dto: CreateUserDto,
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() _user: { userId: string },
   ) {
     return this.usersService.createUser(dto);
   }

@@ -92,14 +92,6 @@ export function CounterpartiesPage() {
     },
   })
 
-  const updateContractMutation = useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto: any }) => contractsApi.update(id, dto),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contracts'] })
-      setEditingContractId(null)
-    },
-  })
-
   const deleteContractMutation = useMutation({
     mutationFn: (id: string) => contractsApi.delete(id),
     onSuccess: () => {
@@ -187,37 +179,6 @@ export function CounterpartiesPage() {
       validTo,
       totalLimitRub: formData.get('totalLimitRub') ? Number(formData.get('totalLimitRub')) : undefined,
       paymentTermsDays: formData.get('paymentTermsDays') ? Number(formData.get('paymentTermsDays')) : undefined,
-    })
-  }
-
-  const handleTariffSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!showTariff) return
-    const formData = new FormData(e.currentTarget)
-    const dto = {
-      zoneFrom: formData.get('zoneFrom') as string,
-      zoneTo: formData.get('zoneTo') as string,
-      pricePerKm: Number(formData.get('pricePerKm')),
-      pricePerKg: Number(formData.get('pricePerKg')),
-      minPrice: Number(formData.get('minPrice')),
-      minWeight: Number(formData.get('minWeight')),
-    }
-    if (editingTariffId && editingTariffId !== 'create-tariff') {
-      updateTariffMutation.mutate({ contractId: showTariff, tariffId: editingTariffId, dto })
-    } else {
-      createTariffMutation.mutate({ contractId: showTariff, dto })
-    }
-  }
-
-  const startEditTariff = (tariff: ContractTariff) => {
-    setEditingTariffId(tariff.id)
-    setEditTariffForm({
-      zoneFrom: tariff.zoneFrom,
-      zoneTo: tariff.zoneTo,
-      pricePerKm: tariff.pricePerKm,
-      minPrice: tariff.minPrice,
-      pricePerKg: tariff.pricePerKg,
-      minWeight: tariff.minWeight || 0
     })
   }
 

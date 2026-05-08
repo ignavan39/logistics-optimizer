@@ -141,7 +141,7 @@ export class NotificationsGateway
   }
 
   @SubscribeMessage('ping')
-  handlePing(@ConnectedSocket() client: AuthenticatedSocket): { event: string; data: unknown } {
+  handlePing(@ConnectedSocket() _client: AuthenticatedSocket): { event: string; data: unknown } {
     return { event: 'pong', data: { timestamp: Date.now() } };
   }
 

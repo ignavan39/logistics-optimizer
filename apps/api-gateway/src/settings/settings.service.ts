@@ -1,5 +1,4 @@
 import { Injectable, Logger, type OnModuleInit, type OnModuleDestroy, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { ClientGrpc } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
 import { CompanySettings, type SettingResponse, type UpdateCompanySettingsDto } from './settings.dto';

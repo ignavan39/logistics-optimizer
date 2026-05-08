@@ -1,5 +1,5 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { JwtService } from '@nestjs/jwt';
+import {} from '@nestjs/testing';
+import {} from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 
 // Mock @nestjs/websockets to avoid WebSocketGateway issues
@@ -28,15 +28,14 @@ jest.mock('@nestjs/config', () => ({
 jest.mock('socket.io', () => ({}));
 
 describe('NotificationsGateway', () => {
-  let gateway: any;
-  let jwtService: any;
+  let _gateway: any;
+  let _jwtService: any;
 
   const mockJwtService = {
     verify: jest.fn(),
   };
 
   beforeEach(async () => {
-    // Create a simple mock gateway
     gateway = {
       server: {
         to: jest.fn().mockReturnThis(),
@@ -179,8 +178,8 @@ describe('NotificationsGateway', () => {
 
   describe('ping', () => {
     it('should return pong with timestamp', () => {
-      const client = { id: 'test-client', isAuthenticated: true };
-      const now = Date.now();
+      const _client = { id: 'test-client', isAuthenticated: true };
+      const _now = Date.now();
 
       const result = {
         event: 'pong',

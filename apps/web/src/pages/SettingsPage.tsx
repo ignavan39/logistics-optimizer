@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Save, Lock, Key, Plus, Trash2, Users, Shield, FileText, X, Mail, User, Loader2 } from 'lucide-react'
-import { Button, PageLoader, Input, Badge, Modal } from '@/components/ui'
+import { Save, Lock, Key, Plus, Trash2, Users, Shield, FileText, X, Mail, Loader2 } from 'lucide-react'
+import { Button, PageLoader, Input, Modal } from '@/components/ui'
 import { settingsApi } from '@/lib/api.clients'
 import { useAuthStore } from '@/lib/auth'
 import { apiGet, apiPost } from '@/lib/api'
@@ -431,7 +431,7 @@ export function SettingsPage() {
 function AdminUsersTab() {
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState<AdminUser | undefined>()
+  const [, setEditingUser] = useState<AdminUser | undefined>()
 
   const { data, isLoading } = useQuery<{ users: AdminUser[] }>({
     queryKey: ['admin-users'],
@@ -528,7 +528,6 @@ function UserModal({
   onClose,
   onSave,
 }: {
-  user?: AdminUser
   onClose: () => void
   onSave: (data: UserFormData) => void
 }) {

@@ -1,5 +1,4 @@
 import { SettingsController } from './settings.controller';
-import { SettingsService } from './settings.service';
 
 const mockSettingsService = {
   getCompanySettings: jest.fn(),
@@ -7,7 +6,7 @@ const mockSettingsService = {
 };
 
 describe('SettingsController', () => {
-  let controller: SettingsController;
+  let _controller: SettingsController;
 
   beforeEach(() => {
     jest.clearAllMocks();

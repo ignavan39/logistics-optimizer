@@ -1,4 +1,4 @@
-import { InvoicesService, type InvoiceResponse } from './invoices.service';
+import { InvoicesService } from './invoices.service';
 
 describe('InvoicesService', () => {
   let service: InvoicesService;

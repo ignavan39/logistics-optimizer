@@ -1,5 +1,4 @@
 import { Injectable, type OnModuleInit, type OnModuleDestroy, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { ClientGrpc } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
 import { CalculateRouteDto, type GetRouteDto } from './dto/routing.dto';

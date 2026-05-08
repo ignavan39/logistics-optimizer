@@ -1,5 +1,4 @@
 import { TrackingService } from './tracking.service';
-import { ConfigService } from '@nestjs/config';
 
 const trackingClient = {
   getLatestPosition: jest.fn().mockResolvedValue({ vehicleId: 'vehicle-1', lat: 55.7558, lng: 37.6173 }),
@@ -10,7 +9,7 @@ const mockClientGrpc = {
   getService: jest.fn().mockReturnValue(trackingClient),
 };
 
-const mockConfigService = {
+const _mockConfigService = {
   get: jest.fn(),
 };
 
@@ -48,13 +47,13 @@ describe('TrackingService', () => {
         max_points: 100,
       };
 
-      const result = await service.getTrack(dto);
+      const _result = await service.getTrack(dto);
 
       expect(trackingClient.getTrack).toHaveBeenCalledWith(dto);
     });
 
     it('should use default time values when not provided', async () => {
-      const now = Math.floor(Date.now() / 1000);
+      const _now = Math.floor(Date.now() / 1000);
 
       await service.getTrack({ vehicle_id: 'vehicle-1' });
 

@@ -1,5 +1,4 @@
 import { RoutingService } from './routing.service';
-import { ConfigService } from '@nestjs/config';
 
 const routingClient = {
   calculateRoute: jest.fn(),
@@ -10,7 +9,11 @@ const mockClientGrpc = {
   getService: jest.fn().mockReturnValue(routingClient),
 };
 
-const mockConfigService = {
+const _mockConfigService = {
+  get: jest.fn(),
+};
+
+const _mockSettingsService = {
   get: jest.fn(),
 };
 

@@ -20,7 +20,7 @@ export class TokenService {
 
   async generateTokens(
     user: User,
-    sessionData?: {
+    _sessionData?: {
       deviceId?: string;
       deviceName?: string;
       ipAddress?: string;

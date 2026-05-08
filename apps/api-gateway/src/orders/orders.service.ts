@@ -1,5 +1,4 @@
 import { Injectable, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { ClientGrpc } from '@nestjs/microservices'
 import { Inject } from '@nestjs/common'
 import {
@@ -17,7 +16,7 @@ interface OrderGrpcClient {
   listOrders(data: ListOrdersDto): Promise<any>
   updateOrderStatus(data: UpdateOrderStatusDto): Promise<any>
   cancelOrder(data: CancelOrderDto): Promise<any>
-  getStatuses(data: {}): Promise<any>
+  getStatuses(data?: Record<string, unknown>): Promise<any>
 }
 
 @Injectable()

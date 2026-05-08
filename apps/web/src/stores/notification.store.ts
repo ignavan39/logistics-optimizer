@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect } from 'react'
 import { create } from 'zustand'
-import { initSocket, getSocket, disconnectSocket } from '@/lib/socket'
+import { initSocket } from '@/lib/socket'
 
 interface Notification {
   id: string
@@ -96,6 +96,7 @@ export function useNotifications() {
     return () => {
       socket.off('order:statusChanged', handleOrderEvent)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return store

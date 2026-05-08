@@ -1,5 +1,4 @@
 import { Injectable, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { ClientGrpc } from '@nestjs/microservices'
 import { Inject } from '@nestjs/common'
 import { DispatchOrderDto, type GetDispatchStateDto, type CancelDispatchDto } from './dto/dispatcher.dto'

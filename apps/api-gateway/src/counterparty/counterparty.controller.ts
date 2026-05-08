@@ -16,8 +16,6 @@ import {
   type CreateContractTariffDto,
 } from './dto/counterparty.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RbacGuard } from '../auth/guards/rbac.guard';
-import { Permissions } from '../auth/decorators/permissions.decorator';
 
 @Controller('counterparties')
 @UseGuards(JwtAuthGuard)

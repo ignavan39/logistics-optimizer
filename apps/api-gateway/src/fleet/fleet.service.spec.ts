@@ -83,7 +83,7 @@ describe('FleetService', () => {
     it('should assign vehicle to order', async () => {
       const dto = { vehicle_id: 'vehicle-1', order_id: 'order-1' };
 
-      const result = await service.assignVehicle(dto);
+      const _result = await service.assignVehicle(dto);
 
       expect(fleetClient.assignVehicle).toHaveBeenCalledWith(
         expect.objectContaining({ vehicle_id: 'vehicle-1', order_id: 'order-1' }),
@@ -95,7 +95,7 @@ describe('FleetService', () => {
     it('should release vehicle from order', async () => {
       const dto = { vehicle_id: 'vehicle-1', order_id: 'order-1' };
 
-      const result = await service.releaseVehicle(dto);
+      const _result = await service.releaseVehicle(dto);
 
       expect(fleetClient.releaseVehicle).toHaveBeenCalledWith(dto);
     });
