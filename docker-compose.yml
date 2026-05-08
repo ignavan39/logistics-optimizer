@@ -28,6 +28,21 @@ x-pgbouncer-common: &pgbouncer-common
     - logistics-net
 
 services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: logistics-zookeeper
+    restart: unless-stopped
+    ports:
+      - '2181:2181'
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    networks:
+      - logistics-net
+
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     container_name: logistics-kafka
@@ -36,23 +51,18 @@ services:
       - '9092:9092'
       - '9094:9094'
     environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENERS: >-
         PLAINTEXT://0.0.0.0:9092,
-        CONTROLLER://0.0.0.0:9093,
         EXTERNAL://0.0.0.0:9094
       KAFKA_ADVERTISED_LISTENERS: >-
         PLAINTEXT://kafka:9092,
         EXTERNAL://localhost:9094
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: >-
         PLAINTEXT:PLAINTEXT,
-        CONTROLLER:PLAINTEXT,
         EXTERNAL:PLAINTEXT
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
       KAFKA_NUM_PARTITIONS: ${KAFKA_NUM_PARTITIONS:-6}
       KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-1}
       KAFKA_MIN_INSYNC_REPLICAS: 1
@@ -67,6 +77,9 @@ services:
       KAFKA_HEAP_OPTS: '-Xmx512M -Xms256M'
       KAFKA_JMX_PORT: 9999
       KAFKA_JMX_HOSTNAME: kafka
+    depends_on:
+      zookeeper:
+        condition: service_started
     volumes:
       - kafka-data:/var/lib/kafka/data
     healthcheck:
@@ -101,6 +114,8 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      zookeeper:
+        condition: service_started
     entrypoint: ['/bin/sh', '-c']
     command: >
       echo 'Waiting for Kafka...' &&
@@ -396,6 +411,8 @@ services:
       - logistics-net
 
 volumes:
+  zookeeper-data:
+  zookeeper-logs:
   kafka-data:
   pg-order-data:
   pg-fleet-data:
