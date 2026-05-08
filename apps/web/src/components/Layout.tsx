@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { Truck, Package, MapPin, LayoutDashboard, LogOut, Settings, User, Activity, Navigation, FileText, Users, Map } from 'lucide-react'
+import { Truck, MapPin, LayoutDashboard, LogOut, Settings, User, Activity, FileText, Users } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import { NotificationsBell } from './ui/NotificationsBell'

@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Building2, FileText, Receipt, Edit, Loader2 } from 'lucide-react'
+import { ArrowLeft, Building2, FileText, Receipt, Loader2 } from 'lucide-react'
 import { Button, PageLoader, Badge } from '@/components/ui'
 import { counterpartiesApi, contractsApi, invoicesApi } from '@/lib/api.clients'
-import type { Counterparty } from '@/types/counterparty'
 import { COUNTERPARTY_TYPE_LABELS, COUNTERPARTY_STATUS_LABELS, CONTRACT_STATUS_LABELS } from '@/types'
 
 function formatCurrency(amount: number): string {

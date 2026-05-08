@@ -5,7 +5,7 @@ import { apiPatch } from '@/lib/api'
 import { vehiclesApi } from '@/lib/api.clients'
 import { PageLoader, Badge, Modal, Button, Input } from '@/components/ui'
 import { Vehicle, type VehicleStatus, type VehicleType, VEHICLE_TYPE_LABELS, VEHICLE_STATUS_COLORS, VEHICLE_STATUS_LABELS, type Order } from '@/types'
-import { Truck, Package, RefreshCw, User, MapPin, Calendar, Plus } from 'lucide-react'
+import { Truck, Package, User, MapPin, Calendar, Plus } from 'lucide-react'
 
 export function VehiclesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -27,7 +27,7 @@ export function VehiclesPage() {
     retry: 1,
   })
 
-  const { data: pendingOrders, isLoading: pendingLoading } = useQuery<{ orders: Order[]; total: number }>({
+  const { data: pendingOrders } = useQuery<{ orders: Order[]; total: number }>({
     queryKey: ['orders', 'pending'],
     queryFn: () => apiFetch('/orders?status=0&limit=50'),
     enabled: showAssign,

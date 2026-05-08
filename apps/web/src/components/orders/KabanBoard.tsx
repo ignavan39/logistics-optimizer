@@ -27,8 +27,6 @@ export function KabanBoard({
   onStatusChange,
   statuses = [],
 }: KabanBoardProps) {
-  const [activeId, setActiveId] = useState<string | null>(null)
-
   const defaultStatuses: number[] = [1, 2, 3, 4, 5, 6, 7]
   const statusValues = statuses.length ? statuses.map(s => s.value) : defaultStatuses
 
@@ -44,16 +42,15 @@ export function KabanBoard({
     return orders.filter(o => o.status === status)
   }
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string)
+  const handleDragStart = (_event: DragStartEvent) => {
+    // Drag started
   }
 
-  const handleDragOver = (event: DragOverEvent) => {
+  const handleDragOver = (_event: DragOverEvent) => {
     // Handle drag over for visual feedback
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
-    setActiveId(null)
     const { active, over } = event
 
     if (!over) return

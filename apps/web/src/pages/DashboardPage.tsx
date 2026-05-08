@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Truck, Package, FileText, TrendingUp, RefreshCw } from 'lucide-react'
 import { apiFetchWithAuth as apiFetch } from '@/lib/auth'
-import { apiGet, apiPatch, apiDelete } from '@/lib/api'
+import { apiGet, apiPatch } from '@/lib/api'
 import { PageLoader } from '@/components/ui'
 import { FilterBar } from '@/components/orders/FilterBar'
 import { KabanBoard } from '@/components/orders/KabanBoard'
 import { CreateOrderModal } from '@/components/orders/CreateOrderModal'
-import { Order, ORDER_STATUS_COLORS, type OrderStatus, type UpdateOrderStatusDto, type CancelOrderDto, type OrderStatusInfo } from '@/types'
+import { Order, type OrderStatus, type UpdateOrderStatusDto, type OrderStatusInfo } from '@/types'
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('ru-RU', {
@@ -45,9 +45,6 @@ export function DashboardPage() {
   ]
 
   const statuses = (statusesData?.statuses?.length ? statusesData.statuses : defaultStatuses) as OrderStatusInfo[]
-  const statusLabels: Record<number, string> = Object.fromEntries(
-    statuses.map(s => [s.value, s.label])
-  )
 
   // Fetch orders
   const { data: ordersData, isLoading, refetch } = useQuery<{ orders: Order[] }>({
@@ -74,16 +71,6 @@ export function DashboardPage() {
       apiPatch<Order>(`/orders/${id}/status`, dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
-    },
-  })
-
-  // Cancel order mutation
-  const cancelMutation = useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto: CancelOrderDto }) =>
-      apiDelete<Order>(`/orders/${id}`, dto),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] })
-      setSelectedId(null)
     },
   })
 
