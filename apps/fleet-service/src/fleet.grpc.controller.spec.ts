@@ -23,6 +23,8 @@ describe('FleetGrpcController', () => {
         {
           id: 'vehicle-1',
           type: 'VAN',
+          licensePlate: 'А123АА 77',
+          model: 'Mercedes Sprinter',
           capacityKg: 1500,
           capacityM3: 8,
           status: 'VEHICLE_STATUS_IDLE',

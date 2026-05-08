@@ -309,7 +309,7 @@ export class OrderService {
         orderId: updated.id,
         previousStatus: prevStatus,
         newStatus: updated.status,
-        changedBy: dto.updatedBy,
+        changedBy: dto.updatedBy && dto.updatedBy.length === 36 ? dto.updatedBy : undefined,
         reason: dto.reason,
       });
 

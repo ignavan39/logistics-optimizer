@@ -115,6 +115,27 @@ interface UpdateVehicleResponse {
   vehicle: VehicleDetails | null
 }
 
+interface CreateVehicleRequest {
+  license_plate?: string
+  type: number
+  capacity_kg: number
+  capacity_m3: number
+  model?: string
+}
+
+interface CreateVehicleResponse {
+  vehicle: {
+    id: string
+    type: string
+    capacity_kg: number
+    capacity_m3: number
+    status: string
+    version: number
+    current_location: { lat: number; lng: number } | null
+    last_update: number
+  } | null
+}
+
 @Controller()
 export class FleetGrpcController {
   private readonly logger: Logger
@@ -309,6 +330,37 @@ export class FleetGrpcController {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Unknown error'
       return { success: false, message, vehicle: null }
+    }
+  }
+
+  @GrpcMethod('FleetService', 'CreateVehicle')
+  async createVehicle(request: CreateVehicleRequest): Promise<CreateVehicleResponse> {
+    try {
+      const result = await this.fleetService.createVehicle({
+        licensePlate: request.license_plate || '',
+        type: request.type || 1,
+        capacityKg: request.capacity_kg || 0,
+        capacityM3: request.capacity_m3 || 0,
+        model: request.model,
+      });
+      return {
+        vehicle: {
+          id: result.vehicle.id,
+          type: result.vehicle.type,
+          capacity_kg: result.vehicle.capacityKg,
+          capacity_m3: Number(result.vehicle.capacityM3),
+          status: result.vehicle.status,
+          version: result.vehicle.version,
+          current_location: null,
+          last_update: result.vehicle.lastUpdate.getTime(),
+        },
+      };
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Unknown error'
+      throw new RpcExceptionOrig({
+        code: GrpcStatus.INTERNAL,
+        message,
+      });
     }
   }
 }

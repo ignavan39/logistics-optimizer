@@ -8,6 +8,12 @@ export class VehicleEntity {
   @Column({ type: 'varchar', length: 50 })
   type!: string
 
+  @Column({ name: 'license_plate', type: 'varchar', length: 20 })
+  licensePlate!: string
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  model?: string
+
   @Column({ name: 'capacity_kg', type: 'integer' })
   capacityKg!: number
 

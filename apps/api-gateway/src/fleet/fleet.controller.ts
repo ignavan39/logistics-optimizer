@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import { FleetService } from './fleet.service'
-import { AssignVehicleDto, type ReleaseVehicleDto, type UpdateVehicleDto } from './dto/fleet.dto'
+import { AssignVehicleDto, type ReleaseVehicleDto, type UpdateVehicleDto, type CreateVehicleDto } from './dto/fleet.dto'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RbacGuard } from '../auth/guards/rbac.guard'
 import { Permissions as PermissionDecorator } from '../auth/decorators/permissions.decorator'
@@ -12,6 +12,23 @@ import { Permissions } from '../auth/permissions/permissions'
 @Controller('vehicles')
 export class FleetController {
   constructor(private fleetService: FleetService) {}
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @PermissionDecorator(Permissions.VEHICLES_CREATE)
+  @AuditDecorator('vehicle.created', 'vehicle')
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new vehicle' })
+  async createVehicle(@Body() dto: CreateVehicleDto) {
+    return this.fleetService.createVehicle({
+      license_plate: dto.licensePlate,
+      type: dto.type,
+      capacity_kg: dto.capacityKg,
+      capacity_m3: dto.capacityM3,
+      model: dto.model,
+    })
+  }
 
   @Get()
   @UseGuards(JwtAuthGuard, RbacGuard)

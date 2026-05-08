@@ -120,11 +120,34 @@ export class OrderGrpcController {
   @GrpcMethod('OrderService', 'UpdateOrderStatus')
   async updateOrderStatus(req: UpdateOrderStatusRequest) {
     try {
+      const numericMap: Record<number, OrderStatus> = {
+        1: OrderStatus.PENDING,
+        2: OrderStatus.ASSIGNED,
+        3: OrderStatus.PICKED_UP,
+        4: OrderStatus.IN_TRANSIT,
+        5: OrderStatus.DELIVERED,
+        6: OrderStatus.FAILED,
+        7: OrderStatus.CANCELLED,
+      };
+      const stringMap: Record<string, OrderStatus> = {
+        'ORDER_STATUS_UNSPECIFIED': OrderStatus.PENDING,
+        'ORDER_STATUS_PENDING': OrderStatus.PENDING,
+        'ORDER_STATUS_ASSIGNED': OrderStatus.ASSIGNED,
+        'ORDER_STATUS_PICKED_UP': OrderStatus.PICKED_UP,
+        'ORDER_STATUS_IN_TRANSIT': OrderStatus.IN_TRANSIT,
+        'ORDER_STATUS_DELIVERED': OrderStatus.DELIVERED,
+        'ORDER_STATUS_FAILED': OrderStatus.FAILED,
+        'ORDER_STATUS_CANCELLED': OrderStatus.CANCELLED,
+      };
+      const status = typeof req.status === 'number'
+        ? (numericMap[req.status] || OrderStatus.PENDING)
+        : (stringMap[String(req.status)] || OrderStatus.PENDING);
+      const updatedBy = req.updated_by && req.updated_by.trim() ? req.updated_by : 'api-gateway';
       const order = await this.orderService.updateOrderStatus({
         orderId: req.order_id,
-        status: req.status as OrderStatus,
+        status,
         reason: req.reason,
-        updatedBy: req.updated_by,
+        updatedBy,
       });
       return this.toProto(order);
     } catch (err) {

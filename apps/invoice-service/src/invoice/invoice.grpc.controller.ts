@@ -225,18 +225,18 @@ private toResponse(invoice: InvoiceEntity) {
   }
 
   private mapInvoice(invoice: InvoiceEntity, counterpartyNames: Record<string, string> = {}) {
-    const statusIndex = typeof invoice.status === 'number' 
-      ? invoice.status 
-      : Object.values(InvoiceStatus).indexOf(invoice.status as InvoiceStatus);
+    const statusIndex = typeof invoice.status === 'number'
+      ? invoice.status
+      : Object.values(InvoiceStatus).indexOf(invoice.status as InvoiceStatus) + 1;
     const counterpartyId = invoice.counterpartyId || '';
     return {
       id: invoice.id || '',
       order_id: invoice.orderId || '',
       number: invoice.number || '',
-      amount: invoice.amountRub || 0,
+      amount_rub: invoice.amountRub || 0,
       vat_rate: invoice.vatRate || 0,
       vat_amount: invoice.vatAmount || 0,
-      status: statusIndex >= 0 ? statusIndex : 0,
+      status: statusIndex,
       due_date: this.toTimestamp(invoice.dueDate),
       paid_at: this.toTimestamp(invoice.paidAt),
       counterparty_id: counterpartyId,

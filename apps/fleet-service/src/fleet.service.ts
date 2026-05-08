@@ -48,10 +48,22 @@ interface VehicleDetails {
   currentDriverId: string | undefined
   currentOrderId: string | undefined
   lastUpdate: Date
-  createdAt: Date
   version: number
+  createdAt: Date
   driver: DriverInfo | null
   order: OrderInfo | null
+}
+
+interface CreateVehicleDto {
+  licensePlate: string
+  type: number
+  capacityKg: number
+  capacityM3: number
+  model?: string
+}
+
+interface CreateVehicleResult {
+  vehicle: VehicleDetails
 }
 
 // Интерфейс для строки из БД (с полями current_lat/current_lng от PostGIS)
@@ -223,6 +235,46 @@ export class FleetService {
     vehicle.currentDriverId = driverId
     vehicle.currentOrderId = orderId
     return this.dataSource.getRepository(VehicleEntity).save(vehicle)
+  }
+
+  async createVehicle(dto: CreateVehicleDto): Promise<CreateVehicleResult> {
+    const typeMap: Record<number, string> = {
+      1: 'VEHICLE_TYPE_CAR',
+      2: 'VEHICLE_TYPE_VAN',
+      3: 'VEHICLE_TYPE_TRUCK',
+    };
+
+    const vehicle = new VehicleEntity();
+    vehicle.id = crypto.randomUUID();
+    vehicle.licensePlate = dto.licensePlate;
+    vehicle.type = typeMap[dto.type] || 'VEHICLE_TYPE_CAR';
+    vehicle.capacityKg = dto.capacityKg;
+    vehicle.capacityM3 = dto.capacityM3;
+    vehicle.model = dto.model || '';
+    vehicle.status = 'idle';
+    vehicle.version = 0;
+    vehicle.currentLocation = null;
+
+    const saved = await this.dataSource.getRepository(VehicleEntity).save(vehicle);
+
+    return {
+      vehicle: {
+        id: saved.id,
+        type: saved.type,
+        capacityKg: saved.capacityKg,
+        capacityM3: Number(saved.capacityM3),
+        status: saved.status,
+        currentLat: undefined,
+        currentLng: undefined,
+        currentDriverId: undefined,
+        currentOrderId: undefined,
+        lastUpdate: new Date(),
+        createdAt: saved.createdAt,
+        version: saved.version,
+        driver: null,
+        order: null,
+      },
+    };
   }
 
   async releaseVehicle(vehicleId: string, _reason?: string): Promise<void> {

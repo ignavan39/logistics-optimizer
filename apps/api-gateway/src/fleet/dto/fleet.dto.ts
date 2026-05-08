@@ -109,3 +109,30 @@ export class UpdateVehicleDto {
   @IsInt()
   expected_version?: number
 }
+
+export class CreateVehicleDto {
+  @ApiProperty({ example: 'А123АА 77' })
+  @IsString()
+  licensePlate!: string
+
+  @ApiProperty({ enum: [1, 2, 3], example: 1 })
+  @IsInt()
+  @Min(1)
+  @Max(3)
+  type!: number
+
+  @ApiPropertyOptional({ example: 'Mercedes Sprinter' })
+  @IsOptional()
+  @IsString()
+  model?: string
+
+  @ApiProperty({ example: 1500 })
+  @IsInt()
+  @Min(0)
+  capacityKg!: number
+
+  @ApiProperty({ example: 8 })
+  @IsNumber()
+  @Min(0)
+  capacityM3!: number
+}

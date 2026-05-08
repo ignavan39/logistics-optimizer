@@ -12,7 +12,7 @@ export interface InvoiceResponse {
   vatRate: number;
   vatAmount: number;
   status: string;
-  dueDate: Date;
+  dueDate: Date | null;
   paidAt?: Date;
   paymentMethod?: string;
   counterpartyId?: string;
@@ -141,12 +141,12 @@ export class InvoicesService implements OnModuleInit {
       orderId: String(inv.order_id || ''),
       number: String(inv.number || ''),
       type: 'INVOICE',
-      amountRub: Number(inv.amount) || Number(inv.amount_rub) || 0,
+      amountRub: Number(inv.amount_rub) || 0,
       vatRate: Number(inv.vat_rate) || 0,
       vatAmount: Number(inv.vat_amount) || 0,
-      status: String(inv.status || ''),
-      dueDate: inv.due_date ? new Date(inv.due_date) : new Date(),
-      paidAt: inv.paid_at ? new Date(inv.paid_at) : undefined,
+      status: this.mapStatusIndexToString(inv.status),
+      dueDate: inv.due_date ? new Date(Number(inv.due_date)) : null,
+      paidAt: inv.paid_at && inv.paid_at !== '0' ? new Date(Number(inv.paid_at)) : undefined,
       counterpartyId: inv.counterparty_id ? String(inv.counterparty_id) : undefined,
       counterpartyName: inv.counterparty_id ? counterpartyNames[inv.counterparty_id] : undefined,
       contractId: inv.contract_id ? String(inv.contract_id) : undefined,
@@ -171,12 +171,12 @@ export class InvoicesService implements OnModuleInit {
           orderId: String(response.order_id || ''),
           number: String(response.number || ''),
           type: 'INVOICE',
-          amountRub: Number(response.amount) || 0,
+          amountRub: Number(response.amount_rub) || 0,
           vatRate: Number(response.vat_rate) || 0,
           vatAmount: Number(response.vat_amount) || 0,
-          status: String(response.status || ''),
-          dueDate: response.due_date ? new Date(response.due_date) : new Date(),
-          paidAt: response.paid_at ? new Date(response.paid_at) : undefined,
+          status: this.mapStatusIndexToString(response.status),
+          dueDate: response.due_date ? new Date(Number(response.due_date)) : null,
+          paidAt: response.paid_at && response.paid_at !== '0' ? new Date(Number(response.paid_at)) : undefined,
           counterpartyId: response.counterparty_id ? String(response.counterparty_id) : undefined,
           contractId: response.contract_id ? String(response.contract_id) : undefined,
           description: response.description ? String(response.description) : undefined,
@@ -196,12 +196,12 @@ export class InvoicesService implements OnModuleInit {
           orderId: String(response.order_id || ''),
           number: String(response.number || ''),
           type: 'INVOICE',
-          amountRub: Number(response.amount) || 0,
+          amountRub: Number(response.amount_rub) || 0,
           vatRate: Number(response.vat_rate) || 0,
           vatAmount: Number(response.vat_amount) || 0,
-          status: String(response.status || ''),
-          dueDate: response.due_date ? new Date(response.due_date) : new Date(),
-          paidAt: response.paid_at ? new Date(response.paid_at) : undefined,
+          status: this.mapStatusIndexToString(response.status),
+          dueDate: response.due_date ? new Date(Number(response.due_date)) : null,
+          paidAt: response.paid_at && response.paid_at !== '0' ? new Date(Number(response.paid_at)) : undefined,
           counterpartyId: response.counterparty_id ? String(response.counterparty_id) : undefined,
           contractId: response.contract_id ? String(response.contract_id) : undefined,
           description: response.description ? String(response.description) : undefined,
@@ -231,12 +231,12 @@ export class InvoicesService implements OnModuleInit {
           orderId: String(response.order_id || ''),
           number: String(response.number || ''),
           type: 'INVOICE',
-          amountRub: Number(response.amount) || 0,
+          amountRub: Number(response.amount_rub) || 0,
           vatRate: Number(response.vat_rate) || 0,
           vatAmount: Number(response.vat_amount) || 0,
-          status: String(response.status || ''),
-          dueDate: response.due_date ? new Date(response.due_date) : new Date(),
-          paidAt: response.paid_at ? new Date(response.paid_at) : undefined,
+          status: this.mapStatusIndexToString(response.status),
+          dueDate: response.due_date ? new Date(Number(response.due_date)) : null,
+          paidAt: response.paid_at && response.paid_at !== '0' ? new Date(Number(response.paid_at)) : undefined,
           counterpartyId: response.counterparty_id ? String(response.counterparty_id) : undefined,
           contractId: response.contract_id ? String(response.contract_id) : undefined,
           description: response.description ? String(response.description) : undefined,
@@ -244,5 +244,23 @@ export class InvoicesService implements OnModuleInit {
         });
       });
     });
+  }
+
+  private mapStatusIndexToString(status: number | string | undefined): string {
+    if (!status) return 'draft';
+    const statusMap: Record<number, string> = {
+      0: 'unspecified',
+      1: 'draft',
+      2: 'sent',
+      3: 'paid',
+      4: 'overdue',
+      5: 'cancelled',
+    };
+    if (typeof status === 'string') {
+      const match = status.match(/^INVOICE_STATUS_(\w+)$/);
+      if (match) return match[1].replace('INVOICE_STATUS_', '').toLowerCase();
+      return status.toLowerCase();
+    }
+    return statusMap[Number(status)] || 'draft';
   }
 }

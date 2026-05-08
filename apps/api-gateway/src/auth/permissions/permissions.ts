@@ -5,6 +5,7 @@ export const Permissions = {
   ORDERS_CANCEL: 'orders.cancel',
 
   VEHICLES_READ: 'vehicles.read',
+  VEHICLES_CREATE: 'vehicles.create',
   VEHICLES_UPDATE: 'vehicles.update',
   VEHICLES_ASSIGN: 'vehicles.assign',
   VEHICLES_RELEASE: 'vehicles.release',

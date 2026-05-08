@@ -175,12 +175,25 @@ INSERT INTO permissions (name, resource, action, description) VALUES
     ('users.read', 'users', 'read', 'Read user data'),
     ('api_keys.manage', 'api_keys', 'manage', 'Manage API keys'),
     ('reports.read', 'reports', 'read', 'Read reports'),
-    ('reports.export', 'reports', 'export', 'Export reports')
+    ('reports.export', 'reports', 'export', 'Export reports'),
+    ('invoices.read', 'invoices', 'read', 'Read invoices'),
+    ('invoices.update', 'invoices', 'update', 'Update invoices'),
+    ('invoices.generate_pdf', 'invoices', 'generate_pdf', 'Generate invoice PDF'),
+    ('counterparties.read', 'counterparties', 'read', 'Read counterparties'),
+    ('counterparties.create', 'counterparties', 'create', 'Create counterparties'),
+    ('counterparties.update', 'counterparties', 'update', 'Update counterparties'),
+    ('contracts.read', 'contracts', 'read', 'Read contracts'),
+    ('contracts.create', 'contracts', 'create', 'Create contracts'),
+    ('contracts.update', 'contracts', 'update', 'Update contracts'),
+    ('settings.read', 'settings', 'read', 'Read settings'),
+    ('settings.update', 'settings', 'update', 'Update settings')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permissions p WHERE r.name = 'admin'
 ON CONFLICT DO NOTHING;
+
+-- Also grant all permissions to admin role (for admin role ID)
 
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permissions p
@@ -222,14 +235,28 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permissions p
 WHERE r.name = 'api_client'
 AND p.name IN (
-    'orders.create', 'orders.read',
-    'vehicles.read',
+    'orders.create', 'orders.read', 'orders.update',
+    'vehicles.read', 'vehicles.assign', 'vehicles.release',
+    'fleet.vehicles.read', 'fleet.drivers.read',
     'tracking.read',
-    'routes.read'
+    'routes.calculate', 'routes.read',
+    'dispatch.execute', 'dispatch.read', 'dispatch.cancel',
+    'invoices.read', 'invoices.update',
+    'counterparties.read', 'counterparties.create', 'counterparties.update',
+    'contracts.read', 'contracts.create', 'contracts.update',
+    'settings.read', 'settings.update',
+    'users.read', 'reports.read', 'reports.export'
 )
 ON CONFLICT DO NOTHING;
-)
-ON CONFLICT DO NOTHING;
+
+-- Processed events table for Kafka idempotency
+CREATE TABLE IF NOT EXISTS processed_events (
+    event_id VARCHAR(255) PRIMARY KEY,
+    event_type VARCHAR(50) NOT NULL,
+    processed_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_processed_events_type ON processed_events(event_type);
 
 INSERT INTO users (id, email, password_hash, first_name, last_name, is_active, is_verified)
 VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'admin@logistics.local', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'System', 'Administrator', true, true)

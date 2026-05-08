@@ -3,6 +3,83 @@
 > Живая память проекта. Обновляй после каждой сессии, когда узнал что-то важное.
 > Это первый файл который надо прочитать перед работой.
 
+### 📝 08.05.2026 — Invoice API fixes
+
+**Проблемы:**
+- `amountRub=0` в API ответе — gRPC proto использует `amount_rub` (string), не `amount` (number)
+- `status: "INVOICE_STATUS_OVERDUE"` — enum names вместо values (0-5)
+- `dueDate=null` — due_date приходил как timestamp string '0'
+
+**Решения:**
+
+1. **invoice.grpc.controller.ts** — `mapInvoice()`:
+   - `amount: invoice.amountRub` → `amount_rub: invoice.amountRub` (matching proto field)
+   - gRPC proto field = 5 `string amount_rub`, ответ отправляет number
+
+2. **invoices.service.ts** (api-gateway):
+   - `Number(inv.amount) || Number(inv.amount_rub)` → `Number(inv.amount_rub)`
+   - `status: String(inv.status)` → `status: this.mapStatusIndexToString(inv.status)`
+   - `dueDate: inv.due_date ? new Date(inv.due_date) : new Date()` → `dueDate: inv.due_date ? new Date(Number(inv.due_date)) : null`
+   - `paidAt: inv.paid_at ? ...` → `paidAt: inv.paid_at && inv.paid_at !== '0' ? ...`
+
+3. **Добавлен helper** `mapStatusIndexToString()`:
+   ```typescript
+   private mapStatusIndexToString(status: number | string | undefined): string {
+     const statusMap: Record<number, string> = {
+       0: 'unspecified', 1: 'draft', 2: 'sent',
+       3: 'paid', 4: 'overdue', 5: 'cancelled',
+     };
+     if (typeof status === 'string') return status;
+     return statusMap[Number(status)] || 'draft';
+   }
+   ```
+
+4. **Интерфейс обновлён**: `dueDate: Date` → `dueDate: Date | null`
+
+**Файлы:**
+- `apps/invoice-service/src/invoice/invoice.grpc.controller.ts` — mapInvoice()
+- `apps/api-gateway/src/invoices/invoices.service.ts` — mapStatusIndexToString(), field mappings
+
+---
+
+### 📝 08.05.2026 — Order status PATCH 500 fix
+
+**Проблема:** `PATCH /api/orders/:id/status` возвращает 500 с ошибкой "pending → ORDER_STATUS_UNSPECIFIED"
+
+**Корневые причины:**
+
+1. **gRPC enum parsing**: order-service ожидал number (1-7), но gRPC присылал string ('ORDER_STATUS_ASSIGNED') из-за proto definition
+2. **Proto definition**: `UpdateOrderStatusRequest.status` имеет тип `OrderStatus` enum (message field), не number
+3. **changed_by UUID validation**: БД ожидает UUID, а приходил 'api-gateway'
+
+**Решения:**
+
+1. **order.grpc.controller.ts** — UpdateOrderStatus теперь принимает ОБА формата:
+   ```typescript
+   const numericMap: Record<number, OrderStatus> = {
+     1: OrderStatus.PENDING, 2: OrderStatus.ASSIGNED, ... // number → enum
+   };
+   const stringMap: Record<string, OrderStatus> = {
+     'ORDER_STATUS_PENDING': OrderStatus.PENDING, ... // string → enum
+   };
+   const status = typeof req.status === 'number'
+     ? numericMap[req.status] || OrderStatus.PENDING
+     : stringMap[String(req.status)] || OrderStatus.PENDING;
+   ```
+
+2. **order.service.ts** — UUID validation для changed_by:
+   ```typescript
+   changedBy: dto.updatedBy && dto.updatedBy.length === 36 ? dto.updatedBy : undefined,
+   ```
+
+**Файлы:**
+- `apps/order-service/src/order/order.grpc.controller.ts` — dual format status parsing
+- `apps/order-service/src/order/order.service.ts` — UUID validation for changed_by
+
+**Важно:** gRPC proto enum fields приходят как strings ('ORDER_STATUS_ASSIGNED'), не numbers (2). Это отличается от REST API где приходит number. Нужна двойная маппинг логика.
+
+---
+
 ### 📝 08.05.2026 — Kafka → WebSocket FIXED ✅
 
 **Проблема:** NestJS @EventPattern не получал события из Kafka (known limitation).

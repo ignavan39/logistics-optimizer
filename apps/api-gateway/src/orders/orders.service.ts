@@ -75,7 +75,6 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       order_id: dto.order_id,
       status: dto.status,
       reason: dto.reason,
-      updated_by: 'api-gateway',
     })
   }
 
