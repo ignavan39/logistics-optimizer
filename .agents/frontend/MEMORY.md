@@ -77,7 +77,30 @@ const selectedOrder = useStore((s) => s.selectedOrder);
 
 ---
 
-## 📐 Страницы и их статус
+## ✅ Хорошие паттерны (не переписывать)
+
+| Паттерн | Где | Почему хорошо |
+|---------|-----|----------------|
+| Typed API clients | `lib/api.clients.ts` | Централизованные методы на домен (vehiclesApi, counterpartiesApi, invoicesApi) |
+| React Query + staleTime | `main.tsx` | 60s staleTime, retry:1 — разумные defaults |
+| Zustand selectors | `stores/*.ts` | Fine-grained selectors избегают лишних рендеров |
+| Zustand persist | `lib/auth.ts` | Auto session recovery из localStorage |
+| UI component library | `components/ui/` | Reusable, forwardRef, cn() |
+| cn() utility | `lib/utils.ts` | Tailwind class merging (clsx + twMerge) |
+| Toast store | `lib/toast.ts` | Простой хук: `useToast().success(msg)` |
+| StatusBadge | `lib/status.ts` + `ui/StatusBadge.tsx` | Single source of truth для всех статусов |
+| Auth refresh flow | `lib/auth.ts` | 401 → refresh → retry |
+| Protected route | `App.tsx` | Декларативная защита роутов |
+| Lazy pages | `App.tsx` | React.lazy code splitting |
+| Socket singleton | `lib/socket.ts` | Reconnection 5 attempts |
+| Query key constants | `pages/VehiclesPage.tsx` | `['vehicles']` для точной инвалидации |
+| Form state в mutations | `components/vehicles/CreateVehicleModal.tsx` | useMutation auto handling loading/error |
+| Label/Color константы | `types/vehicle.ts` | VEHICLE_TYPE_LABELS, STATUS_LABELS — type-safe |
+| Type barrel exports | `types/index.ts` | Single barrel файл — чистые импорты |
+
+---
+
+## 📅 Лог сессий
 
 | Страница | Роут | Статус |
 |---------|------|--------|
@@ -97,7 +120,24 @@ const selectedOrder = useStore((s) => s.selectedOrder);
 
 | Дата | Что делали | Что узнали |
 |------|-----------|-----------|
-| _добавляй_ | | |
+| 13.05.2026 | Рефакторинг: SettingsPage (817→120), CounterpartiesPage (579→173), VehiclesPage (363→65) | >200 строк — кандидат на разбиение; Tab-компоненты в pages/..., Table+Modals в components/... |
+| 13.05.2026 | Создали lib/format.ts, lib/status.ts, ui/StatusBadge.tsx | Утилиты в lib/, UI в ui/, типы в types/ |
+
+---
+
+## 📐 Страницы и их статус
+
+| Страница | Роут | Статус |
+|---------|------|--------|
+| Login | `/login` | ✅ |
+| Orders | `/orders` | ✅ |
+| Order Detail | `/orders/:id` | ✅ |
+| Vehicles | `/vehicles` | ✅ refactored 13.05 |
+| Tracking | `/tracking/:vehicleId` | ✅ |
+| Counterparties | `/counterparties` | ✅ refactored 13.05 |
+| Invoices | `/invoices` | ✅ |
+| Settings | `/settings` | ✅ refactored 13.05 |
+| Admin | `/admin` | ✅ |
 
 ---
 
