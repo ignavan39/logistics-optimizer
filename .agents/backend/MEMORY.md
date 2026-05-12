@@ -1034,3 +1034,108 @@ docker exec logistics-pg-counterparty psql -U logistics -d counterparty_db -c "U
 2. **Тестовые данные** — создать сид с тестовыми ИНН, перезапускать при демо
 3. **Демо-скриншоты** — assets/demo/ с тестовыми данными
 4. **External Services** — документировать в COMMUNICATION.md
+
+---
+
+## 📋 РЕФЛЕКСИЯ: Drag & Drop + State Machine + ||→?? Рефакторинг (2026-05-12)
+
+### Что сделано
+
+| # | Задача | Файл(ы) | Результат |
+|---|--------|----------|-----------|
+| 1 | Исправить gRPC Observable handling | `orders.service.ts` | ✅ `firstValueFrom()` для listOrders + updateOrderStatus |
+| 2 | Маппинг статусов gRPC → plain strings | `orders.service.ts`, `order.grpc.controller.ts` | ✅ `ORDER_STATUS_PENDING` → `pending` |
+| 3 | RbacGuard проверяет @Public() | `rbac.guard.ts` | ✅ `@Public()` пропускает без JWT |
+| 4 | State machine + STATUS_LABELS в отдельный файл | `lib/order-transitions.ts` | ✅ Единый источник истины |
+| 5 | Frontend: disabled drop zones + toast | `KabanBoard.tsx`, `KabanColumn.tsx`, `DashboardPage.tsx` | ✅ UX улучшен |
+| 6 | \|\| → ?? по всему проекту | ~25 файлов, ~80 замен | ✅ typecheck прошёл |
+| 7 | Убрать дубли STATUS_LABELS | `types/index.ts`, `types/order.ts` | ✅ Рефакторинг |
+| 8 | Вернуть JWT security на orders endpoints | `orders.controller.ts` | ✅ `JwtAuthGuard` + `RbacGuard` |
+| 9 | Исправить Dockerfile pnpm | `Dockerfile` | ✅ `npm install -g pnpm@9.15.0` |
+
+### Что было трудно
+
+| # | Проблема | Потрачено | Как нашёл |
+|---|----------|-----------|-----------|
+| 1 | **gRPC возвращает Observable, не Promise** | 30+ мин | Логи: `gRPC response keys=_subscribe` — это RxJS Observable |
+| 2 | **Dockerfile: corepack + alpine = ERR_UNKNOWN_BUILTIN_MODULE** | 1+ час | `pnpm@latest` требует Node 22, в alpine Node 20 |
+| 3 | **Status mapping: `pending` → `ORDER_STATUS_UNSPECIFIED`** | 30 мин | order-service логи показали `status="ORDER_STATUS_UNSPECIFIED"` |
+| 4 | **State machine: `pending → pending` не срабатывал** | 20 мин | `toProto()` маппил обратно в enum строку |
+| 5 | **@Public() отключал ВСЮ проверку** | 15 мин | RbacGuard не проверял `@Public()`, получал `user = undefined` → 403 |
+
+### Паттерны выявлены
+
+**1. gRPC Observable → Promise:**
+```typescript
+// ❌ НЕПРАВИЛЬНО
+const result = await this.orderClient.listOrders({ ... })
+
+// ✅ ПРАВИЛЬНО
+const grpcCall = this.orderClient.listOrders({ ... })
+const result = await firstValueFrom(grpcCall as any)
+```
+
+**2. Status enum mapping (gRPC → API):**
+```typescript
+// order-service: enum string → DB
+const statusMap = { pending: 'ORDER_STATUS_PENDING', ... }
+
+// api-gateway: enum string → plain string
+const grpcStatusMap = { 'ORDER_STATUS_PENDING': 'pending', ... }
+```
+
+**3. ?? vs || для массивов/чисел:**
+```typescript
+// ❌ для пустого массива || сработает но семантически неверно
+ordersData?.orders || []
+
+// ✅ только для null/undefined
+ordersData?.orders ?? []
+
+// ❌ amount=0 → fallback
+i.amount || 0
+
+// ✅ amount=0 → 0
+i.amount ?? 0
+```
+
+**4. RbacGuard + @Public():**
+```typescript
+// ❌ вызывался даже с @Public() → user=undefined → 403
+// ✅ проверять @Public() первым
+canActivate(context) {
+  const isPublic = this.reflector.getAllAndOverride(IS_PUBLIC_KEY, [...]);
+  if (isPublic) return true;
+}
+```
+
+### Что сделано хорошо
+
+1. **Единый файл `order-transitions.ts`** — DRY, легко менять state machine
+2. **Визуальная обратная связь** — opacity-40 для заблокированных колонок
+3. **Toast уведомления** — понятно почему перетаскивание не сработало
+4. **Автоматизация агентами** — ||→?? в 25 файлах за один запуск
+5. **Dockerfile фикс** — записано для будущего
+
+### Что тяжело
+
+1. **Docker rebuild** — 5+ минут, нет incremental build
+2. **Много изменённых файлов** — 41 файл, сложно проверить
+3. **gRPC logging** — сложно понять что приходит без explicit логов
+
+### Куда записать
+
+| Паттерн | Файл |
+|---------|------|
+| gRPC Observable → firstValueFrom | Pitfalls.md |
+| gRPC enum приходит как strings | MEMORY.md, Contracts |
+| Dockerfile: npm > corepack на alpine | MEMORY.md |
+| RbacGuard проверяет @Public() | Pitfalls.md |
+| ?? для массивов и чисел | 04-Good-Practices.md |
+| State machine на фронтенде | 04-Good-Practices.md |
+
+### Коммит: `fcde003`
+```
+refactor: status transitions, ||→??, security and type fixes
+41 files, 557 insertions, 346 deletions
+```

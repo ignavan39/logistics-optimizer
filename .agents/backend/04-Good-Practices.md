@@ -293,6 +293,72 @@ pnpm build && pnpm typecheck
 
 ---
 
+---
+
+## 📋 TypeScript Patterns (Session 12.05.2026)
+
+### ?? vs || для массивов и чисел
+```typescript
+// ❌ || сработает но семантически неверно для null/undefined
+const orders = data?.orders || []
+const amount = item.amount || 0
+
+// ✅ ?? только для null/undefined, не для falsy значений
+const orders = data?.orders ?? []
+const amount = item.amount ?? 0
+
+// ❌ amount=0 → fallback (баг!)
+amount = item.amount || 0
+
+// ✅ amount=0 → 0
+amount = item.amount ?? 0
+```
+
+### Frontend State Machine для UX
+```typescript
+// lib/order-transitions.ts — единый источник истины
+export const VALID_TRANSITIONS = {
+  pending:    ['assigned', 'cancelled', 'failed'],
+  assigned:   ['picked_up', 'cancelled', 'failed'],
+  picked_up:  ['in_transit', 'failed'],
+  in_transit: ['delivered', 'failed'],
+  delivered:  [],
+  failed:     ['pending'],
+  cancelled:  [],
+}
+
+export function isValidTransition(from: OrderStatus, to: OrderStatus): boolean {
+  return VALID_TRANSITIONS[from]?.includes(to) ?? false
+}
+
+// Проверка перед вызовом API
+const handleDragEnd = (orderId: string, newStatus: OrderStatus) => {
+  const order = orders.find(o => o.id === orderId)
+  if (!isValidTransition(order.status, newStatus)) {
+    useToastStore.getState().addToast('error', 'Нельзя перевести...')
+    return
+  }
+  // вызов API...
+}
+```
+
+### RbacGuard + @Public()
+```typescript
+// rbac.guard.ts — @Public() должен пропускать без auth
+canActivate(context: ExecutionContext): boolean {
+  // Проверяем @Public() ПЕРВЫМ
+  const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+    context.getHandler(),
+    context.getClass(),
+  ]);
+  if (isPublic) return true;
+
+  // ... проверка прав для авторизованных
+}
+```
+
+---
+
 ✅ **Check before commit**:  
 - [ ] Паттерн работает в prod-like среде  
 - [ ] Есть пример копирования (code block)  

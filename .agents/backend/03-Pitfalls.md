@@ -225,3 +225,14 @@ service.onModuleInit();
 - **Проверка**: TypeScript 0 errors, Unit tests 49 passed, real-time test ✅
 
 > ⚠️ Всегда используй KafkaJS напрямую, не полагайся на @EventPattern.
+
+---
+
+## 🔌 gRPC (12.05.2026)
+
+| ❌ Антипаттерн | 💥 Почему ломается | ✅ Как правильно |
+|--------------|-------------------|-----------------|
+| `await client.listOrders()` без firstValueFrom | gRPC клиент возвращает Observable, не Promise | `const result = await firstValueFrom(client.listOrders({...}) as any)` |
+| gRPC enum field приходит как string | `UpdateOrderStatusRequest.status` приходит как `'ORDER_STATUS_PENDING'`, не number | Маппить: `{ 'ORDER_STATUS_PENDING': 'pending', ... }` |
+| RbacGuard без проверки @Public() | RbacGuard вызывается даже с @Public() → user=undefined → 403 | `canActivate()` первым проверяет `reflector.getAllAndOverride(IS_PUBLIC_KEY, ...)` |
+| Отправлять plain string в gRPC вместо enum | Proto ожидает enum string, приходит невалидное | `status: 'ORDER_STATUS_ASSIGNED'` вместо `status: 'assigned'` |
