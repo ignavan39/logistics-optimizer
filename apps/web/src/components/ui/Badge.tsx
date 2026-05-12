@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils'
 
 interface BadgeProps {
   label: string
-  color?: 'lavender' | 'sky' | 'mint' | 'success' | 'warning' | 'error' | 'muted'
+  color?: 'lavender' | 'sky' | 'mint' | 'success' | 'warning' | 'error' | 'muted' | 'blue'
   className?: string
 }
 
@@ -14,6 +14,7 @@ const colorMap = {
   warning: 'bg-status-warning/20 text-status-warning',
   error: 'bg-status-error/20 text-status-error',
   muted: 'bg-surface-hover text-text-muted',
+  blue: 'bg-accent-sky/20 text-accent-sky',
 }
 
 export function Badge({ label, color = 'lavender', className }: BadgeProps) {

@@ -1,25 +1,16 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
+import { Truck, Plus } from 'lucide-react'
+import { PageLoader, Button } from '@/components/ui'
 import { apiFetchWithAuth as apiFetch } from '@/lib/auth'
-import { apiPatch } from '@/lib/api'
-import { vehiclesApi } from '@/lib/api.clients'
-import { PageLoader, Badge, Modal, Button, Input } from '@/components/ui'
-import { Vehicle, type VehicleStatus, type VehicleType, VEHICLE_TYPE_LABELS, VEHICLE_STATUS_COLORS, VEHICLE_STATUS_LABELS, type Order } from '@/types'
-import { Truck, Package, User, MapPin, Calendar, Plus } from 'lucide-react'
+import { VehicleCard } from '@/components/vehicles/VehicleCard'
+import { VehicleDetailsModal } from '@/components/vehicles/VehicleDetailsModal'
+import { CreateVehicleModal } from '@/components/vehicles/CreateVehicleModal'
+import type { Vehicle } from '@/types'
 
 export function VehiclesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [showAssign, setShowAssign] = useState(false)
-  const [selectedOrderId, setSelectedOrderId] = useState('')
   const [showCreate, setShowCreate] = useState(false)
-  const [createForm, setCreateForm] = useState({
-    type: 1 as VehicleType,
-    licensePlate: '',
-    model: '',
-    capacityKg: 1000,
-    capacityM3: 2,
-  })
-  const queryClient = useQueryClient()
 
   const { data, isLoading, error } = useQuery<{ vehicles: Vehicle[] }>({
     queryKey: ['vehicles'],
@@ -27,57 +18,7 @@ export function VehiclesPage() {
     retry: 1,
   })
 
-  const { data: pendingOrders } = useQuery<{ orders: Order[]; total: number }>({
-    queryKey: ['orders', 'pending'],
-    queryFn: () => apiFetch('/orders?status=0&limit=50'),
-    enabled: showAssign,
-  })
-
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: VehicleStatus }) =>
-      apiPatch(`/vehicles/${id}/status`, { status }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vehicles'] }),
-  })
-
-  const assignMutation = useMutation({
-    mutationFn: (orderId: string) => 
-      apiFetch(`/vehicles/${selectedId}/assign`, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ orderId }) 
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] })
-      setShowAssign(false)
-      setSelectedOrderId('')
-    },
-  })
-
-  const releaseMutation = useMutation({
-    mutationFn: () => apiFetch(`/vehicles/${selectedId}/release`, { method: 'POST' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vehicles'] }),
-  })
-
-  const createMutation = useMutation({
-    mutationFn: () => vehiclesApi.create(createForm),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] })
-      setShowCreate(false)
-      setCreateForm({ type: 1 as VehicleType, licensePlate: '', model: '', capacityKg: 1000, capacityM3: 2 })
-    },
-  })
-
-  const vehicle = data?.vehicles?.find(v => v.id === selectedId)
-
-  const handleStatusChange = (newStatus: VehicleStatus) => {
-    if (!selectedId) return
-    updateStatusMutation.mutate({ id: selectedId, status: newStatus })
-  }
-
-  const handleAssign = () => {
-    if (!selectedOrderId) return
-    assignMutation.mutate(selectedOrderId)
-  }
+  const vehicle = data?.vehicles?.find(v => v.id === selectedId) ?? null
 
   if (isLoading) return <PageLoader />
   if (error) {
@@ -109,255 +50,25 @@ export function VehiclesPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {data?.vehicles?.map(vehicle => (
-            <button 
-              key={vehicle.id} 
-              onClick={() => { setSelectedId(vehicle.id); }} 
-              className="bg-surface rounded-xl border border-border p-4 hover:bg-surface-hover text-left"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-accent-lavender/10 flex items-center justify-center">
-                    <Truck className="w-5 h-5 text-accent-lavender" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-text-primary">{vehicle.id.slice(0, 8)}</p>
-                    <p className="text-sm text-text-secondary">{VEHICLE_TYPE_LABELS[vehicle.type]}</p>
-                  </div>
-                </div>
-                <Badge label={VEHICLE_STATUS_LABELS[vehicle.status]} color={VEHICLE_STATUS_COLORS[vehicle.status]} />
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><p className="text-text-muted">Грузоподъёмность</p><p className="text-text-primary">{vehicle.capacityKg} кг</p></div>
-                <div><p className="text-text-muted">Объём</p><p className="text-text-primary">{vehicle.capacityM3} м³</p></div>
-              </div>
-            </button>
+            <VehicleCard
+              key={vehicle.id}
+              vehicle={vehicle}
+              onClick={() => setSelectedId(vehicle.id)}
+            />
           ))}
         </div>
       )}
 
-      {/* Vehicle Details Modal */}
-      {selectedId && vehicle && (
-        <Modal isOpen={!!selectedId} onClose={() => { setSelectedId(null); }} title={`Транспорт ${selectedId.slice(0, 8)}`}>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3 bg-surface-hover rounded-lg">
-              <Truck className="w-5 h-5 text-accent-lavender" />
-              <div>
-                <p className="text-text-muted text-sm">Тип</p>
-                <p className="text-text-primary">{VEHICLE_TYPE_LABELS[vehicle.type]}</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-3 p-3 bg-surface-hover rounded-lg">
-                <Package className="w-5 h-5 text-accent-lavender" />
-                <div>
-                  <p className="text-text-muted text-sm">Грузоподъёмность</p>
-                  <p className="text-text-primary">{vehicle.capacityKg} кг</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 bg-surface-hover rounded-lg">
-                <Package className="w-5 h-5 text-accent-lavender" />
-                <div>
-                  <p className="text-text-muted text-sm">Объём</p>
-                  <p className="text-text-primary">{vehicle.capacityM3} м³</p>
-                </div>
-              </div>
-            </div>
+      <VehicleDetailsModal
+        vehicle={vehicle}
+        isOpen={!!selectedId}
+        onClose={() => setSelectedId(null)}
+      />
 
-            {vehicle.currentLocation && (
-              <div className="flex items-center gap-3 p-3 bg-surface-hover rounded-lg">
-                <MapPin className="w-5 h-5 text-accent-lavender" />
-                <div>
-                  <p className="text-text-muted text-sm">Местоположение</p>
-                  <p className="text-text-primary">
-                    {vehicle.currentLocation.lat.toFixed(4)}, {vehicle.currentLocation.lng.toFixed(4)}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {vehicle.currentOrderId && (
-              <div className="flex items-center gap-3 p-3 bg-surface-hover rounded-lg">
-                <Calendar className="w-5 h-5 text-accent-lavender" />
-                <div>
-                  <p className="text-text-muted text-sm">Текущий заказ</p>
-                  <p className="text-text-primary">{vehicle.currentOrderId.slice(0, 8)}</p>
-                </div>
-              </div>
-            )}
-
-            {vehicle.currentDriverId && (
-              <div className="flex items-center gap-3 p-3 bg-surface-hover rounded-lg">
-                <User className="w-5 h-5 text-accent-lavender" />
-                <div>
-                  <p className="text-text-muted text-sm">Вод��тель</p>
-                  <p className="text-text-primary">{vehicle.currentDriverId.slice(0, 8)}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Status Change */}
-            <div>
-              <p className="text-text-muted text-sm mb-2">Статус</p>
-              <div className="flex gap-2">
-                {vehicle.status !== 'AVAILABLE' && (
-                  <Button 
-                    size="sm" 
-                    variant="secondary"
-                    onClick={() => handleStatusChange('AVAILABLE')}
-                    disabled={updateStatusMutation.isPending}
-                  >
-                    Доступен
-                  </Button>
-                )}
-                {vehicle.status !== 'BUSY' && (
-                  <Button 
-                    size="sm" 
-                    variant="secondary"
-                    onClick={() => handleStatusChange('BUSY')}
-                    disabled={updateStatusMutation.isPending}
-                  >
-                    Занят
-                  </Button>
-                )}
-                {vehicle.status !== 'MAINTENANCE' && (
-                  <Button 
-                    size="sm" 
-                    variant="secondary"
-                    onClick={() => handleStatusChange('MAINTENANCE')}
-                    disabled={updateStatusMutation.isPending}
-                  >
-                    На обслуживании
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Assign/Release */}
-            <div className="flex gap-2 mt-4 pt-4 border-t border-border">
-              {vehicle.status === 'AVAILABLE' && (
-                <Button size="sm" onClick={() => setShowAssign(true)}>
-                  Назначить заказ
-                </Button>
-              )}
-              {vehicle.status === 'BUSY' && (
-                <Button size="sm" variant="secondary" onClick={() => releaseMutation.mutate()}>
-                  Освободить
-                </Button>
-              )}
-              <Button variant="secondary" size="sm" onClick={() => { setSelectedId(null); }}>Закрыть</Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* Assign Order Modal */}
-      <Modal isOpen={showAssign} onClose={() => { setShowAssign(false); setSelectedOrderId(''); }} title="Назначить заказ">
-        <div className="space-y-4">
-          <p className="text-text-muted text-sm">Выберите заказ:</p>
-          
-          {!pendingOrders?.orders?.length ? (
-            <p className="text-text-muted text-center py-4">Нет доступных заказов</p>
-          ) : (
-            <div className="max-h-60 overflow-y-auto space-y-2">
-              {pendingOrders?.orders?.map(order => (
-                <button
-                  key={order.id}
-                  onClick={() => setSelectedOrderId(order.id)}
-                  className={`w-full p-3 rounded-lg border text-left transition-colors ${
-                    selectedOrderId === order.id 
-                      ? 'border-accent-lavender bg-accent-lavender/10' 
-                      : 'border-border hover:bg-surface-hover'
-                  }`}
-                >
-                  <p className="font-medium text-text-primary">{order.id.slice(0, 8)}</p>
-                  <p className="text-sm text-text-muted">
-                    {order.origin?.address} → {order.destination?.address}
-                  </p>
-                  <p className="text-xs text-text-muted mt-1">
-                    {order.weightKg} кг, {order.volumeM3} м³
-                  </p>
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2 pt-4 border-t border-border">
-            <Button variant="secondary" onClick={() => { setShowAssign(false); setSelectedOrderId(''); }}>
-              Отмена
-            </Button>
-            <Button 
-              onClick={handleAssign} 
-              disabled={!selectedOrderId || assignMutation.isPending}
-            >
-              {assignMutation.isPending ? 'Назначение...' : 'Назначить'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Create Vehicle Modal */}
-      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Добавить машину">
-        <form
-          onSubmit={(e) => { e.preventDefault(); createMutation.mutate() }}
-          className="space-y-4"
-        >
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1">Тип ТС</label>
-            <select
-              className="w-full px-3 py-2 bg-surface-hover border border-border rounded-lg text-text-primary"
-              value={createForm.type}
-              onChange={e => setCreateForm(f => ({ ...f, type: Number(e.target.value) as VehicleType }))}
-              required
-            >
-              {Object.entries(VEHICLE_TYPE_LABELS).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-          </div>
-
-          <Input
-            label="Номерной знак"
-            value={createForm.licensePlate}
-            onChange={e => setCreateForm(f => ({ ...f, licensePlate: e.target.value }))}
-            placeholder="А123БВ77"
-            required
-          />
-
-          <Input
-            label="Модель (опционально)"
-            value={createForm.model}
-            onChange={e => setCreateForm(f => ({ ...f, model: e.target.value }))}
-            placeholder="Volvo FH16"
-          />
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Грузоподъемность (кг)"
-              type="number"
-              value={createForm.capacityKg}
-              onChange={e => setCreateForm(f => ({ ...f, capacityKg: Number(e.target.value) ?? 0 }))}
-              required
-            />
-            <Input
-              label="Объем (м³)"
-              type="number"
-              value={createForm.capacityM3}
-              onChange={e => setCreateForm(f => ({ ...f, capacityM3: Number(e.target.value) ?? 0 }))}
-              required
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4 border-t border-border">
-            <Button variant="secondary" onClick={() => setShowCreate(false)}>
-              Отмена
-            </Button>
-            <Button type="submit" disabled={createMutation.isPending || !createForm.licensePlate}>
-              {createMutation.isPending ? 'Создание...' : 'Создать'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      <CreateVehicleModal
+        isOpen={showCreate}
+        onClose={() => setShowCreate(false)}
+      />
     </div>
   )
 }

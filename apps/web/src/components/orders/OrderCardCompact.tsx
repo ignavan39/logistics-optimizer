@@ -20,7 +20,6 @@ export function OrderCardCompact({ order, isSelected, onClick, onStatusChange, s
     listeners,
     setNodeRef,
     transform,
-    transition,
     isDragging,
   } = useSortable({ id: order.id! })
 
