@@ -1,6 +1,6 @@
-# MEMORY — Current State
+# MEMORY — Project + Learning Log
 
-> First file to read. Contains: 🔴 critical facts, 🛠 active problems, 💡 last session.
+> Read first. Contains: 🔴 critical facts, 🛠 active problems, 📈 learning progress, 💡 last session.
 > Updated: 2026-05-13
 
 ---
@@ -26,6 +26,42 @@
 | `document-templates` ESM/CJS conflict | 🟡 Medium | `esModuleInterop: true` + `require()` | Migrate to ESM |
 | E2E gRPC timeouts (docker runner) | 🟡 Medium | Run locally with env vars | Fix docker-compose network |
 | Kafka KRaft unstable → ZooKeeper | 🟡 Medium | ZooKeeper mode | Use ZooKeeper |
+
+---
+
+## 📈 How I'm Learning
+
+### What I figured out this session
+
+| Insight | Evidence |
+|---------|----------|
+| Session = Problem + Command + Result pattern | make typecheck → 0 errors ✅ |
+| `make health-check` before session = fast state check | Used in this session |
+| "Proof it works" = command + expected + actual result | Will use in next session |
+| Clean docs first, then code | Saved 2+ hours of confusion |
+
+### Evidence (patterns that work)
+
+| Pattern | Command | Expected | Actual | Date |
+|---------|---------|----------|--------|------|
+| DataSource factory | `make typecheck` | 0 errors | ✅ 0 errors | 2026-05-13 |
+| KafkaJS consumer | `make test` | 49 passed | ✅ 49 passed | 2026-05-08 |
+| Graceful shutdown | `docker stop` | clean exit | ✅ signal handled | 2026-05-13 |
+| Docs cleanup first | `make health-check` | fast overview | ✅ | 2026-05-13 |
+
+### Blind spots (what I don't know well)
+
+| Topic | Last attempt | Confidence | What I need |
+|-------|--------------|------------|-------------|
+| E2E testing patterns | 2026-05-08 | 🟡 Medium | More practice |
+| gRPC error handling | 2026-05-13 | 🟡 Medium | Real examples |
+| Kafka KRaft vs ZooKeeper | 2026-05-08 | 🟡 Medium | More research |
+
+### What I want to try next
+
+- [ ] Use graphify for pattern detection in codebase
+- [ ] Build faster: check `make health-check` before starting
+- [ ] Write evidence for every new pattern I use
 
 ---
 
