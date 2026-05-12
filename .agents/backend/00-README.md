@@ -1,206 +1,88 @@
-# Backend Agent — Справочник для AI ассистентов
+# Backend Agent — Quick Reference
 
-> "Как работать с backend частью проекта"
-
----
-
-## 🎯 Главный принцип
-
-**Эволюционируй вместе с проектом.** Нашёл новый паттерн или ошибку → запиши в `.agents/backend/`:
-
-| Что нашёл | Куда |
-|----------|------|
-| Решение после проблемы | `01-ADRs.md` |
-| Межсервисный контракт | `02-Contracts.md` |
-| Антипаттерн (не делать) | `03-Pitfalls.md` |
-| Правильный паттерн (делать) | `04-Good-Practices.md` |
-| Паттерн тестирования | `05-Testing-Patterns.md` |
-| Процесс работы | `06-Processes.md` |
+> NestJS · TypeScript · TypeORM · PostgreSQL+PostGIS · gRPC · Kafka · Docker
 
 ---
 
-## ⚡ ПРАВИЛО: ЧИСТЫЙ КОД
+## 🔴 Critical Facts (read first)
 
-**После работы всегда убирай:**
-- `console.log`, `console.error` — используй `this.logger`
-- Дебаг-логи (`!!!`, `getOrderData: calling...`)
-- Временные файлы (`test-grpc.js`, ...)
-- Комментарии `// TEMP:`, `// DEBUG:`
-
-**Запомни это правило — всегда оставляй код чище чем брал.**
-
----
-
-## 🎯 СТАРТ СЕССИИ (обязательно)
-
-### 1. READ — перед любой задачей
-- [ ] Graphify → `graphify-out/GRAPH_REPORT.md` (архитектура + зависимости)
-- [ ] MEMORY.md (критические факты)
-- [ ] 00-README.md (архитектура + правила)
-- [ ] Проверил статус тестов: `pnpm test 2>&1 | grep -E "(failed|passed)"`
-- [ ] Убедился что infra жива: `docker compose ps | grep -E "(Up|healthy)"`
-- [ ] Скачал последние изменения: `git pull --rebase`
-- [ ] Запушил свои незакоммиченные изменения или stash
----
-
-
-## ⚡ ПРАВИЛО: РЕФЛЕКСИЯ ПОСЛЕ КАЖДОЙ ФИЧИ
-
-После реализации любой фичи — ответь на вопросы:
-
-| Вопрос | Если "да" → действие |
-|--------|---------------------|
-| Нарушил изоляцию БД? | Записать в MEMORY, исправить |
-| Есть race conditions? | Добавить lock |
-| Нужен повторяемый паттерн? | Записать в Good-Practices |
-| Изменил контракт? | Обновить Contracts.md |
-| Изменил схему БД? | Обновить DATABASE.md |
-
-**Без рефлексии — не коммитить!**
+| Fact | Context |
+|------|---------|
+| `@nestjs/typeorm` broken in Docker/pnpm | Use `new DataSource()` directly (ADR-001) |
+| **Use Makefile** for all commands | `make help` — single source of truth |
+| `git checkout -- .` | Rollbacks EVERYTHING. Use `git restore path` |
+| Init SQL runs once | `docker compose down -v && up -d` on schema errors |
 
 ---
 
-## 🧪 ПРАВИЛА ТЕСТИРОВАНИЯ
-
-### Типы тестов
-
-| Тип | Что тестирует | Запуск |
-|-----|-------------|-------|
-| **Unit** | Отдельные сервисы/функции | `pnpm test` |
-| **E2E** | Полный flow через HTTP | `./scripts/run-tests.sh --up --health --down` |
-| **Integration** | gRPC между сервисами | `./scripts/run-tests.sh --grpc-only` |
-
-### Золотое правило
+## 🏗️ Architecture
 
 ```
-После добавления фичи → ВСЕ ТРИ типа тестов должны ПРОХОДИТЬ
+api-gateway :3000 (HTTP)
+  └── gRPC ──► order :50051, fleet :50053, routing :50054,
+                tracking :50055, dispatcher :50056, counterparty :50057,
+                invoice :50052
+
+Kafka Topics: order.created/updated/delivered/assigned/completed/failed,
+              vehicle.status.changed/telemetry
 ```
 
-### Починить, а не костылить
+### Services
 
-| ❌ Неправильно | ✅ Правильно |
-|--------------|-------------|
-| Менять тест под баг | Глубоко разобраться в причине |
-| Удалять падающий тест | Починить реализацию |
-| Добавлять skip | Исправить код |
-| Mock'ить всё подряд | Понимать зависимости |
-
-### Глубокий анализ падений
-
-```bash
-# 1. Смотрим конкретную ошибку
-pnpm --filter @logistics/[service] test 2>&1 | tail -30
-
-# 2. Находим корневую причину (не симптом!)
-# 3. Чиним причину, не симптом
-# 4. Запускаем снова
-```
-
-### НИКОГДА НЕ делать:
-
-- ❌ Не менять тесты под баги
-- ❌ Не делать костыли
-- ❌ Не игнорировать падения
-- ❌ Не коммитить с падающими тестами
-
-**Правило: "чинить глубоко, а не менять тесты"**
+| Service | Port | DB | Key Patterns |
+|---------|------|-----|-------------|
+| api-gateway | 3000 | pg-auth | JWT, RBAC, WebSocket |
+| order-service | 50051 | pg-order | Outbox, State Machine |
+| fleet-service | 50053 | pg-fleet+PostGIS | OptimisticLock |
+| routing-service | 50054 | pg-routing+PostGIS | Route cache |
+| tracking-service | 50055 | pg-tracking | Backpressure, Batch writes |
+| dispatcher-service | 50056 | pg-dispatcher | Saga, Compensation |
+| counterparty-service | 50057 | pg-counterparty | OptimisticLock |
+| invoice-service | 50052 | pg-invoices | PDF gen, VAT calc |
 
 ---
 
-## ⚠️ ВАЖНО: КОММИТ = ПОДТВЕРЖДЕНИЕ + ТЕСТЫ
+## 🎯 Rules
 
-### Перед коммитом — ОБЯЗАТЕЛЬНО:
-
-```bash
-# 1. Typecheck
-make typecheck
-
-# 2. Unit тесты
-make test
-
-# 3. Линт
-make lint
-
-# 4. Рестарт сервисов
-make restart
-
-# 5. Логи
-make logs
-
-# 4. Показать итоги пользователю
-git status
-git diff --stat
 ```
-
-### После всех проверок:
-
-```bash
-# ТОЛЬКО после подтверждения пользователя
-git commit -m "..."
-```
-
-### НИКОГДА НЕ делать:
-
-- ❌ Коммитить без `pnpm typecheck` + `pnpm test`
-- ❌ Коммитить без подтверждения пользователя
-- ❌ Коммитить если тесты падают
-
-**Если сломалось — чиним ДО коммита, не после!**
-
----
-
-## Команды
-
-```bash
-# Dev
-pnpm install
-
-# Запуск сервисов (Рекомендуется )
-make up
-
-# Запуск фронтенда
-make web
-
-
-
-# 1. Typecheck
-make typecheck
-
-# 2. Unit тесты
-make test
-
-# 3. Линт
-make lint
-
-# 4. Рестарт сервисов
-make restart
-
-# 5. Логи
-make logs
+✅ Server state → React Query | Client state → Zustand
+✅ Forms → RHF + Zod
+✅ Map >50 markers → MarkerClusterGroup
+✅ Real-time → socket.ts + useWebSocket
+✅ Component = [loading] + [error] + [data] + [empty]
 ```
 
 ---
 
-## Сервисы
+## 🔌 gRPC Ports (Docker → localhost)
 
-```
-apps/
-├── api-gateway/         # Main API, HTTP 3000
-├── order-service/    # Заказы, gRPC 50051
-├── fleet-service/    # Транспорт, gRPC 50052
-├── routing-service/ # Маршруты, gRPC 50053
-├── tracking-service/ # GPS трекинг, gRPC 50054
-├── dispatcher-service/ # Диспетчеризация, gRPC 50055
-├── counterparty-service/ # Контрагенты
-└── invoice-service/ # Счета
-```
+| Service | Port |
+|---------|------|
+| order | 50051 |
+| invoice | 50052 |
+| fleet | 50053 |
+| routing | 50054 |
+| tracking | 50055 |
+| dispatcher | 50056 |
+| counterparty | 50057 |
 
 ---
 
-## Observability
+## 📡 WebSocket Events
 
-| Инструмент | URL |
-|-----------|-----|
+| Event | Payload | Where |
+|-------|---------|-------|
+| `order:update` | `{ orderId, status, ... }` | Orders list, detail |
+| `vehicle:update` | `{ vehicleId, lat, lng, speed }` | Map, tracking |
+| `order:assigned` | `{ orderId, vehicleId }` | Detail + toast |
+| `order:completed` | `{ orderId }` | List badge update |
+
+---
+
+## 🔍 Observability
+
+| Tool | URL |
+|------|-----|
 | Grafana | http://localhost:3001 (admin/admin) |
 | Jaeger | http://localhost:16686 |
 | Kafka UI | http://localhost:8080 |
@@ -208,18 +90,36 @@ apps/
 
 ---
 
-## Pre-commit
+## 📚 When to Read What
+
+| Task | Read |
+|------|------|
+| Any task | `MEMORY.md` — critical facts + active problems |
+| Backend task >50 lines | `00-README.md` + `02-Contracts.md` |
+| Writing tests | `05-Testing-Patterns.md` |
+| Something broken | `03-Pitfalls.md` (by symptom) |
+| Architecture decision | `01-ADRs.md` + `04-Good-Practices.md` |
+| New feature | `06-Processes.md` (runbooks) |
+
+---
+
+## ✅ Pre-commit (fast)
 
 ```bash
-pnpm lint && pnpm typecheck && pnpm build
+make typecheck && make lint && make test
 ```
 
 ---
 
-## Важно!
+## 💡 How to Update
 
-- **Stack**: NestJS + TypeScript + TypeORM + PostgreSQL + gRPC + Kafka + Docker
-- **Monorepo**: Nx
-- **ADR-001**: TypeORM через DataSource напрямую (не @nestjs/typeorm)
-- Все контракты смотри в `02-Contracts.md`
-- Все антипаттерны смотри в `03-Pitfalls.md`
+1. **New feature** → `00-README.md` (architecture)
+2. **gRPC/Kafka contract** → `02-Contracts.md` + `docs/COMMUNICATION.md`
+3. **DB schema** → `docs/DATABASE.md`
+4. **REST endpoint** → `docs/API.md`
+5. **New pattern** → `04-Good-Practices.md` (after 2+ uses)
+6. **Trap found** → `03-Pitfalls.md` (after >15 min debug)
+7. **Decision made** → `01-ADRs.md`
+8. **Critical fact** → `MEMORY.md`
+
+> Rule: If unsure — update. Extra record cheaper than lost knowledge.

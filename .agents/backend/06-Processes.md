@@ -1,227 +1,135 @@
-# Processes — Процессы работы
+# Processes — Runbooks
 
-> Чеклисты и процессы. Не надо запоминать — читай перед действием.
-
----
-
-## ⚡ Когда обновлять ЭТОТ файл
-
-Обнови если:
-- Изменился процесс разработки
-- Нашёл более эффективный способ делать рутинное действие
-- Добавился новый тип задач
+> Read before action. Don't memorize — check here.
 
 ---
 
-## 🔧 Troubleshooting: Docker Services
-
-```
-# Quick health check
-docker compose ps
-
-# Check specific service
-docker logs <container-name> --tail 20
-
-# Rebuild single service
-docker build --build-arg SERVICE=<service-name> -t logistics-<service-name>:latest .
-docker run -d --name test-<service-name> --network <net-id> \
-  -e SERVICE_NAME=<service-name> \
-  -e DB_HOST=pg-<service-name> \
-  logistics-<service-name>:latest
-
-# Common errors:
-# - TypeOrm "cannot resolve ModuleRef": NestJS version mismatch
-# - "invalid uuid": check entity @PrimaryColumn type
-```
-
----
-
-## 📅 Next Session Plan
-
-### Priority 1: Fix Services
-1. Check NestJS versions consistency
-   ```bash
-   grep -r '"@nestjs' package.json | head -20
-   ```
-2. Fix version mismatch (11.x root → 10.x services)
-3. Rebuild Docker images
-4. Deploy and test
-
-### Priority 2: Fix Tests
-- Run unit: `pnpm test`
-- Run e2e: `pnpm test:e2e`
-
-### Priority 3: API Test
-- Test full saga: auth → create order → assign vehicle → invoice
-
----
-
-## Feature Development Flow
-
-```
-1. Read .agents/backend/MEMORY.md              ← Что уже знаем?
-2. Read .agents/backend/00-README.md   ← Архитектура?
-3. Plan (>50 строк → обязательно)      ← Декомпозиция + архитектурный чек
-4. Write tests first                   ← Unit + Integration
-5. Implement                           ← По паттернам из 04-Good-Practices
-6. pnpm lint && pnpm typecheck         ← Обязательно перед коммитом
-7. UPDATE agent docs                   ← Что нового? (см. AGENTS.md чеклист)
-```
-
----
-
-## Создание нового сервиса
+## 🚀 Start Session
 
 ```bash
-# 1. Создать приложение
-nx g @nx/node:app новый-сервис --directory=apps
+make health-check
+```
 
-# 2. Настроить структуру
-apps/новый-сервис/src/
-├── main.ts
-├── app.module.ts
-├── shared/database/database.module.ts   ← скопировать шаблон из 04-Good-Practices
-└── [feature]/
-    ├── [feature].module.ts
-    ├── [feature].service.ts
-    ├── [feature].controller.ts (gRPC)
-    └── entities/
+Checks:
+- Docker containers running (`docker compose ps | grep Up`)
+- Git clean or stashed
+- Infra healthy
 
-# 3. Добавить в docker-compose.yml (infra/docker-compose.yml)
-# 4. Создать init SQL (infra/postgres/init-[service].sql)
-# 5. Добавить тестовый pgbouncer (порт 6408+)
-# 6. Добавить proto в libs/proto/
-# 7. Обновить docs/SERVICES.md
-# 8. Обновить docs/COMMUNICATION.md (новые gRPC методы)
-# 9. Обновить .agents/backend/00-README.md (таблица сервисов)
-# 10. Обновить AGENTS.md (архитектурная схема)
+---
+
+## 🛠 Feature Development
+
+```
+1. make health-check          # Verify infra
+2. Read MEMORY.md            # Critical facts + active problems
+3. Plan (>50 lines → MUST)   # Decompose + architect check
+4. Write tests first         # Unit → Integration → E2E
+5. Implement                 # Patterns from 04-Good-Practices
+6. make typecheck && make lint && make test  # Pre-commit
+7. UPDATE docs               # What changed?
 ```
 
 ---
 
-## Добавление gRPC метода
+## 🔌 Add gRPC Method
 
-```bash
-# 1. Определить в libs/proto/service.proto
-# 2. pnpm --filter @logistics/proto build
-# 3. Реализовать в сервисе (@GrpcMethod decorator)
-# 4. Добавить клиентский вызов в зависимом сервисе
-# 5. Написать интеграционный тест
-# 6. Обновить .agents/backend/02-Contracts.md
-# 7. Обновить docs/COMMUNICATION.md
+```
+1. libs/proto/service.proto — add RPC
+2. make proto                # Build proto types
+3. Implement @GrpcMethod()   # In service
+4. Add client call           # In dependent service
+5. Write integration test    # make test:grpc
+6. Update 02-Contracts.md + docs/COMMUNICATION.md
 ```
 
 ---
 
-## Добавление Kafka события
+## 📨 Add Kafka Topic
 
-```bash
-# 1. Добавить топик в infra/docker-compose.yml (kafka-init)
-# 2. Определить payload interface в libs/kafka-utils/src/events/
-# 3. Реализовать publisher через Outbox
-# 4. Реализовать consumer с IdempotencyGuard
-# 5. Написать интеграционный тест
-# 6. Обновить .agents/backend/02-Contracts.md
-# 7. Обновить docs/COMMUNICATION.md
+```
+1. infra/docker-compose.yml — add topic (kafka-init)
+2. libs/kafka-utils/src/events/ — define payload interface
+3. Publisher via Outbox     # NOT direct produce
+4. Consumer with IdempotencyGuard
+5. Write integration test
+6. Update 02-Contracts.md + docs/COMMUNICATION.md
 ```
 
 ---
 
-## Pre-commit чеклист
+## ✅ Code Review Checklist
+
+- [ ] No `process.env` → only `configService.get()`
+- [ ] No `@nestjs/typeorm` → only `DataSource`
+- [ ] No HTTP between services
+- [ ] Kafka publish via **Outbox** only
+- [ ] Kafka consumer → **IdempotencyGuard**
+- [ ] Concurrent entities → `@VersionColumn`
+- [ ] No `any` without justification
+- [ ] Tests written and passing
+- [ ] Docs updated
+- [ ] No secrets in code
+
+---
+
+## 🔍 Troubleshooting
+
+| Symptom | Command | Fix |
+|---------|---------|-----|
+| `Nest can't resolve dependencies` | `grep -r "@nestjs/typeorm" apps/` | DataSource factory (ADR-001) |
+| `column does not exist` | `docker compose down -v && up -d` | Init SQL not applied |
+| gRPC `Internal Error` | `docker exec pg-order psql -U logistics -d order_db -c "\dt"` | Check schema + Jaeger |
+| Kafka consumer lag | `open http://localhost:8080` | Check `processed_events` |
+| Jest can't find tests | `find apps libs -name "*.js" -path "*/src/*" -delete` | Delete compiled .js |
+
+---
+
+## 🔧 Quick Commands
 
 ```bash
-pnpm lint        # ESLint
-pnpm typecheck   # TypeScript строгий режим
-pnpm build       # Сборка (убеждаемся что нет ошибок компиляции)
-pnpm test        # Unit тесты
+# Infra
+make up            # Start Docker
+make down          # Stop Docker
+make logs          # Tail all logs
+make restart       # Restart services
+
+# Dev
+make web           # Frontend (localhost:5173)
+make proto         # Build proto files
+
+# Quality
+make typecheck     # TypeScript
+make lint          # ESLint
+make test          # Unit tests
+make test:e2e      # E2E (needs infra)
+make test:grpc     # gRPC integration
+
+# Cleanup
+make clean         # Remove containers + volumes
+make clean:all     # Remove everything including node_modules
 ```
 
 ---
 
-## Code Review чеклист
+## 🏗 Create New Service
 
-- [ ] Нет `process.env` (только `configService.get`)
-- [ ] Нет `@nestjs/typeorm` (только `DataSource`)
-- [ ] Нет HTTP вызовов между сервисами
-- [ ] Kafka publish через Outbox (не прямой вызов)
-- [ ] Kafka consumer проверяет идемпотентность
-- [ ] Конкурентно изменяемые сущности имеют `@VersionColumn`
-- [ ] Нет `any` без явного обоснования
-- [ ] Тесты написаны
-- [ ] Документация обновлена
-- [ ] Нет secrets в коде
-
----
-
-## Debugging — по симптому
-
-### "Nest can't resolve dependencies"
 ```bash
-# 1. Ищем @nestjs/typeorm
-grep -r "@nestjs/typeorm" apps/
-# 2. Заменяем на DataSource factory (ADR-001, ADR-005)
-```
-
-### "column does not exist"
-```bash
-# init SQL не применился — пересоздаём контейнер
-docker compose down -v
-docker compose up -d
-# Ждём 30-60 сек
-docker compose ps
-```
-
-### gRPC Internal Error при правильном readiness
-```bash
-# Проверяем схему БД
-docker compose exec postgres psql -U logistics -d order_db -c "\dt"
-# Смотрим трейс в Jaeger
-open http://localhost:16686
-```
-
-### Kafka consumer не получает сообщения
-```bash
-# Проверяем consumer group
-open http://localhost:8080  # Kafka UI
-# Ищем lag в consumer group
-```
-
-### Jest не находит тесты
-```bash
-# Ищем скомпилированные .js файлы в src/
-find apps libs tests -name "*.js" -path "*/src/*"
-# Удаляем их
-find apps libs tests -name "*.js" -path "*/src/*" -delete
+# 1. Copy from existing (e.g., counterparty-service)
+# 2. Add to docker-compose.services.yml
+# 3. Create init SQL in infra/postgres/init-[service].sql
+# 4. Add pgbouncer on port 640X (ADR-004)
+# 5. Add proto in libs/proto/
+# 6. Update: 00-README.md, 02-Contracts.md, docs/SERVICES.md, docs/COMMUNICATION.md
 ```
 
 ---
 
-## Полезные команды
+## 📊 Observability
 
-```bash
-# Запуск инфраструктуры
-docker compose up -d
-
-# Запуск одного сервиса
-pnpm --filter @logistics/order-service start:dev
-
-# Логи сервиса
-docker compose logs -f order-service
-
-# Подключиться к БД
-docker compose exec postgres psql -U logistics -d order_db
-
-# Посмотреть outbox
-docker compose exec postgres psql -U logistics -d order_db \
-  -c "SELECT event_type, processed_at, retry_count FROM outbox_events ORDER BY created_at DESC LIMIT 10"
-
-# Посмотреть processed_events
-docker compose exec postgres psql -U logistics -d dispatcher_db \
-  -c "SELECT event_id, event_type FROM processed_events ORDER BY processed_at DESC LIMIT 10"
-
-# Kafka топики
-docker compose exec kafka kafka-topics.sh --list --bootstrap-server localhost:9092
-
-# Запустить нагрузочный тест
-k6 run --env BASE_URL=http://localhost:3000 --env JWT_TOKEN=xxx infra/k6/load-test.js
-```
+| Tool | Command | URL |
+|------|---------|-----|
+| Logs | `make logs` | — |
+| Jaeger | `open http://localhost:16686` | Traces |
+| Kafka UI | `open http://localhost:8080` | Topics, lag |
+| Grafana | `open http://localhost:3001` | admin/admin |
+| Prometheus | `open http://localhost:9090` | Metrics |
