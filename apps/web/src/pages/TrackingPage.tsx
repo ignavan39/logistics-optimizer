@@ -32,22 +32,26 @@ const destIcon = L.divIcon({
 
 const getStatusColor = (status: OrderStatus): string => {
   const colors: Record<OrderStatus, string> = {
-    0: '#a8d8ea',
-    1: '#f59e0b',
-    2: '#22c55e',
-    3: '#ef4444',
-    4: '#6b7280'
+    pending: '#a8d8ea',
+    assigned: '#f59e0b',
+    picked_up: '#8b5cf6',
+    in_transit: '#22c55e',
+    delivered: '#6b7280',
+    failed: '#ef4444',
+    cancelled: '#6b7280',
   }
   return colors[status] || '#6b7280'
 }
 
 const getStatusLabel = (status: OrderStatus): string => {
   const labels: Record<OrderStatus, string> = {
-    0: 'Новый',
-    1: 'В пути',
-    2: 'Доставлен',
-    3: 'Проблема',
-    4: 'Отменен'
+    pending: 'Создан',
+    assigned: 'Назначен',
+    picked_up: 'Загружен',
+    in_transit: 'В пути',
+    delivered: 'Доставлен',
+    failed: 'Проблема',
+    cancelled: 'Отменён',
   }
   return labels[status] || 'Неизвестно'
 }
@@ -63,11 +67,11 @@ export function TrackingPage() {
     queryFn: () => apiFetch<{ orders: Order[] }>('/orders?limit=200'),
   })
 
-const orders = ordersData?.orders || []
+const orders = ordersData?.orders ?? []
   const ordersWithGeo = orders.filter(o => o.origin?.lat && o.destination?.lat)
   const filteredOrders = activeStatus === 'all' 
     ? ordersWithGeo 
-    : ordersWithGeo.filter(o => o.status === Number(activeStatus))
+    : ordersWithGeo.filter(o => o.status === activeStatus)
 
   useEffect(() => {
     const fetchRoutes = async () => {

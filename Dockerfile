@@ -17,32 +17,29 @@ COPY apps apps
 COPY libs libs
 COPY tsconfig.base.json ./
 
-RUN corepack enable && corepack prepare pnpm@latest --activate && \
-    pnpm install --frozen-lockfile
+RUN npm install -g pnpm@9.15.0 && pnpm install --ignore-scripts
 
 WORKDIR /workspace/libs/document-templates
 RUN pnpm build
 
 WORKDIR /workspace/libs/kafka-utils
-RUN pnpm build
+RUN pnpm install --ignore-scripts && pnpm build
 
 WORKDIR /workspace/apps/${SERVICE}
-RUN pnpm build
+RUN pnpm install --ignore-scripts && pnpm build
 
 FROM node:${NODE_VERSION} AS runner
 ARG SERVICE
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 RUN apk add --no-cache python3 make g++
+RUN npm install -g pnpm@9.15.0
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps apps
 COPY libs libs
 
-RUN pnpm config set public-hoist-pattern '*' && \
-    pnpm install --frozen-lockfile --prod --ignore-scripts && \
+RUN pnpm config set public-hoist-pattern '*' && pnpm install --ignore-scripts && \
     cd node_modules/.pnpm/bcrypt@5.1.1/node_modules/bcrypt && \
     npm rebuild
 

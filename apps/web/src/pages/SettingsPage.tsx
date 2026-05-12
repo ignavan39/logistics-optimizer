@@ -96,12 +96,12 @@ export function SettingsPage() {
   useEffect(() => {
     if (data) {
       setForm({
-        companyName: data.companyName || '',
-        companyInn: data.companyInn || '',
-        companyKpp: data.companyKpp || '',
-        companyAddress: data.companyAddress || '',
-        companyPhone: data.companyPhone || '',
-        companyEmail: data.companyEmail || '',
+        companyName: data?.companyName ?? '',
+        companyInn: data?.companyInn ?? '',
+        companyKpp: data?.companyKpp ?? '',
+        companyAddress: data?.companyAddress ?? '',
+        companyPhone: data?.companyPhone ?? '',
+        companyEmail: data?.companyEmail ?? '',
         defaultPaymentTermsDays: data.defaultPaymentTermsDays || 30,
         defaultVatRate: data.defaultVatRate || 20,
       })
@@ -463,7 +463,7 @@ function AdminUsersTab() {
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-accent-lavender" />
 
-  const users = data?.users || []
+  const users = data?.users ?? []
 
   return (
     <div>
@@ -633,7 +633,7 @@ function AdminRolesTab() {
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-accent-lavender" />
 
-  const roles = data || []
+  const roles = data ?? []
 
   return (
     <div className="space-y-4">
@@ -653,7 +653,7 @@ function AdminRolesTab() {
               <div key={role.id} className="bg-surface rounded-xl border border-border p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-medium text-text-primary">{role.name}</h3>
-                  <span className="text-text-muted text-sm">{role.userCount || 0} чел.</span>
+                  <span className="text-text-muted text-sm">{role.userCount ?? 0} чел.</span>
                 </div>
                 {role.description && (
                   <p className="text-text-secondary text-sm mb-2">{role.description}</p>
@@ -682,7 +682,7 @@ function AdminPermissionsTab() {
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-accent-lavender" />
 
-  const perms = data || []
+  const perms = data ?? []
 
   return (
     <div className="bg-surface rounded-xl border border-border overflow-hidden">
@@ -725,7 +725,7 @@ function AdminAuditTab() {
     },
   })
 
-  const logs = data?.logs || []
+  const logs = data?.logs ?? []
   const totalPages = data ? Math.ceil(data.total / 20) : 0
 
   return (

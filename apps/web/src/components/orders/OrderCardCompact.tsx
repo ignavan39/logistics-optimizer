@@ -1,5 +1,7 @@
 import { MapPin, Package, Clock, MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { ORDER_STATUS_COLORS, type Order, type OrderStatus, type OrderStatusInfo } from '@/types'
 
 interface OrderCardCompactProps {
@@ -12,6 +14,21 @@ interface OrderCardCompactProps {
 
 export function OrderCardCompact({ order, isSelected, onClick, onStatusChange, statuses = [] }: OrderCardCompactProps) {
   const [showMenu, setShowMenu] = useState(false)
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: order.id! })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: isDragging ? undefined : 'transform 200ms ease, opacity 200ms ease',
+    opacity: isDragging ? 0.5 : 1,
+  }
 
   const statusColor = ORDER_STATUS_COLORS[order.status as OrderStatus] || 'muted'
   const statusInfo = statuses.find(s => s.value === order.status)
@@ -29,7 +46,9 @@ export function OrderCardCompact({ order, isSelected, onClick, onStatusChange, s
 
   return (
     <div
-      onClick={onClick}
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
       className={`bg-background rounded-lg border p-3 cursor-pointer transition-all hover:shadow-md ${
         isSelected
           ? 'border-accent-lavender ring-1 ring-accent-lavender'
@@ -38,9 +57,14 @@ export function OrderCardCompact({ order, isSelected, onClick, onStatusChange, s
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <span className="font-mono text-sm text-accent-lavender font-medium">
-          #{order.id?.slice(0, 8)}
-        </span>
+        <div
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing"
+        >
+          <span className="font-mono text-sm text-accent-lavender font-medium">
+            #{order.id?.slice(0, 8)}
+          </span>
+        </div>
         <div className="relative">
           <button
             onClick={(e) => {
@@ -54,11 +78,11 @@ export function OrderCardCompact({ order, isSelected, onClick, onStatusChange, s
 
           {showMenu && (
             <div className="absolute right-0 top-6 z-10 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px]">
-              {order.status === 0 && (
+              {order.status === 'pending' && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    onStatusChange(1)
+                    onStatusChange('assigned')
                     setShowMenu(false)
                   }}
                   className="w-full px-3 py-2 text-left text-sm hover:bg-surface-hover"
@@ -66,11 +90,23 @@ export function OrderCardCompact({ order, isSelected, onClick, onStatusChange, s
                   Назначить
                 </button>
               )}
-              {order.status === 1 && (
+              {order.status === 'assigned' && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    onStatusChange(2)
+                    onStatusChange('picked_up')
+                    setShowMenu(false)
+                  }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-surface-hover"
+                >
+                  Загружен
+                </button>
+              )}
+              {order.status === 'picked_up' && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onStatusChange('in_transit')
                     setShowMenu(false)
                   }}
                   className="w-full px-3 py-2 text-left text-sm hover:bg-surface-hover"
@@ -78,23 +114,11 @@ export function OrderCardCompact({ order, isSelected, onClick, onStatusChange, s
                   В путь
                 </button>
               )}
-              {order.status === 2 && (
+              {order.status !== 'in_transit' && order.status !== 'delivered' && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    onStatusChange(3)
-                    setShowMenu(false)
-                  }}
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-surface-hover"
-                >
-                  Доставлен
-                </button>
-              )}
-              {order.status !== 4 && order.status !== 3 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onStatusChange(4)
+                    onStatusChange('cancelled')
                     setShowMenu(false)
                   }}
                   className="w-full px-3 py-2 text-left text-sm text-status-error hover:bg-status-error/10"
@@ -107,18 +131,20 @@ export function OrderCardCompact({ order, isSelected, onClick, onStatusChange, s
         </div>
       </div>
 
-      {/* Status badge */}
-      <div className="mb-2">
-        <span
-          className="text-xs px-2 py-0.5 rounded"
-          style={{ backgroundColor: `${statusColor}20`, color: statusColor }}
-        >
-          {statusLabel}
-        </span>
-      </div>
+      {/* Content area - clickable */}
+      <div onClick={onClick} className="cursor-pointer">
+        {/* Status badge */}
+        <div className="mb-2">
+          <span
+            className="text-xs px-2 py-0.5 rounded"
+            style={{ backgroundColor: `${statusColor}20`, color: statusColor }}
+          >
+            {statusLabel}
+          </span>
+        </div>
 
-      {/* Route */}
-      <div className="space-y-1.5 text-sm">
+        {/* Route */}
+        <div className="space-y-1.5 text-sm">
         {order.origin && (
           <div className="flex items-start gap-2">
             <MapPin className="w-3 h-3 text-accent-lavender mt-0.5 flex-shrink-0" />
@@ -136,9 +162,10 @@ export function OrderCardCompact({ order, isSelected, onClick, onStatusChange, s
           </div>
         )}
       </div>
+      </div>
 
       {/* Cargo & Time */}
-      <div className="flex items-center justify-between mt-3 pt-2 border-t border-border">
+      <div onClick={onClick} className="flex items-center justify-between mt-3 pt-2 border-t border-border cursor-pointer">
         <div className="flex items-center gap-1 text-xs text-text-muted">
           <Package className="w-3 h-3" />
           <span className="truncate max-w-[80px]">

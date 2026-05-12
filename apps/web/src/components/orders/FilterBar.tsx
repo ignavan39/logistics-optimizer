@@ -1,12 +1,12 @@
 import { Search, Filter, X, Calendar } from 'lucide-react'
 import { useState } from 'react'
-import type { OrderStatusInfo } from '@/types'
+import type { OrderStatus, OrderStatusInfo } from '@/types'
 
 interface FilterBarProps {
   search: string
   onSearchChange: (value: string) => void
-  statusFilter: number[]
-  onStatusChange: (statuses: number[]) => void
+  statusFilter: OrderStatus[]
+  onStatusChange: (statuses: OrderStatus[]) => void
   dateFilter: string
   onDateChange: (date: string) => void
   onCreateClick: () => void
@@ -35,16 +35,16 @@ export function FilterBar({
   const statusOptions = statuses.length > 0 
     ? statuses.map(s => ({ value: s.value, label: s.label }))
     : [
-        { value: 1, label: 'Создан' },
-        { value: 2, label: 'Назначен' },
-        { value: 3, label: 'Загружен' },
-        { value: 4, label: 'В пути' },
-        { value: 5, label: 'Доставлен' },
-        { value: 6, label: 'Проблема' },
-        { value: 7, label: 'Отменен' },
+        { value: 'pending' as OrderStatus, label: 'Создан' },
+        { value: 'assigned' as OrderStatus, label: 'Назначен' },
+        { value: 'picked_up' as OrderStatus, label: 'Загружен' },
+        { value: 'in_transit' as OrderStatus, label: 'В пути' },
+        { value: 'delivered' as OrderStatus, label: 'Доставлен' },
+        { value: 'failed' as OrderStatus, label: 'Проблема' },
+        { value: 'cancelled' as OrderStatus, label: 'Отменен' },
       ]
 
-  const toggleStatus = (status: number) => {
+  const toggleStatus = (status: OrderStatus) => {
     if (statusFilter.includes(status)) {
       onStatusChange(statusFilter.filter(s => s !== status))
     } else {
@@ -88,7 +88,7 @@ export function FilterBar({
           Фильтры
           {hasFilters && (
             <span className="w-5 h-5 bg-accent-lavender text-background text-xs rounded-full flex items-center justify-center">
-              {(statusFilter.length || 0) + (search ? 1 : 0)}
+              {(statusFilter.length ?? 0) + (search ? 1 : 0)}
             </span>
           )}
         </button>

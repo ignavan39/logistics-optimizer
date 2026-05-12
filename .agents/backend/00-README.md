@@ -113,13 +113,19 @@ pnpm --filter @logistics/[service] test 2>&1 | tail -30
 
 ```bash
 # 1. Typecheck
-pnpm typecheck
+make typecheck
 
 # 2. Unit тесты
-pnpm test
+make test
 
 # 3. Линт
-pnpm lint
+make lint
+
+# 4. Рестарт сервисов
+make restart
+
+# 5. Логи
+make logs
 
 # 4. Показать итоги пользователю
 git status
@@ -148,19 +154,29 @@ git commit -m "..."
 ```bash
 # Dev
 pnpm install
-pnpm build
-pnpm start:dev
 
-# Один сервис
-pnpm --filter @logistics/order-service start:dev
+# Запуск сервисов (Рекомендуется )
+make up
 
-# Tests
-pnpm test
-pnpm test:e2e
+# Запуск фронтенда
+make web
 
-# Линтинг
-pnpm lint
-pnpm typecheck
+
+
+# 1. Typecheck
+make typecheck
+
+# 2. Unit тесты
+make test
+
+# 3. Линт
+make lint
+
+# 4. Рестарт сервисов
+make restart
+
+# 5. Логи
+make logs
 ```
 
 ---

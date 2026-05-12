@@ -8,6 +8,8 @@ import { FilterBar } from '@/components/orders/FilterBar'
 import { KabanBoard } from '@/components/orders/KabanBoard'
 import { CreateOrderModal } from '@/components/orders/CreateOrderModal'
 import { Order, type OrderStatus, type UpdateOrderStatusDto, type OrderStatusInfo } from '@/types'
+import { useToastStore } from '@/lib/toast'
+import { isValidTransition, STATUS_LABELS } from '@/lib/order-transitions'
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('ru-RU', {
@@ -19,13 +21,14 @@ function formatCurrency(amount: number) {
 
 export function DashboardPage() {
   const queryClient = useQueryClient()
-  
+
   // Filter state
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<number[]>([])
+  const [statusFilter, setStatusFilter] = useState<OrderStatus[]>([])
   const [dateFilter, setDateFilter] = useState('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
+  const [draggingOrderId, setDraggingOrderId] = useState<string | null>(null)
 
   // Fetch statuses
   const { data: statusesData } = useQuery<{ statuses: OrderStatusInfo[] }>({
@@ -34,17 +37,17 @@ export function DashboardPage() {
     staleTime: Infinity,
   })
 
-  const defaultStatuses = [
-    { value: 1, key: 'pending', label: 'Создан' },
-    { value: 2, key: 'assigned', label: 'Назначен' },
-    { value: 3, key: 'picked_up', label: 'Загружен' },
-    { value: 4, key: 'in_transit', label: 'В пути' },
-    { value: 5, key: 'delivered', label: 'Доставлен' },
-    { value: 6, key: 'failed', label: 'Проблема' },
-    { value: 7, key: 'cancelled', label: 'Отменен' },
+  const defaultStatuses: OrderStatusInfo[] = [
+    { value: 'pending', key: 'pending', label: 'Создан' },
+    { value: 'assigned', key: 'assigned', label: 'Назначен' },
+    { value: 'picked_up', key: 'picked_up', label: 'Загружен' },
+    { value: 'in_transit', key: 'in_transit', label: 'В пути' },
+    { value: 'delivered', key: 'delivered', label: 'Доставлен' },
+    { value: 'failed', key: 'failed', label: 'Проблема' },
+    { value: 'cancelled', key: 'cancelled', label: 'Отменен' },
   ]
 
-  const statuses = (statusesData?.statuses?.length ? statusesData.statuses : defaultStatuses) as OrderStatusInfo[]
+  const statuses = (statusesData?.statuses?.length ? statusesData.statuses : defaultStatuses)
 
   // Fetch orders
   const { data: ordersData, isLoading, refetch } = useQuery<{ orders: Order[] }>({
@@ -72,11 +75,18 @@ export function DashboardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
     },
+    onError: (_error: any, vars) => {
+      const fromStatus = orders.find(o => o.id === vars.id)?.status as OrderStatus
+      const toStatus = vars.dto.status
+      const fromLabel = STATUS_LABELS[fromStatus] ?? fromStatus
+      const toLabel = STATUS_LABELS[toStatus] ?? toStatus
+      useToastStore.getState().addToast('error', `Нельзя перевести заказ из "${fromLabel}" в "${toLabel}"`)
+    },
   })
 
-  const orders = ordersData?.orders || []
-  const vehicles = vehiclesData?.vehicles || []
-  const invoices = invoicesData?.items || []
+  const orders = ordersData?.orders ?? []
+  const vehicles = vehiclesData?.vehicles ?? []
+  const invoices = invoicesData?.items ?? []
 
   // Apply filters
   const filteredOrders = orders.filter((order) => {
@@ -115,8 +125,8 @@ export function DashboardPage() {
   // Stats
   const orderStats = {
     total: filteredOrders.length,
-    active: filteredOrders.filter(o => o.status === 1 || o.status === 2).length,
-    delivered: filteredOrders.filter(o => o.status === 3).length,
+    active: filteredOrders.filter(o => o.status === 'assigned' || o.status === 'picked_up' || o.status === 'in_transit').length,
+    delivered: filteredOrders.filter(o => o.status === 'delivered').length,
   }
 
   const vehicleStats = {
@@ -126,11 +136,21 @@ export function DashboardPage() {
   }
 
   const invoiceStats = {
-    paid: invoices.filter(i => i.status === 2).reduce((sum, i) => sum + (i.amount || 0), 0),
+    paid: invoices.filter(i => i.status === 2).reduce((sum, i) => sum + (i.amount ?? 0), 0),
     pending: invoices.filter(i => i.status === 0 || i.status === 1).length,
   }
 
   const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
+    const order = orders.find(o => o.id === orderId)
+    if (!order) return
+
+    if (!isValidTransition(order.status as OrderStatus, newStatus)) {
+      const fromLabel = STATUS_LABELS[order.status] ?? order.status
+      const toLabel = STATUS_LABELS[newStatus] ?? newStatus
+      useToastStore.getState().addToast('error', `Нельзя перевести заказ из "${fromLabel}" в "${toLabel}"`)
+      return
+    }
+
     updateStatusMutation.mutate({
       id: orderId,
       dto: { status: newStatus },
@@ -145,7 +165,7 @@ export function DashboardPage() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-6">
           <h1 className="text-2xl font-semibold text-text-primary">Заказы</h1>
-          
+
           {/* Quick stats */}
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1.5">
@@ -201,6 +221,9 @@ export function DashboardPage() {
           selectedId={selectedId}
           onOrderClick={setSelectedId}
           onStatusChange={handleStatusChange}
+          onDragStart={setDraggingOrderId}
+          onDragEnd={() => setDraggingOrderId(null)}
+          draggingOrderId={draggingOrderId}
           statuses={statuses}
         />
       </div>

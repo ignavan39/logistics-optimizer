@@ -30,7 +30,7 @@ export function CounterpartyDetailPage() {
     queryFn: () => contractsApi.list(),
   })
 
-  const contracts = allContracts?.filter(c => c.counterpartyId === id) || []
+  const contracts = allContracts?.filter(c => c.counterpartyId === id) ?? []
 
   const { data: invoicesData, isLoading: loadingInvoices } = useQuery({
     queryKey: ['invoices', 'counterparty', id],

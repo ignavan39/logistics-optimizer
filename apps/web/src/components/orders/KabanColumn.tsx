@@ -4,22 +4,23 @@ import { OrderCardCompact } from './OrderCardCompact'
 import { type Order, type OrderStatus, type OrderStatusInfo } from '@/types'
 
 interface KabanColumnProps {
-  status: number
+  status: OrderStatus
   orders: Order[]
   selectedId: string | null
   onOrderClick: (id: string) => void
   onStatusChange: (orderId: string, status: OrderStatus) => void
   statuses?: OrderStatusInfo[]
+  isDropDisabled?: boolean
 }
 
-const COLORS: Record<number, string> = {
-  1: '#a8d8ea',
-  2: '#f59e0b',
-  3: '#8b5cf6',
-  4: '#22c55e',
-  5: '#6b7280',
-  6: '#ef4444',
-  7: '#6b7280',
+const COLORS: Record<OrderStatus, string> = {
+  pending: '#a8d8ea',
+  assigned: '#f59e0b',
+  picked_up: '#8b5cf6',
+  in_transit: '#22c55e',
+  delivered: '#6b7280',
+  failed: '#ef4444',
+  cancelled: '#6b7280',
 }
 
 export function KabanColumn({
@@ -29,9 +30,11 @@ export function KabanColumn({
   onOrderClick,
   onStatusChange,
   statuses = [],
+  isDropDisabled = false,
 }: KabanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${status}`,
+    disabled: isDropDisabled,
   })
 
   const color = COLORS[status] || '#6b7280'
@@ -41,9 +44,9 @@ export function KabanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 min-w-[250px] bg-surface rounded-xl border flex flex-col ${
-        isOver ? 'border-accent-lavender' : 'border-border'
-      }`}
+      className={`flex-1 min-w-[250px] bg-surface rounded-xl border flex flex-col transition-opacity ${
+        isOver && !isDropDisabled ? 'border-accent-lavender' : 'border-border'
+      } ${isDropDisabled ? 'opacity-40' : ''}`}
     >
       {/* Column header */}
       <div className="p-3 border-b border-border flex items-center justify-between">

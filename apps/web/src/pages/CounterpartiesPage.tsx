@@ -23,10 +23,10 @@ function getFormFromCounterparty(cp: Counterparty): CounterpartyFormData {
   return {
     name: cp.name,
     type: cp.type,
-    inn: cp.inn || '',
-    kpp: cp.kpp || '',
-    contactEmail: cp.contactEmail || '',
-    contactPhone: cp.contactPhone || '',
+    inn: cp.inn ?? '',
+    kpp: cp.kpp ?? '',
+    contactEmail: cp.contactEmail ?? '',
+    contactPhone: cp.contactPhone ?? '',
   }
 }
 

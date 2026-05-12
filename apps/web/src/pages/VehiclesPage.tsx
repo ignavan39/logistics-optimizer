@@ -336,14 +336,14 @@ export function VehiclesPage() {
               label="Грузоподъемность (кг)"
               type="number"
               value={createForm.capacityKg}
-              onChange={e => setCreateForm(f => ({ ...f, capacityKg: Number(e.target.value) || 0 }))}
+              onChange={e => setCreateForm(f => ({ ...f, capacityKg: Number(e.target.value) ?? 0 }))}
               required
             />
             <Input
               label="Объем (м³)"
               type="number"
               value={createForm.capacityM3}
-              onChange={e => setCreateForm(f => ({ ...f, capacityM3: Number(e.target.value) || 0 }))}
+              onChange={e => setCreateForm(f => ({ ...f, capacityM3: Number(e.target.value) ?? 0 }))}
               required
             />
           </div>
