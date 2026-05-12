@@ -1,7 +1,7 @@
-# 04-Good-Practices.md (Optimized Merge)
+# 04-Good-Practices.md
 
-> 🎯 Паттерны для копирования. Адаптируй имена, сохраняй структуру.  
-> 🔄 Обновляй только при: новом работающем паттерне (2+ использования), изменении стека, критичном улучшении.
+> Паттерны для копирования. Адаптируй имена, сохраняй структуру.
+> Обновлён: 2026-05-13 (Graphify scan: 974 nodes, 232 communities)
 
 ---
 
@@ -277,6 +277,62 @@ export class S3Service {
 ```bash
 # После изменений
 pnpm build && pnpm typecheck
+```
+
+---
+
+## 🔍 Graphify Insights (2026-05-13)
+
+Graphify scan: 974 nodes, 955 edges, 232 communities (AST-only, apps/)
+
+### What we learned
+
+| Insight | Evidence | Action |
+|---------|----------|--------|
+| **Coverage files are noise** | Communities 4, 9 contain lcov-report JS (sorter.js, prettify.js) | Exclude `**/coverage/**` from future scans |
+| **Services are isolated** | Most communities = 1 node (each service is its own island) | Cross-service communication via gRPC/Kafka only |
+| **God nodes = core services** | CounterpartyService(23), AuthService(17), SettingsService(13) | These are most imported → architectural foundations |
+| **DTOs form tight clusters** | Community 38: Fleet DTOs, Community 39: Auth DTOs | Good cohesion, services own their contracts |
+| **Kafka consumer → WebSocket** | NotificationsConsumer(13) → NotificationsGateway(12) | Pattern: Kafka consumer → internal emit → WebSocket |
+| **Invoice has most steps** | Community 13: 8 methods (create, get, byOrder, pdfUrl, list, map, etc.) | Invoice is most complex gRPC controller |
+
+### Pattern: Service Structure (confirmed by graph)
+```typescript
+// Every service follows this pattern
+src/
+├── app.module.ts              // Root module
+├── main.ts                    // Bootstrap
+├── [domain].module.ts         // Feature module
+├── [domain].service.ts        // Business logic
+├── [domain].grpc.controller.ts // gRPC handlers
+└── entities/                 // Database entities
+
+// Example: counterparty-service
+counterparty.service.ts     // Business logic (23 edges - most connected!)
+counterparty.grpc.controller.ts // gRPC (15 edges)
+counterparty.entity.ts      // DB entity
+contract.service.ts         // Related business logic
+```
+
+### Pattern: Kafka → WebSocket Pipeline
+```typescript
+// Confirmed working pattern (Graphify: NotificationsConsumer → NotificationsGateway)
+class NotificationsConsumer {
+  async handleMessage(msg: KafkaMessage) {
+    const data = JSON.parse(msg.value.toString());
+    // Business logic
+    this.gateway.emitToUser(userId, 'order:update', data); // WebSocket emit
+  }
+}
+```
+
+### Frontend pattern (from graph)
+```typescript
+// Services cluster by domain
+pages/OrderPage.tsx         // Page → component
+├── components/orders/      // Domain components
+├── components/ui/          // Shared UI
+└── lib/api.ts             // API client (grouped by domain)
 ```
 
 ---

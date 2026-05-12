@@ -39,6 +39,8 @@
 | `make health-check` before session = fast state check | Used in this session |
 | "Proof it works" = command + expected + actual result | Will use in next session |
 | Clean docs first, then code | Saved 2+ hours of confusion |
+| **Graphify finds patterns I missed** | Found 232 communities, coverage noise, service isolation |
+| **Backend has dead libs** | kafka-utils (0 imports), duplicate OutboxProcessor |
 
 ### Evidence (patterns that work)
 
@@ -48,6 +50,7 @@
 | KafkaJS consumer | `make test` | 49 passed | ✅ 49 passed | 2026-05-08 |
 | Graceful shutdown | `docker stop` | clean exit | ✅ signal handled | 2026-05-13 |
 | Docs cleanup first | `make health-check` | fast overview | ✅ | 2026-05-13 |
+| Graphify AST-only scan | `graphify apps/` | 974 nodes | ✅ | 2026-05-13 |
 
 ### Blind spots (what I don't know well)
 
@@ -59,9 +62,9 @@
 
 ### What I want to try next
 
-- [ ] Use graphify for pattern detection in codebase
-- [ ] Build faster: check `make health-check` before starting
-- [ ] Write evidence for every new pattern I use
+- [ ] Use graphify --update for incremental scans
+- [ ] Actually delete kafka-utils (or refactor to use it)
+- [ ] Extract shared DatabaseModule to libs/database
 
 ---
 
