@@ -1,0 +1,116 @@
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common'
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
+import { FleetService } from './fleet.service'
+import { AssignVehicleDto, type ReleaseVehicleDto, type UpdateVehicleDto, type CreateVehicleDto } from './dto/fleet.dto'
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { RbacGuard } from '../auth/guards/rbac.guard'
+import { Permissions as PermissionDecorator } from '../auth/decorators/permissions.decorator'
+import { AuditLog as AuditDecorator } from '../auth/decorators/audit.decorator'
+import { Permissions } from '../auth/permissions/permissions'
+
+@ApiTags('fleet')
+@Controller('vehicles')
+export class FleetController {
+  constructor(private fleetService: FleetService) {}
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @PermissionDecorator(Permissions.VEHICLES_CREATE)
+  @AuditDecorator('vehicle.created', 'vehicle')
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new vehicle' })
+  async createVehicle(@Body() dto: CreateVehicleDto) {
+    return this.fleetService.createVehicle({
+      license_plate: dto.licensePlate,
+      type: dto.type,
+      capacity_kg: dto.capacityKg,
+      capacity_m3: dto.capacityM3,
+      model: dto.model,
+    })
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @PermissionDecorator(Permissions.VEHICLES_READ)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get available vehicles near a location' })
+  async getAvailableVehicles(
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+    @Query('radius_km') radiusKm?: string,
+    @Query('min_capacity_kg') minCapacityKg?: string,
+    @Query('min_capacity_m3') minCapacityM3?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.fleetService.getAvailableVehicles({
+      near_point: lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : undefined,
+      radius_km: radiusKm ? parseFloat(radiusKm) : undefined,
+      min_capacity_kg: minCapacityKg ? parseInt(minCapacityKg) : undefined,
+      min_capacity_m3: minCapacityM3 ? parseFloat(minCapacityM3) : undefined,
+      limit: limit ? parseInt(limit) : undefined,
+    })
+  }
+
+  @Get(':vehicleId')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @PermissionDecorator(Permissions.VEHICLES_READ)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get vehicle by ID' })
+  async getVehicle(@Param('vehicleId') vehicleId: string) {
+    return this.fleetService.getVehicle(vehicleId)
+  }
+
+  @Get(':vehicleId/details')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @PermissionDecorator(Permissions.VEHICLES_READ)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get vehicle details' })
+  async getVehicleDetails(@Param('vehicleId') vehicleId: string) {
+    return this.fleetService.getVehicleDetails(vehicleId)
+  }
+
+  @Post(':vehicleId/assign')
+  @UseGuards(JwtAuthGuard)
+  @PermissionDecorator(Permissions.VEHICLES_ASSIGN)
+  @AuditDecorator('vehicle.assigned', 'vehicle')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Assign vehicle to order' })
+  async assignVehicle(
+    @Param('vehicleId') vehicleId: string,
+    @Body() dto: AssignVehicleDto,
+  ) {
+    return this.fleetService.assignVehicle({
+      ...dto,
+      vehicle_id: vehicleId,
+    })
+  }
+
+  @Post(':vehicleId/release')
+  @UseGuards(JwtAuthGuard)
+  @PermissionDecorator(Permissions.VEHICLES_RELEASE)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Release vehicle from order' })
+  async releaseVehicle(
+    @Param('vehicleId') vehicleId: string,
+    @Body() dto: ReleaseVehicleDto,
+  ) {
+    return this.fleetService.releaseVehicle({
+      ...dto,
+      vehicle_id: vehicleId,
+    })
+  }
+
+  @Patch(':vehicleId')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @PermissionDecorator(Permissions.VEHICLES_UPDATE)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update vehicle' })
+  async updateVehicle(
+    @Param('vehicleId') vehicleId: string,
+    @Body() dto: UpdateVehicleDto,
+  ) {
+    return this.fleetService.updateVehicle(vehicleId, dto)
+  }
+}
